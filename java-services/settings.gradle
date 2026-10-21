@@ -1,0 +1,7 @@
+rootProject.name = 'collabflow-java'
+
+include 'common'
+include 'api-gateway'
+include 'auth-service'
+include 'platform-service'
+include 'task-service'

@@ -1,7 +1,15 @@
 # api-gateway
 
 **Port:** 8080 · **Stack:** Java 21 / Spring Cloud Gateway / Gradle  
-**Role:** Route `/api/v1/**` to services; JWT validation at the edge.
+**Role:** Route `/api/v1/**` to services; JWT validation at the edge (later).
 
-Routes: [docs/services-mvp.md](../../docs/services-mvp.md).  
-Status: placeholder — skeleton Week 2.
+## Run
+
+```bash
+cd ../
+gradlew.bat :api-gateway:bootRun
+# with auth-service also running:
+curl http://localhost:8080/api/v1/auth/health
+```
+
+Routes: [docs/services-mvp.md](../../docs/services-mvp.md).

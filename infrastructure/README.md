@@ -39,24 +39,40 @@ If `../.env` is missing, compose still works with defaults from `docker-compose.
 
 | Port | Service |
 |------|---------|
-| 5432 | PostgreSQL (`collabflow` / `collabflow` / `collabflow`) |
+| 5432 | PostgreSQL — DB/user/password from `../.env` (`POSTGRES_*`) |
 | 6379 | Redis |
 | 2181 | ZooKeeper |
-| 9092 | Kafka (clients on the host use `localhost:9092`) |
+| 9092 | Kafka (host clients: `localhost:9092`) |
+
+Example local creds (see your `.env`): DB `collabflow`, user `postgres`, password `root`.
 
 Inside the Docker network, other containers should use `kafka:29092`.
+
+**Changing `POSTGRES_USER` / password after the first start:** Postgres only applies these on an empty volume. Reset with:
+
+```bash
+docker compose --env-file ../.env down -v
+docker compose --env-file ../.env up -d
+```
 
 ## Smoke checks
 
 ```bash
-# Postgres
-docker exec -it collabflow-postgres pg_isready -U collabflow
+# Postgres (use the same user as POSTGRES_USER in .env)
+docker exec -it collabflow-postgres pg_isready -U postgres
 
 # Redis
 docker exec -it collabflow-redis redis-cli ping
 
 # Kafka — list topics (may be empty at first)
 docker exec -it collabflow-kafka kafka-topics --bootstrap-server localhost:9092 --list
+```
+
+JDBC URL for apps later:
+
+```text
+jdbc:postgresql://localhost:5432/collabflow
+# user=postgres  password=root  (from .env)
 ```
 
 ## Learning note

@@ -1,0 +1,29 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: auth-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+collabflow:
+  jwt:
+    # Override in prod via env COLLABFLOW_JWT_SECRET (min 32 chars)
+    secret: ${COLLABFLOW_JWT_SECRET:collabflow-dev-jwt-secret-change-me-32c}
+    access-token-minutes: ${COLLABFLOW_JWT_ACCESS_MINUTES:30}
+    refresh-token-days: ${COLLABFLOW_JWT_REFRESH_DAYS:7}

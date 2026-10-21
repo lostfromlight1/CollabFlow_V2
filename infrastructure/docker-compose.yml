@@ -12,15 +12,16 @@ services:
     container_name: collabflow-postgres
     restart: unless-stopped
     environment:
+      # Values come from ../.env (see .env.example). Defaults match local Kaung setup.
       POSTGRES_DB: ${POSTGRES_DB:-collabflow}
-      POSTGRES_USER: ${POSTGRES_USER:-collabflow}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-collabflow}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - collabflow_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-collabflow} -d ${POSTGRES_DB:-collabflow}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10

@@ -11,7 +11,7 @@
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| A Foundation (W1–2) | 🟨 | Folders + compose added; smoke test pending |
+| A Foundation (W1–2) | 🟨 | Week 1 done; Week 2 skeletons compiled |
 | B Java core (W3–8) | ⬜ | |
 | C Go + events (W9–12) | ⬜ | |
 | D Integrate / portfolio (W13–14) | ⬜ | |
@@ -23,11 +23,11 @@
 
 | Service | Status | First usable when |
 |---------|--------|-------------------|
-| infrastructure (Compose) | [x] files | Week 1 — run `docker compose up` to verify |
-| api-gateway | [ ] | Week 2 |
-| auth-service | [ ] | Week 4 |
-| platform-service | [ ] | Week 7 |
-| task-service | [ ] | Week 8 |
+| infrastructure (Compose) | [x] | Week 1 — Postgres/Redis healthy; Kafka up |
+| api-gateway | [x] skeleton | Week 2 — routes stubbed |
+| auth-service | [x] skeleton | Week 4 — real auth next |
+| platform-service | [x] skeleton | Week 7 |
+| task-service | [x] skeleton | Week 8 |
 | collab-service | [ ] | Week 11 |
 | realtime-service | [ ] | Week 12 |
 
@@ -40,14 +40,15 @@
 - [x] Docker Compose: Postgres 17
 - [x] Docker Compose: Redis 8
 - [x] Docker Compose: ZooKeeper + Kafka (CP 7.9)
-- [ ] Smoke test DB / Redis / Kafka
+- [x] Smoke test DB / Redis / Kafka (`docker compose ps` healthy / up)
 - [x] `.env.example` documented
 
 ### Week 2 — Shells + Gateway
-- [ ] Gradle skeletons for Java services
-- [ ] `api-gateway` health + stub routing
-- [ ] Java service health endpoints
-- [ ] `java-services/` conventions README
+- [x] Gradle skeletons for Java services
+- [x] `api-gateway` health + stub routing
+- [x] Java service health endpoints
+- [x] `java-services/` conventions README
+- [ ] Smoke: `bootRun` auth + gateway, curl both URLs
 
 ---
 

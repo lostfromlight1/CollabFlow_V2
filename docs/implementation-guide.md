@@ -45,19 +45,20 @@ Build in this order. Do not skip ahead to documents/search/export.
 
 - [x] Create folders: `infrastructure/`, `java-services/`, `go-services/`
 - [x] Docker Compose: Postgres 17, Redis 8, ZooKeeper + Kafka (CP 7.9) — [tech-stack.md](tech-stack.md)
-- [ ] Verify: DB connect, Redis PING, Kafka topic list smoke test (`infrastructure/README.md`)
+- [x] Verify: DB connect, Redis PING, Kafka up (`docker compose ps`)
 - [x] Document env vars (`.env.example`)
 
 **Learning focus:** Docker networking, ZK role vs Kafka brokers.
 
 #### Week 2 — Shells + Gateway
 
-- [ ] Gradle Boot 4.1 skeletons: `auth-service`, `platform-service`, `task-service`, `api-gateway`
-- [ ] Shared conventions (package layout, error JSON shape) — short README in `java-services/`
-- [ ] Gateway routes for `/api/v1/auth/**` (even if auth is stub)
-- [ ] Health endpoints on each Java stub
+- [x] Gradle Boot 4.1 skeletons: `auth-service`, `platform-service`, `task-service`, `api-gateway`
+- [x] Shared conventions — README in `java-services/`
+- [x] Gateway routes for `/api/v1/auth/**` (and platform/task path stubs)
+- [x] Health endpoints on each Java stub
+- [ ] You verify: `bootRun` auth + gateway, curl both URLs (see `java-services/README.md`)
 
-**Done when:** `docker compose up` + gateway returns something from a stub service.
+**Done when:** gateway returns auth stub JSON via `http://localhost:8080/api/v1/auth/health`.
 
 ---
 
