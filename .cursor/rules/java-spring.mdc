@@ -1,0 +1,58 @@
+---
+description: Java Spring Boot conventions for CollabFlow core services
+globs: java-services/**/*.{java,xml,yml,yaml,gradle,kts}
+alwaysApply: false
+---
+
+# Java Spring Services
+
+## Stack (pinned — see docs/tech-stack.md)
+
+- **JDK 21 LTS**, **Spring Boot 4.1.x** (start 4.1.1)
+- **Spring Cloud 2025.1.x** for Gateway (`api-gateway`)
+- Spring Security (JWT), Data JPA, Kafka, Redis — versions from Boot BOM
+- Build: **Gradle 8.14+** with Wrapper (`build.gradle`, Groovy DSL)
+- Migrations: **Flyway** (`V{n}__description.sql`)
+- Tests: JUnit 5, Mockito, Spring Boot Test
+
+## Layout (per service under `java-services/{name}/`)
+
+```
+src/main/java/.../{api,application,domain,infrastructure}
+src/main/resources/application.yml
+src/main/resources/db/migration/
+build.gradle
+settings.gradle
+gradlew / gradlew.bat
+gradle/wrapper/
+```
+
+## API
+
+- REST under `/api/v1/...` (routes in `docs/services-mvp.md`)
+- Validate at DTO boundary; clear error bodies
+- OpenAPI via springdoc when the service is wired
+
+## Data & events
+
+- JPA entities map to tables this service owns (`docs/database.md`)
+- Publish Kafka events **after** successful DB commit
+- Redis for sessions/permissions cache per tech-stack + microservice docs
+
+## Do
+
+```java
+// ✅ Persist first, then publish
+taskRepository.save(task);
+kafkaTemplate.send("task.assigned", event);
+```
+
+## Don't
+
+```java
+// ❌ Publish before persistence succeeds
+kafkaTemplate.send("task.assigned", event);
+taskRepository.save(task);
+```
+
+- Do not target Boot 3.5 (OSS EOL) or switch Java services to Maven — Gradle is the project standard

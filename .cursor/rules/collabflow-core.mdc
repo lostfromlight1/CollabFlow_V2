@@ -1,0 +1,38 @@
+---
+description: Core CollabFlow architecture, hierarchy, MVP order, and doc discipline
+alwaysApply: true
+---
+
+# CollabFlow Core
+
+## Domain hierarchy
+
+Organization → Workspace → Project → Task. Do not flatten or skip levels in APIs or schema.
+
+## Stack (slim MVP — canonical)
+
+- **Services:** `docs/services-mvp.md` (6 deployables)
+- **Versions:** `docs/tech-stack.md` (Java 21, Boot 4.1.x, Gradle, Go 1.27, Postgres 17, Redis 8, Kafka 3.9 + ZooKeeper via CP 7.9)
+- **Java services:** auth, platform, task, api-gateway (Spring Cloud Gateway)
+- **Go services:** collab, realtime (Gin + GORM + kafka-go + go-redis)
+- Shared Postgres MVP; Redis; Kafka for async side effects
+- [microservice.md](docs/microservice.md) = endpoint/event reference + deferred backlog only
+
+## MVP first
+
+Build order: `docs/implementation-guide.md` + checkboxes in `docs/progress-tracker.md`.  
+Sequence: infra → gateway → auth → platform → task → collab → realtime.  
+Defer: documents, search, export, dedicated email/analytics (`docs/future-plan.md`).  
+Ignore legacy `project_overview/implementation.md` (16-service plan).
+
+## Doc discipline
+
+- Services: `docs/services-mvp.md`; versions: `docs/tech-stack.md`
+- Schema: `docs/database.md`; features: `project_overview/feature.md`
+- Do **not** invent tables/endpoints/topics undocumented; update docs in the same change
+
+## Communication patterns
+
+- Sync: HTTP/REST when the caller needs a response
+- Async: Kafka after successful DB writes (Java produces → Go collab/realtime consume)
+- Routes: `/api/v1/...` via gateway map in `docs/services-mvp.md`

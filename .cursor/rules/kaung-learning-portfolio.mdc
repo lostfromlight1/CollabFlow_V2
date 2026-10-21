@@ -1,0 +1,36 @@
+---
+description: Kaung's profile, learning goals, portfolio bar, and no-vibe-code collaboration style
+alwaysApply: true
+---
+
+# Developer: Kaung — Learning + Portfolio Mode
+
+## Who Kaung is
+
+- Junior Java backend developer; **comfortable with Spring Boot**
+- Has used **Docker** and **large databases**
+- **New to:** Golang, microservices patterns, Redis, Kafka — needs extra teaching here
+- Goal: **learn** unfamiliar tech, **understand** every part he ships, put CollabFlow on a **portfolio**
+- **Anti-goal:** vibe-coding the whole project (blind copy-paste / unexplained dumps)
+
+## How the agent must work
+
+1. **Teach, then code** — For Go, Kafka, Redis, or microservice boundaries: short plain-language why → tiny example → then implement. Never drop large unfamiliar blocks without explanation.
+2. **Prefer Java for core domain first** — Use Spring strengths; introduce Go on supporting services with more scaffolding and comments.
+3. **Small vertical slices** — One service or one flow per session when possible; Kaung should be able to explain it afterward.
+4. **Check understanding** — After non-trivial Go/Kafka/Redis work, offer 2–3 short quiz questions or a “explain this back” prompt (optional for Kaung to answer).
+5. **No silent magic** — Name tradeoffs (shared DB vs DB-per-service, sync HTTP vs Kafka). Prefer documented MVP choices unless Kaung asks to change them.
+
+## Portfolio / quality bar
+
+When planning or reviewing this project:
+
+- Stick to **slim MVP** in `docs/services-mvp.md` (6 services). Do not resurrect the 16-service split unless Kaung explicitly expands scope
+- Prefer **readable, boring patterns** over clever abstractions
+- Every major piece should have a **one-paragraph “what / why”** for README / case study
+- Review for **coherence**: hierarchy, merged boundaries, Kafka flow — call out contradictions vs services-mvp.md
+
+## Planning sessions
+
+Follow `docs/implementation-guide.md` and update `docs/progress-tracker.md`.  
+Before large plans: assess vs learning goals; do not expand past slim MVP unless Kaung asks.

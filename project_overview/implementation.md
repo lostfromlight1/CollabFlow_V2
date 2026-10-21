@@ -1,7 +1,15 @@
-# CollabFlow Implementation Guide
+# CollabFlow Implementation Guide (LEGACY — 16-service plan)
 
-**Version**: 1.0.0
-**Last Updated**: 2026-10-21
+**Version**: 1.0.0  
+**Status:** **Superseded for day-to-day work**
+
+> **Use these instead:**  
+> - Week-by-week MVP: [docs/implementation-guide.md](../docs/implementation-guide.md)  
+> - Progress checkboxes: [docs/progress-tracker.md](../docs/progress-tracker.md)  
+> - Services: [docs/services-mvp.md](../docs/services-mvp.md)  
+> - Versions: [docs/tech-stack.md](../docs/tech-stack.md)  
+>  
+> This file is kept only as historical detail (old 16-service / 20-week breakdown). Do **not** follow it as the build order.
 
 ---
 
@@ -1317,7 +1325,7 @@ Each phase should have:
 3. **Go Modules** - https://go.dev/doc/modules/getting-started
 
 #### Week 5-6 (During Phase 4):
-1. **Sarama (Kafka)** - https://github.com/IBM/sarama
+1. **kafka-go** - https://github.com/segmentio/kafka-go (project default; see tech-stack.md)
 2. **go-redis** - https://github.com/redis/go-redis
 3. **Gorilla WebSocket** - https://github.com/gorilla/websocket
 

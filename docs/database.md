@@ -1,31 +1,70 @@
 # CollabFlow Database Documentation
 
-**Database Name**: `collabflow`
-**Version**: 2.2.0
-**Technology**: PostgreSQL 15+
-**ORM**: Spring Data JPA / Hibernate
-**Authentication**: Java JWT (Spring Security) + Next Auth (Next.js)
+**Database Name**: `collabflow`  
+**Version**: 2.3.0  
+**Technology**: **PostgreSQL 17** (shared database for MVP) — see [tech-stack.md](tech-stack.md)  
+**ORM**: Spring Data JPA / Hibernate (Java, Boot 4.1.x) + GORM (Go `collab-service`)  
+**Authentication**: Java JWT (Spring Security) via `auth-service`; frontend auth client later
+
+> **Architecture:** Service deployables are defined in [services-mvp.md](services-mvp.md) (6 services).  
+> This file defines the **schema**. Table **ownership** below maps to slim services (not the old 16-way split).  
+> Document-related tables are **Phase 2** — keep in the doc for later; do not migrate them in MVP unless scope expands.
+
+---
+
+## Table ownership (slim MVP)
+
+All services connect to the same `collabflow` database. “Owns” = which service runs migrations / writes for those tables.
+
+| Slim service | Tables (write owner) |
+|--------------|----------------------|
+| `auth-service` (Java) | `users`, `refresh_tokens` |
+| `platform-service` (Java) | `organizations`, `organization_members`, `workspaces`, `workspace_members`, `projects`, `project_members`, `roles`, `permissions`, `role_permissions`, `tags` |
+| `task-service` (Java) | `status_workflows`, `workflow_statuses`, `workflow_transitions`, `task_types`, `task_type_custom_fields`, `custom_fields`, `custom_field_options`, `tasks`, `task_custom_field_values`, `task_dependencies`, `task_tags`, `sprints`, `watchers` |
+| `collab-service` (Go) | `comments`, `comment_attachments`, `comment_reactions`, `comment_mentions`, `notifications`, `invitations`, `activity_feed` |
+| `realtime-service` (Go) | **none** (Redis + Kafka only) |
+| `api-gateway` (Java) | **none** |
+
+**Phase 2 (deferred — do not implement in MVP migrations):**  
+`document_folders`, `documents`, `document_permissions`, `document_tags` (and document upload flows).
+
+**Cross-service reads:** Services may **read** tables they do not own (e.g. collab reads `users` for author names). Prefer IDs in Kafka events over wide joins across owners when possible.
+
+**Roles location:** `roles` / `permissions` live with **platform** (tenancy + RBAC). Task-service checks permissions via DB read or cached Redis keys — not a separate workflow-service DB.
+
+---
+
+## MVP vs full schema
+
+| Include in MVP migrations | Defer |
+|---------------------------|--------|
+| Auth, platform, task/workflow, collab tables above | Document tables |
+| System seed: roles, permissions, default workflow, system task types | Search/export-specific tables (none today) |
+| Sprints / watchers: OK in schema; can ship after core task CRUD | MinIO/S3 document storage |
 
 ---
 
 ## Table of Contents
 
-1. [Authentication Tables](#authentication-tables)
-2. [Organization Management Tables](#organization-management-tables)
-3. [Workspace Management Tables](#workspace-management-tables)
-4. [Project Management Tables](#project-management-tables)
-5. [Task Management Tables](#task-management-tables)
-6. [Document Management Tables](#document-management-tables)
-7. [Collaboration Tables](#collaboration-tables)
-8. [Notification & Activity Tables](#notification--activity-tables)
-9. [Entity Relationships](#entity-relationships)
-10. [Indexes](#indexes)
-11. [Data Types & Constraints](#data-types--constraints)
-12. [Seed Data](#seed-data)
+1. [Table ownership (slim MVP)](#table-ownership-slim-mvp)
+2. [Authentication Tables](#authentication-tables)
+3. [Organization Management Tables](#organization-management-tables)
+4. [Workspace Management Tables](#workspace-management-tables)
+5. [Project Management Tables](#project-management-tables)
+6. [Task Management Tables](#task-management-tables)
+7. [Document Management Tables](#document-management-tables) (Phase 2)
+8. [Collaboration Tables](#collaboration-tables)
+9. [Notification & Activity Tables](#notification--activity-tables)
+10. [Entity Relationships](#entity-relationships)
+11. [Indexes](#indexes)
+12. [Data Types & Constraints](#data-types--constraints)
+13. [Seed Data](#seed-data)
 
 ---
 
 ## Authentication Tables
+
+**Owner:** `auth-service`
 
 ### 1. users
 
@@ -83,6 +122,8 @@
 ---
 
 ## Organization Management Tables
+
+**Owner:** `platform-service` (with workspaces, projects, roles)
 
 ### 3. organizations
 
@@ -222,6 +263,8 @@
 
 ## Workspace Management Tables
 
+**Owner:** `platform-service`
+
 ### 8. workspaces
 
 **Purpose**: Represents teams/departments within an organization.
@@ -287,6 +330,8 @@
 ---
 
 ## Project Management Tables
+
+**Owner:** `platform-service` (projects + members). Workflow tables used by projects are owned by `task-service` (see Task Management).
 
 ### 10. projects
 
@@ -432,6 +477,8 @@
 ---
 
 ## Task Management Tables
+
+**Owner:** `task-service` (includes workflows, custom fields, sprints, watchers, task_tags)
 
 ### 15. task_types
 
@@ -684,6 +731,8 @@
 
 ## Document Management Tables
 
+> **Phase 2 — deferred.** Do not create these tables in MVP Flyway migrations. Kept here so Phase 2 can reuse the design. Future owner: optional `document-service` (Go) or fold into `collab-service`.
+
 ### 21. document_folders
 
 **Purpose**: Folder structure for document organization.
@@ -839,6 +888,8 @@
 
 ## Collaboration Tables
 
+**Owner:** `collab-service` (Go). Comment attachments that reference `documents` stay unused until Phase 2 documents exist (or store lightweight URLs later).
+
 ### 27. comments
 
 **Purpose**: Comments with rich collaboration features.
@@ -936,6 +987,9 @@
 
 ## Notification & Activity Tables
 
+**Owner:** `collab-service` (Go) for `activity_feed`, `notifications`, `invitations`.  
+**Exception:** `watchers` is written by `task-service` (Java); collab only reacts to events.
+
 ### 31. activity_feed
 
 **Purpose**: Track all user actions for activity feed.
@@ -1009,6 +1063,8 @@
 ---
 
 ### 33. watchers
+
+**Owner:** `task-service` (not collab). Listed here because it drives notification preferences.
 
 **Purpose**: Users watching specific entities for updates.
 
@@ -1616,8 +1672,15 @@ ORDER BY n.created_at DESC;
 
 ---
 
-**Document Version**: 2.2.0
-**Last Updated**: 2026-10-16
+**Document Version**: 2.3.0  
+**Last Updated**: 2026-10-21  
+
+**Changes from v2.2.0**:
+- Aligned with slim MVP ([services-mvp.md](services-mvp.md)): table ownership by auth / platform / task / collab
+- Header: shared DB, JPA + GORM; removed NextAuth as schema requirement
+- Document tables marked Phase 2 / deferred for MVP migrations
+- `roles`/`permissions` owned by platform-service (not a separate workflow service)
+
 **Changes from v2.1.0**:
 - Updated status_workflows to support per-project workflows
 - Added workspace_id to status_workflows (NULL = global template, set = workspace-specific)

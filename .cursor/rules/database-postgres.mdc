@@ -1,0 +1,39 @@
+---
+description: PostgreSQL schema and migration conventions for CollabFlow
+globs: "**/migrations/**/*,**/db/migration/**/*,docs/database.md,**/*Flyway*"
+alwaysApply: false
+---
+
+# Database (PostgreSQL)
+
+## Source of truth
+
+- Schema: `docs/database.md`; ownership: slim services in that file
+- Engine: **PostgreSQL 17** (`postgres:17-alpine` locally) — see `docs/tech-stack.md`
+- Any schema change **must** update `docs/database.md` in the same change
+- MVP: shared database `collabflow`
+
+## Conventions
+
+- Primary keys: `UUID` with `gen_random_uuid()`
+- Timestamps: `TIMESTAMPTZ` (not `TIMESTAMP`)
+- Soft-delete where documented (`is_active`, status enums) rather than hard delete for org/workspace
+- FKs with cascades as specified in database.md
+- RBAC: `roles`, `permissions`, `role_permissions` — no ad-hoc permission flags on member tables
+
+## Migrations (Flyway)
+
+- Run from **Java owning services** (auth / platform / task)
+- Location: `src/main/resources/db/migration/`
+- Naming: `V{version}__{snake_description}.sql`
+- Go services do not own Flyway for MVP (consume shared schema)
+
+## Do
+
+- Match column types, CHECKs, and unique constraints from database.md
+- Add indexes listed for new tables
+
+## Don't
+
+- Invent tables or rename columns without updating database.md
+- Use `TIMESTAMP` without time zone for domain timestamps

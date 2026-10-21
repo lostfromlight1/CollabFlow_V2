@@ -4,6 +4,9 @@
 **Architecture**: Microservices with Event-Driven Communication
 **Technologies**: Java (Spring Boot), Golang, Kafka, Redis, PostgreSQL
 
+> **Scope update:** We build the **slim MVP** in [services-mvp.md](services-mvp.md) (**6 services**: 3 Java business + gateway + 2 Go).  
+> This file remains the **endpoint / Kafka / Redis reference** and describes the older 16-service split as a **future backlog**. When owners conflict, **services-mvp.md wins** (e.g. org+workspace+project → `platform-service`).
+
 ---
 
 ## Table of Contents
@@ -80,7 +83,7 @@
 - POST /api/v1/auth/reset-password - Password reset
 
 **Tech Stack**:
-- Spring Boot 3.x
+- Spring Boot 4.1.x (see tech-stack.md)
 - Spring Security 6.x
 - Spring Data JPA
 - PostgreSQL
@@ -107,7 +110,7 @@
 - DELETE /api/v1/organizations/{id}/members/{memberId} - Remove member
 
 **Tech Stack**:
-- Spring Boot 3.x
+- Spring Boot 4.1.x (see tech-stack.md)
 - Spring Data JPA
 - PostgreSQL
 - Redis
@@ -134,7 +137,7 @@
 - POST /api/v1/workspaces/{id}/join - Join via invite code
 
 **Tech Stack**:
-- Spring Boot 3.x
+- Spring Boot 4.1.x (see tech-stack.md)
 - Spring Data JPA
 - PostgreSQL
 - Redis
@@ -160,7 +163,7 @@
 - DELETE /api/v1/projects/{id}/members/{memberId} - Remove member
 
 **Tech Stack**:
-- Spring Boot 3.x
+- Spring Boot 4.1.x (see tech-stack.md)
 - Spring Data JPA
 - PostgreSQL
 - Redis
@@ -190,7 +193,7 @@
 - DELETE /api/v1/sprints/{id} - Delete sprint
 
 **Tech Stack**:
-- Spring Boot 3.x
+- Spring Boot 4.1.x (see tech-stack.md)
 - Spring Data JPA
 - PostgreSQL
 - Redis
@@ -225,7 +228,7 @@
 - GET /api/v1/roles/{roleId}/permissions - Get role permissions
 
 **Tech Stack**:
-- Spring Boot 3.x
+- Spring Boot 4.1.x (see tech-stack.md)
 - Spring Data JPA
 - PostgreSQL
 - Redis
@@ -249,11 +252,11 @@
 - DELETE /api/v1/notifications/{id} - Delete notification
 
 **Tech Stack**:
-- Gin or Echo (web framework)
+- Gin (see tech-stack.md)
 - GORM (ORM)
 - PostgreSQL
 - Redis
-- Kafka (Sarama)
+- Kafka (segmentio/kafka-go)
 
 ---
 
@@ -272,11 +275,11 @@
 - GET /api/v1/invitations - List user's invitations
 
 **Tech Stack**:
-- Gin or Echo
+- Gin
 - GORM
 - PostgreSQL
 - Redis
-- Kafka (Sarama)
+- Kafka (segmentio/kafka-go)
 
 ---
 
@@ -294,7 +297,7 @@
 **Tech Stack**:
 - Gorilla WebSocket
 - Redis (pub/sub)
-- Kafka (Sarama)
+- Kafka (segmentio/kafka-go)
 
 ---
 
@@ -317,7 +320,7 @@
 - DELETE /api/v1/folders/{id} - Delete folder
 
 **Tech Stack**:
-- Gin or Echo
+- Gin
 - GORM
 - PostgreSQL
 - Redis
@@ -339,7 +342,7 @@
 - GET /api/v1/analytics/sprint/{id} - Sprint analytics
 
 **Tech Stack**:
-- Gin or Echo
+- Gin
 - GORM
 - PostgreSQL
 - Redis
@@ -363,11 +366,11 @@
 - DELETE /api/v1/comments/{id}/reactions/{reactionId} - Remove reaction
 
 **Tech Stack**:
-- Gin or Echo
+- Gin
 - GORM
 - PostgreSQL
 - Redis
-- Kafka (Sarama)
+- Kafka (segmentio/kafka-go)
 
 ---
 
@@ -383,9 +386,9 @@
 - GET /api/v1/emails/status/{id} - Get email status
 
 **Tech Stack**:
-- Gin or Echo
+- Gin
 - Redis (queue)
-- Kafka (Sarama)
+- Kafka (segmentio/kafka-go)
 - SendGrid or Mailgun (email provider)
 
 ---
@@ -403,11 +406,11 @@
 - GET /api/v1/activity/user/{id} - Get user activity
 
 **Tech Stack**:
-- Gin or Echo
+- Gin
 - GORM
 - PostgreSQL
 - Redis
-- Kafka (Sarama)
+- Kafka (segmentio/kafka-go)
 
 ---
 
@@ -426,7 +429,7 @@
 - GET /api/v1/export/{id}/download - Download export
 
 **Tech Stack**:
-- Gin or Echo
+- Gin
 - GORM
 - PostgreSQL
 - Redis
@@ -447,47 +450,48 @@
 - GET /api/v1/search/global - Global search
 
 **Tech Stack**:
-- Gin or Echo
+- Gin
 - Elasticsearch (olivere/elastic)
 - Redis
-- Kafka (Sarama)
+- Kafka (segmentio/kafka-go)
 
 ---
 
 ## Technology Stack
 
+### Pinned stack (canonical)
+
+See **[tech-stack.md](tech-stack.md)** — versions below are a summary only.
+
 ### Java Services
-- **Framework**: Spring Boot 3.x
-- **Security**: Spring Security 6.x + JWT
-- **Database**: Spring Data JPA + PostgreSQL
-- **Kafka**: Spring Kafka
-- **Redis**: Spring Data Redis
-- **API**: REST + OpenAPI/Swagger
-- **Build**: Maven/Gradle
+- **JDK**: 21 LTS
+- **Framework**: Spring Boot **4.1.x**
+- **Cloud / Gateway**: Spring Cloud **2025.1.x** (Oakwood)
+- **Security**: Spring Security + JWT (managed by Boot)
+- **Database**: Spring Data JPA + PostgreSQL 17
+- **Kafka / Redis**: Spring Kafka, Spring Data Redis
+- **API**: REST + springdoc-openapi
+- **Build**: **Gradle 8.14+** (Wrapper)
 - **Testing**: JUnit 5, Mockito
 
 ### Golang Services
-- **Framework**: Gin or Echo (web framework)
+- **Go**: **1.27.x**
+- **Framework**: **Gin** only
 - **Database**: GORM + PostgreSQL
-- **Kafka**: Sarama or Kafka-go
-- **Redis**: go-redis
-- **Email**: mailgun or sendgrid API
+- **Kafka**: segmentio/kafka-go
+- **Redis**: go-redis/v9
 - **WebSockets**: gorilla/websocket
-- **Search**: olivere/elastic (Elasticsearch)
 - **Build**: Go modules
 - **Testing**: testify
 
 ### Infrastructure
-- **API Gateway**: Kong or Spring Cloud Gateway
-- **Message Broker**: Apache Kafka
-- **Cache**: Redis
-- **Database**: PostgreSQL 15+
-- **Search**: Elasticsearch
-- **File Storage**: MinIO or AWS S3
-- **Container**: Docker
-- **Orchestration**: Kubernetes (optional)
-- **Monitoring**: Prometheus + Grafana
-- **Logging**: ELK Stack or Loki
+- **API Gateway**: Spring Cloud Gateway (not Kong for MVP)
+- **Message Broker**: Kafka **3.9.x** + **ZooKeeper** (Confluent Platform **7.9.x**)
+- **Cache**: Redis **8.x**
+- **Database**: PostgreSQL **17**
+- **Search / files**: deferred — [future-plan.md](future-plan.md)
+- **Container**: Docker Compose v2
+
 
 ---
 
@@ -562,10 +566,13 @@ func (s *NotificationService) consumeTaskAssigned() {
 - Good for starting point
 - Can migrate to database-per-service later
 
-**Database Ownership**:
-- **Java services own**: users, organizations, workspaces, projects, tasks, workflows, roles, permissions
-- **Golang services own**: notifications, invitations, documents, comments, activity_feed
-- **Shared**: tags, task_tags, sprints
+**Database Ownership** (slim MVP — see [database.md](database.md) and [services-mvp.md](services-mvp.md)):
+- **auth-service**: users, refresh_tokens
+- **platform-service**: organizations, workspaces, projects, members, roles, permissions, tags
+- **task-service**: workflows, tasks, custom fields, sprints, task_tags, watchers
+- **collab-service**: notifications, invitations, comments, activity_feed
+- **Deferred (Phase 2)**: documents*
+- **Shared database** for MVP (not database-per-service yet)
 
 ### Data Consistency
 
@@ -821,38 +828,35 @@ search-service
 
 ### Local Development
 
-**Docker Compose Setup**:
+**Docker Compose Setup** (pins from [tech-stack.md](tech-stack.md); full compose file comes in Phase 1 infra):
 ```yaml
 services:
   postgres:
-    image: postgres:15
+    image: postgres:17-alpine
     ports:
       - "5432:5432"
-  
+
   redis:
-    image: redis:7
+    image: redis:8-alpine
     ports:
       - "6379:6379"
-  
-  kafka:
-    image: confluentinc/cp-kafka:latest
-    ports:
-      - "9092:9092"
-  
+
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.9.2
     ports:
       - "2181:2181"
-  
-  elasticsearch:
-    image: elasticsearch:8
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:7.9.2
     ports:
-      - "9200:9200"
-  
-  minio:
-    image: minio/minio
-    ports:
-      - "9000:9000"
+      - "9092:9092"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # plus listeners / advertised listeners when compose is finalized
+
+  # Phase 2+: elasticsearch, minio — see future-plan.md
 ```
 
 ### Production

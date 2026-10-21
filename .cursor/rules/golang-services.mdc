@@ -1,0 +1,47 @@
+---
+description: Golang Gin/GORM conventions for CollabFlow supporting services
+globs: go-services/**/*.{go,mod,yml,yaml}
+alwaysApply: false
+---
+
+# Golang Services
+
+## Stack (pinned — see docs/tech-stack.md)
+
+- **Go 1.27.x** (`go 1.27` in go.mod)
+- Web: **Gin** v1.12.x (not Echo)
+- ORM: **GORM** v1.31.x + postgres driver
+- Kafka: **segmentio/kafka-go** v0.4.x (not Sarama by default)
+- Redis: **go-redis/v9**
+- WebSockets: gorilla/websocket (`realtime-service`)
+- Tests: testify
+
+## Layout (per service under `go-services/{name}/`)
+
+```
+cmd/server/main.go
+internal/{handler,service,repository,model,config,kafka}
+go.mod
+```
+
+## API & config
+
+- REST under `/api/v1/...` matching `docs/services-mvp.md`
+- Config via environment variables (DB, Redis, Kafka brokers)
+- Health endpoint: `GET /health` or `/api/v1/health`
+
+## Data & events
+
+- Models match tables owned by Go services in `docs/database.md`
+- Consumers: idempotent processing
+- Producers: only after successful DB write
+- Redis: cache, queues, pub/sub (realtime)
+
+## Do
+
+- Thin handlers; logic in `service`; pass `context.Context` on I/O
+
+## Don't
+
+- Mix Echo/Fiber with Gin
+- Default to Sarama unless there is a documented reason to switch
