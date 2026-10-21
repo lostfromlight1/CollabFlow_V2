@@ -66,21 +66,24 @@ Build in this order. Do not skip ahead to documents/search/export.
 
 #### Week 3 — auth-service (part 1)
 
-- [ ] Flyway: `users`, `refresh_tokens`
-- [ ] Register + login + JWT access token
-- [ ] Password hashing (bcrypt)
-- [ ] Unit tests for auth happy path
+- [x] Package layout + shared `ApiResponse` / `ErrorResponse` (`:common`)
+- [x] Flyway: `users`, `refresh_tokens`
+- [x] Register + login + JWT access token
+- [x] Password hashing (bcrypt)
+- [x] Unit tests for auth happy path
+- [ ] You verify with curl (see `auth-service/README.md`)
 
-**Learning focus:** Spring Security  + JWT on Boot 4.
+**Learning focus:** Spring Security + JWT on Boot 4; unified API envelopes.
 
 #### Week 4 — auth-service (part 2)
 
-- [ ] Refresh token rotation + logout/revoke
-- [ ] Redis session / rate-limit basics (optional but good)
-- [ ] Publish `user.created` to Kafka after commit
-- [ ] Wire gateway JWT validation for protected routes
+- [x] Refresh token rotation + logout/revoke (implemented with register/login)
+- [x] Redis rate-limit basics (login/register by IP; fail-open if Redis down)
+- [x] Publish `user.created` to Kafka after commit
+- [x] Wire gateway JWT validation for protected routes (`/me`) + edge `X-API-Key`
 
-**Done when:** Register → login → refresh → call a protected ping through gateway.
+**Done when:** Register → login → refresh → `/me` through gateway with Bearer token.
+
 
 #### Week 5 — platform-service (org)
 

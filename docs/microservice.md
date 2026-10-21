@@ -594,9 +594,13 @@ func (s *NotificationService) consumeTaskAssigned() {
 ### Core Events
 
 #### User Events
-- `user.created` - User account created
+- `user.created` - User account created  
+  - **Producer:** `auth-service` (after commit)  
+  - **Consumers (later):** `collab-service`  
+  - **data:** `{ "userId": "uuid", "email": "string", "name": "string" }`
 - `user.updated` - User profile updated
 - `user.deleted` - User account deleted
+
 
 #### Organization Events
 - `organization.created` - Organization created

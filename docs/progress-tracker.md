@@ -12,7 +12,7 @@
 | Phase | Status | Notes |
 |-------|--------|-------|
 | A Foundation (W1–2) | 🟨 | Week 1 done; Week 2 skeletons compiled |
-| B Java core (W3–8) | ⬜ | |
+| B Java core (W3–8) | 🟨 | Week 3–4 auth done; Week 5 platform next |
 | C Go + events (W9–12) | ⬜ | |
 | D Integrate / portfolio (W13–14) | ⬜ | |
 | **MVP complete** | ⬜ | All phases green |
@@ -25,8 +25,8 @@
 |---------|--------|-------------------|
 | infrastructure (Compose) | [x] | Week 1 — Postgres/Redis healthy; Kafka up |
 | api-gateway | [x] skeleton | Week 2 — routes stubbed |
-| auth-service | [x] skeleton | Week 4 — real auth next |
-| platform-service | [x] skeleton | Week 7 |
+| auth-service | [x] usable | Week 4 — JWT + Kafka + Redis rate limit |
+| platform-service | [x] skeleton | Week 5 — org next |
 | task-service | [x] skeleton | Week 8 |
 | collab-service | [ ] | Week 11 |
 | realtime-service | [ ] | Week 12 |
@@ -55,13 +55,17 @@
 ## Phase B — Java core
 
 ### Week 3–4 — auth-service
-- [ ] Flyway: users, refresh_tokens
-- [ ] Register / login / JWT
-- [ ] Refresh + logout
-- [ ] Redis usage (session or rate limit)
-- [ ] Kafka: `user.created`
-- [ ] Gateway JWT for protected routes
-- [ ] Tests for auth happy path
+- [x] Package layout (controller/service/dto/model/…) + `:common` ApiResponse
+- [x] Flyway: users, refresh_tokens
+- [x] Register / login / JWT
+- [x] Refresh + logout
+- [x] X-API-Key + Swagger + logging (shared standards)
+- [x] Postman collection (`postman/`)
+- [x] Redis rate-limit (login/register)
+- [x] Kafka: `user.created` (after commit)
+- [x] Gateway JWT for `/me` + edge API key
+- [x] Tests for auth happy path
+- [ ] Manual curl smoke (register → login → me via `:8080`)
 
 ### Week 5 — platform (org)
 - [ ] Flyway: orgs, members, roles, permissions + seed
