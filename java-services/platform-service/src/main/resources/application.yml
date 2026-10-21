@@ -10,3 +10,11 @@ management:
     web:
       exposure:
         include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+collabflow:
+  security:
+    api-key: ${API_KEY:6e7f9c2b1a3d5e7f8b4fdf31e2f3a4b5c}

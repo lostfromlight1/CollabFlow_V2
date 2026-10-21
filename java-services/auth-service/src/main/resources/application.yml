@@ -14,6 +14,18 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        spring.json.add.type.headers: false
 
 management:
   endpoints:
@@ -21,9 +33,22 @@ management:
       exposure:
         include: health,info
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
 collabflow:
+  security:
+    api-key: ${API_KEY:6e7f9c2b1a3d5e7f8b4fdf31e2f3a4b5c}
   jwt:
-    # Override in prod via env COLLABFLOW_JWT_SECRET (min 32 chars)
-    secret: ${COLLABFLOW_JWT_SECRET:collabflow-dev-jwt-secret-change-me-32c}
-    access-token-minutes: ${COLLABFLOW_JWT_ACCESS_MINUTES:30}
-    refresh-token-days: ${COLLABFLOW_JWT_REFRESH_DAYS:7}
+    secret: ${JWT_SECRET:MdSQmmDuK70dcClyAHgcdfwedfweftNYqlgPXCTeIpmJ460=}
+    access-token-minutes: ${JWT_ACCESS_MINUTES:30}
+    refresh-token-days: ${JWT_REFRESH_DAYS:7}
+  rate-limit:
+    login-max-attempts: ${AUTH_LOGIN_MAX:10}
+    login-window-seconds: ${AUTH_LOGIN_WINDOW_SECONDS:60}
+    register-max-attempts: ${AUTH_REGISTER_MAX:5}
+    register-window-seconds: ${AUTH_REGISTER_WINDOW_SECONDS:3600}
