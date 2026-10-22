@@ -10,12 +10,14 @@ import (
 
 // Client is one WebSocket connection that can join many rooms.
 type Client struct {
-	Hub    *Hub
-	Conn   *websocket.Conn
-	Send   chan []byte
-	Rooms  map[string]struct{}
-	UserID string
-	mu     sync.Mutex
+	Hub       *Hub
+	Conn      *websocket.Conn
+	Send      chan []byte
+	Rooms     map[string]struct{}
+	UserID    string
+	OrgID     string // optional; from X-Organization-Id after membership check
+	RequestID string // from X-Request-Id (gateway) for structured logs
+	mu        sync.Mutex
 }
 
 // Hub keeps in-process room → clients (Java analogy: local STOMP session registry).
@@ -38,12 +40,12 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case c := <-h.register:
-			log.Printf("ws client registered user=%s", c.UserID)
+			log.Printf("ws client registered userId=%s orgId=%s requestId=%s", c.UserID, c.OrgID, c.RequestID)
 		case c := <-h.unregister:
 			h.leaveAll(c)
 			close(c.Send)
 			_ = c.Conn.Close()
-			log.Printf("ws client unregistered user=%s", c.UserID)
+			log.Printf("ws client unregistered userId=%s requestId=%s", c.UserID, c.RequestID)
 		}
 	}
 }
@@ -64,7 +66,7 @@ func (h *Hub) Subscribe(c *Client, room string) {
 	c.mu.Lock()
 	c.Rooms[room] = struct{}{}
 	c.mu.Unlock()
-	log.Printf("subscribe user=%s room=%s", c.UserID, room)
+	log.Printf("subscribe userId=%s orgId=%s room=%s requestId=%s", c.UserID, c.OrgID, room, c.RequestID)
 }
 
 func (h *Hub) Unsubscribe(c *Client, room string) {
@@ -111,7 +113,7 @@ func (h *Hub) BroadcastLocal(room string, payload []byte) {
 		case c.Send <- payload:
 		default:
 			// Slow client — drop rather than block the hub
-			log.Printf("drop message for slow client user=%s room=%s", c.UserID, room)
+			log.Printf("drop message for slow client userId=%s room=%s requestId=%s", c.UserID, room, c.RequestID)
 		}
 	}
 }

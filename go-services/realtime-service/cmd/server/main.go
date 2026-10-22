@@ -7,7 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/collabflow/realtime-service/internal/acl"
 	"github.com/collabflow/realtime-service/internal/config"
+	"github.com/collabflow/realtime-service/internal/database"
 	"github.com/collabflow/realtime-service/internal/handler"
 	"github.com/collabflow/realtime-service/internal/hub"
 	"github.com/collabflow/realtime-service/internal/kafka"
@@ -17,6 +19,12 @@ import (
 
 func main() {
 	cfg := config.Load()
+
+	db, err := database.Connect(cfg.DSN())
+	if err != nil {
+		log.Fatalf("postgres: %v (is Docker Postgres up?)", err)
+	}
+	aclChecker := acl.NewChecker(db)
 
 	h := hub.New()
 	go h.Run()
@@ -39,7 +47,7 @@ func main() {
 	go taskConsumer.Run(ctx)
 	go commentConsumer.Run(ctx)
 
-	ws := handler.NewWSHandler(h, bus, cfg.JWTSecret)
+	ws := handler.NewWSHandler(h, bus, aclChecker, cfg.JWTSecret)
 
 	r := gin.Default()
 	v1 := r.Group("/api/v1")
@@ -50,7 +58,7 @@ func main() {
 	}
 
 	addr := ":" + cfg.HTTPPort
-	log.Printf("realtime-service listening on %s", addr)
+	log.Printf("realtime-service listening on %s broadcastAllowed=%v", addr, config.BroadcastAllowed())
 	if err := r.Run(addr); err != nil {
 		log.Fatal(err)
 	}
