@@ -1,13 +1,15 @@
 dependencies {
-    // Compile against web/validation; consuming services bring them at runtime
+    // Compile against web/validation/security; consuming services bring them at runtime
     compileOnly 'org.springframework.boot:spring-boot-starter-web'
     compileOnly 'org.springframework.boot:spring-boot-starter-validation'
     compileOnly 'org.springframework.boot:spring-boot-starter-json'
+    compileOnly 'org.springframework.boot:spring-boot-starter-security'
     compileOnly 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.springframework.boot:spring-boot-starter-validation'
     testImplementation 'org.springframework.boot:spring-boot-starter-json'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
