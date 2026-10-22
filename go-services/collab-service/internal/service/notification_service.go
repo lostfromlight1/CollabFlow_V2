@@ -57,10 +57,17 @@ func (s *NotificationService) HandleTaskAssigned(ctx context.Context, env kafka.
 		return err
 	}
 
+	var senderID *uuid.UUID
+	if data.AssignerID != nil && *data.AssignerID != "" {
+		if id, err := uuid.Parse(*data.AssignerID); err == nil {
+			senderID = &id
+		}
+	}
+
 	actionURL := fmt.Sprintf("/projects/%s/tasks/%s", data.ProjectID, data.TaskID)
 	n := &model.Notification{
 		RecipientID:      assigneeID,
-		SenderID:         nil, // assign actor not in payload yet
+		SenderID:         senderID,
 		NotificationType: "TASK_ASSIGNED",
 		Title:            "Task assigned to you",
 		Message:          fmt.Sprintf("You were assigned to task: %s", task.Name),

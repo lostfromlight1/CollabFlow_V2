@@ -52,8 +52,13 @@ func (s *ActivityService) HandleTaskAssigned(ctx context.Context, env kafka.Enve
 		return err
 	}
 
-	// Payload has no assigner — use task reporter as actor (must be a real users.id).
+	// Prefer assigner from Kafka; fall back to reporter then assignee.
 	actorID := task.ReporterID
+	if data.AssignerID != nil && *data.AssignerID != "" {
+		if id, err := uuid.Parse(*data.AssignerID); err == nil {
+			actorID = id
+		}
+	}
 	if actorID == uuid.Nil {
 		actorID = assigneeID
 	}

@@ -19,8 +19,11 @@ type Envelope struct {
 type TaskAssignedData struct {
 	TaskID             string  `json:"taskId"`
 	ProjectID          string  `json:"projectId"`
+	WorkspaceID        string  `json:"workspaceId"`
+	OrganizationID     string  `json:"organizationId"`
 	AssigneeID         *string `json:"assigneeId"`         // null = unassign → skip notify
 	PreviousAssigneeID *string `json:"previousAssigneeId"`
+	AssignerID         *string `json:"assignerId"`
 }
 
 // TaskCreatedData matches TaskCreatedPayload from task-service.
