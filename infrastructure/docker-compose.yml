@@ -81,6 +81,15 @@ services:
       retries: 12
       start_period: 40s
 
+  # Local SMTP catcher — UI http://localhost:8025 , SMTP localhost:1025 (no auth/TLS)
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: collabflow-mailhog
+    restart: unless-stopped
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_UI_PORT:-8025}:8025"
+
 volumes:
   collabflow_pg_data:
   collabflow_redis_data:

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "CollabFlow Auth",
-    "description": "auth-service via gateway (:8080).\n\n**Happy path:** Register (or Login) → Me → Refresh → Logout.\n**Negative:** missing API key, bad body, wrong password, Me without Bearer.\n\nImport `CollabFlow-Local.postman_environment.json` and select **CollabFlow Local**.",
+    "description": "auth + user-service via gateway (:8080).\n\n**Phase 2 (preferred):** folder **4. Phase 2 admin tenancy** — master admin → create user → verify (MailHog) → org → login.\n**Legacy:** Register happy path needs `AUTH_PUBLIC_REGISTER_ENABLED=true`.\n\nAuth tokens use flat `data.userId` (not `data.user.id`).\n\nImport `CollabFlow-Local.postman_environment.json`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -14,9 +14,17 @@
     { "key": "userEmail", "value": "kaung@example.com" },
     { "key": "userPassword", "value": "password123" },
     { "key": "userName", "value": "Kaung" },
+    { "key": "masterAdminEmail", "value": "admin@collabflow.local" },
+    { "key": "masterAdminPassword", "value": "ChangeMeAdmin123!" },
+    { "key": "organizationId", "value": "" },
+    { "key": "orgSlug", "value": "" },
     { "key": "otherUserId", "value": "" },
     { "key": "otherUserEmail", "value": "" },
-    { "key": "otherAccessToken", "value": "" }
+    { "key": "otherAccessToken", "value": "" },
+    { "key": "adminAccessToken", "value": "" },
+    { "key": "verifyEmailToken", "value": "" },
+    { "key": "tempUserPassword", "value": "password123" },
+    { "key": "orgMemberRoleId", "value": "a0000000-0000-4000-8000-000000000003" }
   ],
   "item": [
     {
@@ -118,15 +126,15 @@
                   "  pm.expect(j.success).to.eql(true);",
                   "  pm.expect(j.data.accessToken).to.be.a('string').and.not.empty;",
                   "  pm.expect(j.data.refreshToken).to.be.a('string').and.not.empty;",
-                  "  pm.expect(j.data.user.id).to.be.a('string');",
-                  "  pm.expect(j.data.user.email).to.eql(pm.collectionVariables.get('userEmail'));",
+                  "  pm.expect(j.data.userId).to.be.a('string');",
+                  "  pm.expect(j.data.email).to.eql(pm.collectionVariables.get('userEmail'));",
                   "});",
                   "pm.collectionVariables.set('accessToken', j.data.accessToken);",
                   "pm.collectionVariables.set('refreshToken', j.data.refreshToken);",
-                  "pm.collectionVariables.set('userId', j.data.user.id);",
+                  "pm.collectionVariables.set('userId', j.data.userId);",
                   "pm.environment.set('accessToken', j.data.accessToken);",
                   "pm.environment.set('refreshToken', j.data.refreshToken);",
-                  "pm.environment.set('userId', j.data.user.id);"
+                  "pm.environment.set('userId', j.data.userId);"
                 ]
               }
             }
@@ -161,10 +169,11 @@
                   "});",
                   "pm.collectionVariables.set('accessToken', j.data.accessToken);",
                   "pm.collectionVariables.set('refreshToken', j.data.refreshToken);",
-                  "pm.collectionVariables.set('userId', j.data.user.id);",
+                  "pm.collectionVariables.set('userId', j.data.userId);",
                   "pm.environment.set('accessToken', j.data.accessToken);",
                   "pm.environment.set('refreshToken', j.data.refreshToken);",
-                  "pm.environment.set('userId', j.data.user.id);"
+                  "pm.environment.set('userId', j.data.userId);",
+                  "if (j.data.selectedOrganizationId) { pm.environment.set('organizationId', j.data.selectedOrganizationId); }"
                 ]
               }
             }
@@ -533,11 +542,11 @@
                 "exec": [
                   "pm.test('status 201', () => pm.response.to.have.status(201));",
                   "const j = pm.response.json();",
-                  "pm.collectionVariables.set('otherUserId', j.data.user.id);",
-                  "pm.environment.set('otherUserId', j.data.user.id);",
+                  "pm.collectionVariables.set('otherUserId', j.data.userId);",
+                  "pm.environment.set('otherUserId', j.data.userId);",
                   "pm.collectionVariables.set('otherAccessToken', j.data.accessToken);",
                   "pm.environment.set('otherAccessToken', j.data.accessToken);",
-                  "pm.test('saved otherUserId', () => pm.expect(j.data.user.id).to.be.a('string'));"
+                  "pm.test('saved otherUserId', () => pm.expect(j.data.userId).to.be.a('string'));"
                 ]
               }
             }
@@ -553,7 +562,242 @@
               "raw": "{\n  \"email\": \"{{otherUserEmail}}\",\n  \"password\": \"password123\",\n  \"name\": \"Other Member\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/register",
-            "description": "Saves otherUserId into environment for Platform → Add member."
+            "description": "Saves otherUserId into environment for Platform → Add member. Requires AUTH_PUBLIC_REGISTER_ENABLED=true."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Phase 2 admin tenancy",
+      "item": [
+        {
+          "name": "Login master admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.expect(j.data.accessToken).to.be.a('string').and.not.empty;",
+                  "pm.collectionVariables.set('adminAccessToken', j.data.accessToken);",
+                  "pm.environment.set('accessToken', j.data.accessToken);",
+                  "pm.collectionVariables.set('accessToken', j.data.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{masterAdminEmail}}\",\n  \"password\": \"{{masterAdminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Uses MASTER_ADMIN_* from env (defaults in collection vars)."
+          }
+        },
+        {
+          "name": "Me (expect masterAdmin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('masterAdmin', () => pm.expect(j.data.masterAdmin).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/me"
+          }
+        },
+        {
+          "name": "Admin create user",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const email = 'app+' + Date.now() + '@example.com';",
+                  "pm.collectionVariables.set('userEmail', email);",
+                  "pm.environment.set('userEmail', email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.expect(j.data.id).to.be.a('string');",
+                  "pm.collectionVariables.set('userId', j.data.id);",
+                  "pm.environment.set('userId', j.data.id);",
+                  "console.log('Admin-created users are emailVerified=true; check MailHog http://localhost:8025 for welcome email (SMTP).');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"temporaryPassword\": \"{{tempUserPassword}}\",\n  \"name\": \"{{userName}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/users",
+            "description": "user-service. Admin users are created verified; welcome email hits MailHog via email-service SMTP. Skip Verify email unless testing public-register tokens."
+          }
+        },
+        {
+          "name": "Verify email (optional — public register tokens)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{verifyEmailToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/verify-email",
+            "description": "Optional. Use when testing AUTH_PUBLIC_REGISTER_ENABLED verify flow; paste token from MailHog."
+          }
+        },
+        {
+          "name": "Admin create organization",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('orgSlug', 'org-' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.environment.set('organizationId', j.data.id);",
+                  "pm.collectionVariables.set('organizationId', j.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Org\",\n  \"slug\": \"{{orgSlug}}\",\n  \"ownerUserId\": \"{{userId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/organizations",
+            "description": "Owner is the app user — they become org Owner (membership created)."
+          }
+        },
+        {
+          "name": "Login app user (org auto-select if one)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.environment.set('accessToken', j.data.accessToken);",
+                  "pm.collectionVariables.set('accessToken', j.data.accessToken);",
+                  "pm.environment.set('refreshToken', j.data.refreshToken);",
+                  "if (j.data.selectedOrganizationId) {",
+                  "  pm.environment.set('organizationId', j.data.selectedOrganizationId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{tempUserPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Select organization",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.environment.set('accessToken', j.data.accessToken);",
+                  "pm.expect(j.data.selectedOrganizationId).to.eql(pm.environment.get('organizationId'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationId\": \"{{organizationId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/select-organization"
           }
         }
       ]
