@@ -5,6 +5,7 @@ import com.collabflow.task.dto.request.ChangeTaskStatusRequest;
 import com.collabflow.task.dto.request.CreateTaskRequest;
 import com.collabflow.task.dto.request.UpdateTaskRequest;
 import com.collabflow.task.dto.response.TaskResponse;
+import com.collabflow.task.dto.response.TaskStatsResponse;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,4 +24,6 @@ public interface TaskService {
     TaskResponse changeStatus(UUID taskId, UUID userId, ChangeTaskStatusRequest request);
 
     TaskResponse assign(UUID taskId, UUID userId, AssignTaskRequest request);
+
+    TaskStatsResponse statsByProject(UUID projectId, UUID userId);
 }

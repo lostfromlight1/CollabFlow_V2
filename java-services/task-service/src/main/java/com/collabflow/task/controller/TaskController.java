@@ -9,6 +9,7 @@ import com.collabflow.task.dto.request.ChangeTaskStatusRequest;
 import com.collabflow.task.dto.request.CreateTaskRequest;
 import com.collabflow.task.dto.request.UpdateTaskRequest;
 import com.collabflow.task.dto.response.TaskResponse;
+import com.collabflow.task.dto.response.TaskStatsResponse;
 import com.collabflow.task.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -66,6 +67,18 @@ public class TaskController {
     ) {
         log.info("GET /tasks projectId={} userId={}", projectId, userId);
         return ApiResponse.ok(taskService.listByProject(projectId, userId));
+    }
+
+    /** Must be registered before /{id} so "stats" is not parsed as a UUID. */
+    @GetMapping("/stats")
+    @ApiId("TASK-008")
+    @Operation(summary = "Basic analytics: task counts by status and priority for a project")
+    public ApiResponse<TaskStatsResponse> stats(
+            @RequestParam UUID projectId,
+            @CurrentUserId UUID userId
+    ) {
+        log.info("GET /tasks/stats projectId={} userId={}", projectId, userId);
+        return ApiResponse.ok(taskService.statsByProject(projectId, userId));
     }
 
     @GetMapping("/{id}")

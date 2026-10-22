@@ -8,6 +8,7 @@ import com.collabflow.task.dto.request.ChangeTaskStatusRequest;
 import com.collabflow.task.dto.request.CreateTaskRequest;
 import com.collabflow.task.dto.request.UpdateTaskRequest;
 import com.collabflow.task.dto.response.TaskResponse;
+import com.collabflow.task.dto.response.TaskStatsResponse;
 import com.collabflow.task.event.TaskAssignedDomainEvent;
 import com.collabflow.task.event.TaskAssignedPayload;
 import com.collabflow.task.event.TaskCreatedDomainEvent;
@@ -34,6 +35,7 @@ import com.collabflow.task.security.SystemTaskRoles;
 import com.collabflow.task.service.PermissionService;
 import com.collabflow.task.service.TaskService;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -250,6 +252,10 @@ public class TaskServiceImpl implements TaskService {
         events.publishEvent(new TaskStatusChangedDomainEvent(new TaskStatusChangedPayload(
                 task.getId(), task.getProjectId(), fromStatusId, toStatusId
         )));
+        // Also publish task.updated so realtime-service (consumes that topic) can broadcast.
+        events.publishEvent(new TaskUpdatedDomainEvent(new TaskUpdatedPayload(
+                task.getId(), task.getProjectId(), task.getName()
+        )));
         log.info("Changed status task={} {} -> {}", taskId, fromStatusId, toStatusId);
         return TaskResponse.from(task);
     }
@@ -271,10 +277,47 @@ public class TaskServiceImpl implements TaskService {
         task.setAssigneeId(assigneeId);
 
         events.publishEvent(new TaskAssignedDomainEvent(new TaskAssignedPayload(
-                task.getId(), task.getProjectId(), assigneeId, previous
+                task.getId(),
+                task.getProjectId(),
+                task.getWorkspaceId(),
+                task.getOrganizationId(),
+                assigneeId,
+                previous,
+                userId
         )));
-        log.info("Assigned task={} assignee={}", taskId, assigneeId);
+        // Dual-publish for realtime WS rooms (task.updated consumer).
+        events.publishEvent(new TaskUpdatedDomainEvent(new TaskUpdatedPayload(
+                task.getId(), task.getProjectId(), task.getName()
+        )));
+        log.info("Assigned task={} assignee={} assigner={}", taskId, assigneeId, userId);
         return TaskResponse.from(task);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TaskStatsResponse statsByProject(UUID projectId, UUID userId) {
+        permissionService.requireProjectPermission(projectId, userId, SystemTaskRoles.TASK_READ);
+        long total = taskRepository.countByProjectId(projectId);
+
+        List<TaskStatsResponse.StatusCount> byStatus = new ArrayList<>();
+        for (Object[] row : taskRepository.countByStatusForProject(projectId)) {
+            byStatus.add(new TaskStatsResponse.StatusCount(
+                    (UUID) row[0],
+                    (String) row[1],
+                    (String) row[2],
+                    ((Number) row[3]).longValue()
+            ));
+        }
+
+        List<TaskStatsResponse.PriorityCount> byPriority = new ArrayList<>();
+        for (Object[] row : taskRepository.countByPriorityForProject(projectId)) {
+            byPriority.add(new TaskStatsResponse.PriorityCount(
+                    (String) row[0],
+                    ((Number) row[1]).longValue()
+            ));
+        }
+
+        return new TaskStatsResponse(projectId, total, byStatus, byPriority);
     }
 
     private ProjectRef requireActiveProject(UUID projectId) {
