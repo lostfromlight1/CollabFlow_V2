@@ -42,7 +42,10 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
 
+# File logs: logback-spring.xml → logs/auth/auth-service.yyyy-MM-dd.log (repo root when using bootRun)
 collabflow:
+  logging:
+    home: ${LOG_HOME:logs}
   security:
     api-key: ${API_KEY:6e7f9c2b1a3d5e7f8b4fdf31e2f3a4b5c}
   jwt:

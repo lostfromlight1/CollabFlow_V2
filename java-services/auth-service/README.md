@@ -6,7 +6,7 @@
 ## Layout
 
 `controller` / `service` / `dto` / `repository` / `model` / `config` / `exception` / `event`  
-Shared: `:common` → envelopes, `ApiKeyFilter`, `DomainEvent`.
+Shared: `:common` → envelopes, `ApiKeyFilter`, `DomainEvent`, `@CurrentUserId`, `@ApiId` (see `.cursor/rules/java-spring.mdc` + [services-mvp.md](../../docs/services-mvp.md) ApiId catalog).
 
 ## Week 4 extras (learn these)
 
@@ -24,6 +24,10 @@ Shared: `:common` → envelopes, `ApiKeyFilter`, `DomainEvent`.
 | User auth | `Authorization: Bearer` (JWT from `JWT_SECRET`) |
 
 Swagger: http://localhost:8081/swagger-ui.html
+
+## Logs
+
+Console + dated files: repo `logs/auth/auth-service.yyyy-MM-dd.log` (see `logback-spring.xml`).
 
 ## Run
 

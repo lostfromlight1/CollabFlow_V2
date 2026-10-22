@@ -1,3 +1,8 @@
+// Write dated logs under repo-root logs/auth/ (see logback-spring.xml)
+tasks.named('bootRun') {
+    workingDir = rootProject.projectDir.parentFile
+}
+
 dependencies {
     implementation project(':common')
 

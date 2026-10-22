@@ -9,6 +9,8 @@ import com.collabflow.auth.service.AuthRateLimiter;
 import com.collabflow.auth.service.AuthService;
 import com.collabflow.common.api.ApiResponse;
 import com.collabflow.common.openapi.OpenApiSupport;
+import com.collabflow.common.security.CurrentUserId;
+import com.collabflow.common.web.ApiId;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,7 +20,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,6 +44,7 @@ public class AuthController {
     }
 
     @GetMapping("/health")
+    @ApiId("AUTH-001")
     @Operation(summary = "Health check")
     public ApiResponse<HealthBody> health() {
         log.debug("GET /health");
@@ -51,6 +53,7 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
+    @ApiId("AUTH-002")
     @Operation(summary = "Register a new user")
     public ApiResponse<AuthResponse> register(
             @Valid @RequestBody RegisterRequest request,
@@ -62,6 +65,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
+    @ApiId("AUTH-003")
     @Operation(summary = "Login (email + password; organization scope later)")
     public ApiResponse<AuthResponse> login(
             @Valid @RequestBody LoginRequest request,
@@ -73,6 +77,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
+    @ApiId("AUTH-004")
     @Operation(summary = "Rotate refresh token and issue new access token")
     public ApiResponse<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
         log.info("POST /refresh");
@@ -80,6 +85,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @ApiId("AUTH-005")
     @Operation(summary = "Revoke refresh token")
     public ApiResponse<Void> logout(@Valid @RequestBody RefreshRequest request) {
         log.info("POST /logout");
@@ -88,11 +94,11 @@ public class AuthController {
     }
 
     @GetMapping("/me")
+    @ApiId("AUTH-006")
     @Operation(summary = "Current user profile")
     @SecurityRequirement(name = OpenApiSupport.API_KEY_SCHEME)
     @SecurityRequirement(name = OpenApiSupport.BEARER_SCHEME)
-    public ApiResponse<UserResponse> me(Authentication authentication) {
-        UUID userId = (UUID) authentication.getPrincipal();
+    public ApiResponse<UserResponse> me(@CurrentUserId UUID userId) {
         log.info("GET /me userId={}", userId);
         return ApiResponse.ok(authService.me(userId));
     }
