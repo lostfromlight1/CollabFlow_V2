@@ -57,3 +57,17 @@ collabflow:
     login-window-seconds: ${AUTH_LOGIN_WINDOW_SECONDS:60}
     register-max-attempts: ${AUTH_REGISTER_MAX:5}
     register-window-seconds: ${AUTH_REGISTER_WINDOW_SECONDS:3600}
+    refresh-max-attempts: ${AUTH_REFRESH_MAX:30}
+    refresh-window-seconds: ${AUTH_REFRESH_WINDOW_SECONDS:60}
+    resend-verify-max-attempts: ${AUTH_RESEND_VERIFY_MAX:5}
+    resend-verify-window-seconds: ${AUTH_RESEND_VERIFY_WINDOW_SECONDS:3600}
+    forgot-password-max-attempts: ${AUTH_FORGOT_PASSWORD_MAX:5}
+    forgot-password-window-seconds: ${AUTH_FORGOT_PASSWORD_WINDOW_SECONDS:3600}
+  auth:
+    public-register-enabled: ${AUTH_PUBLIC_REGISTER_ENABLED:false}
+    master-admin-email: ${MASTER_ADMIN_EMAIL:admin@collabflow.local}
+    master-admin-password: ${MASTER_ADMIN_PASSWORD:ChangeMeAdmin123!}
+    master-admin-name: ${MASTER_ADMIN_NAME:Master Admin}
+    verify-token-hours: ${AUTH_VERIFY_TOKEN_HOURS:48}
+    reset-token-hours: ${AUTH_RESET_TOKEN_HOURS:2}
+    public-app-base-url: ${PUBLIC_APP_BASE_URL:http://localhost:3000}

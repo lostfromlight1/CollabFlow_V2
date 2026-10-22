@@ -6,14 +6,14 @@ import com.collabflow.common.exception.ErrorCode;
 import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 /**
  * Redis counter rate limit (INCR + TTL).
- *
- * <p>Key pattern: {@code rate_limit:auth:{action}:{clientKey}} → count, expires after window.
- * Java analogy: like a Guava RateLimiter, but shared across all auth-service instances.
+ * Fail-open only in {@code dev}/{@code local}; fail-closed otherwise.
  */
 @Service
 public class AuthRateLimiter {
@@ -22,28 +22,36 @@ public class AuthRateLimiter {
 
     private final StringRedisTemplate redis;
     private final RateLimitProperties properties;
+    private final Environment environment;
 
-    public AuthRateLimiter(StringRedisTemplate redis, RateLimitProperties properties) {
+    public AuthRateLimiter(
+            StringRedisTemplate redis,
+            RateLimitProperties properties,
+            Environment environment
+    ) {
         this.redis = redis;
         this.properties = properties;
+        this.environment = environment;
     }
 
     public void checkLogin(String clientKey) {
-        check(
-                "login",
-                clientKey,
-                properties.getLoginMaxAttempts(),
-                properties.getLoginWindowSeconds()
-        );
+        check("login", clientKey, properties.getLoginMaxAttempts(), properties.getLoginWindowSeconds());
     }
 
     public void checkRegister(String clientKey) {
-        check(
-                "register",
-                clientKey,
-                properties.getRegisterMaxAttempts(),
-                properties.getRegisterWindowSeconds()
-        );
+        check("register", clientKey, properties.getRegisterMaxAttempts(), properties.getRegisterWindowSeconds());
+    }
+
+    public void checkRefresh(String clientKey) {
+        check("refresh", clientKey, properties.getRefreshMaxAttempts(), properties.getRefreshWindowSeconds());
+    }
+
+    public void checkResendVerify(String clientKey) {
+        check("resend_verify", clientKey, properties.getResendVerifyMaxAttempts(), properties.getResendVerifyWindowSeconds());
+    }
+
+    public void checkForgotPassword(String clientKey) {
+        check("forgot_password", clientKey, properties.getForgotPasswordMaxAttempts(), properties.getForgotPasswordWindowSeconds());
     }
 
     private void check(String action, String clientKey, int max, int windowSeconds) {
@@ -63,9 +71,21 @@ public class AuthRateLimiter {
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            // Fail open: local/dev without Redis should still work; log loudly.
-            log.warn("Redis rate limit unavailable for action={} — allowing request: {}", action, e.toString());
+            if (isDevLike()) {
+                log.warn("Redis rate limit unavailable for action={} — allowing (dev): {}", action, e.toString());
+                return;
+            }
+            log.error("Redis rate limit unavailable for action={} — rejecting (fail-closed)", action, e);
+            throw new BusinessException(
+                    ErrorCode.INTERNAL_ERROR,
+                    "Rate limiting unavailable; try again later"
+            );
         }
+    }
+
+    private boolean isDevLike() {
+        return environment.acceptsProfiles(Profiles.of("dev", "local"))
+                || environment.getActiveProfiles().length == 0;
     }
 
     private static String sanitize(String clientKey) {

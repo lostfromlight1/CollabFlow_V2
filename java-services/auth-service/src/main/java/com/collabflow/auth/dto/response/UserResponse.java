@@ -6,6 +6,8 @@ public record UserResponse(
         UUID id,
         String email,
         String name,
+        String avatarUrl,
         boolean emailVerified,
-        boolean active
+        boolean active,
+        boolean masterAdmin
 ) {}

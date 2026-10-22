@@ -43,6 +43,9 @@ public class User {
     @Column(name = "is_email_verified", nullable = false)
     private boolean emailVerified = false;
 
+    @Column(name = "is_master_admin", nullable = false)
+    private boolean masterAdmin = false;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -131,6 +134,14 @@ public class User {
 
     public void setEmailVerified(boolean emailVerified) {
         this.emailVerified = emailVerified;
+    }
+
+    public boolean isMasterAdmin() {
+        return masterAdmin;
+    }
+
+    public void setMasterAdmin(boolean masterAdmin) {
+        this.masterAdmin = masterAdmin;
     }
 
     public Instant getCreatedAt() {
