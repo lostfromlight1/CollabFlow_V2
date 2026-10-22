@@ -25,6 +25,12 @@ type CommentAddedHandler interface {
 	HandleCommentAdded(ctx context.Context, env Envelope, data CommentAddedData) error
 }
 
+// EmailSendHandler handles email.send (stub → future SMTP / email-service).
+// Java analogy: @KafkaListener on topic email.send.
+type EmailSendHandler interface {
+	HandleEmailSend(ctx context.Context, env Envelope, data EmailSendData) error
+}
+
 // FanOutAssigned calls every handler for the same task.assigned message.
 // Java analogy: several @KafkaListener methods / ApplicationEvent listeners.
 type FanOutAssigned struct {
@@ -66,7 +72,7 @@ func NewTaskAssignedConsumer(brokersCSV, groupID string, handler AssignedHandler
 			return err
 		}
 		var data TaskAssignedData
-		if err := json.Unmarshal(env.Data, &data); err != nil {
+		if err := json.Unmarshal(env.Body(), &data); err != nil {
 			return err
 		}
 		return handler.HandleTaskAssigned(ctx, env, data)
@@ -80,7 +86,7 @@ func NewTaskCreatedConsumer(brokersCSV, groupID string, handler TaskCreatedHandl
 			return err
 		}
 		var data TaskCreatedData
-		if err := json.Unmarshal(env.Data, &data); err != nil {
+		if err := json.Unmarshal(env.Body(), &data); err != nil {
 			return err
 		}
 		return handler.HandleTaskCreated(ctx, env, data)
@@ -94,10 +100,24 @@ func NewCommentAddedConsumer(brokersCSV, groupID string, handler CommentAddedHan
 			return err
 		}
 		var data CommentAddedData
-		if err := json.Unmarshal(env.Data, &data); err != nil {
+		if err := json.Unmarshal(env.Body(), &data); err != nil {
 			return err
 		}
 		return handler.HandleCommentAdded(ctx, env, data)
+	})
+}
+
+func NewEmailSendConsumer(brokersCSV, groupID string, handler EmailSendHandler) *Consumer {
+	return newConsumer(brokersCSV, groupID, "email.send", func(ctx context.Context, msg kafkago.Message) error {
+		env, err := unmarshalEnvelope(msg.Value)
+		if err != nil {
+			return err
+		}
+		var data EmailSendData
+		if err := json.Unmarshal(env.Body(), &data); err != nil {
+			return err
+		}
+		return handler.HandleEmailSend(ctx, env, data)
 	})
 }
 

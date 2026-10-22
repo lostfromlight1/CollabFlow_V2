@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/collabflow/collab-service/internal/middleware"
@@ -68,19 +67,16 @@ func mapActivities(list []model.ActivityFeed) []activityDTO {
 	return out
 }
 
-func parseLimit(c *gin.Context) int {
-	n, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
-	return n
-}
-
 // List: GET /activity?organizationId= | entityType=&entityId= | userId=
+// Honors X-Organization-Id when present (filters / selects org scope).
 func (h *ActivityHandler) List(c *gin.Context) {
 	if _, ok := middleware.UserID(c); !ok {
 		unauthorized(c)
 		return
 	}
-	limit := parseLimit(c)
+	p := parsePage(c)
 	ctx := c.Request.Context()
+	orgHeader := optionalOrgHeader(c)
 
 	if et, eid := c.Query("entityType"), c.Query("entityId"); et != "" && eid != "" {
 		id, err := uuid.Parse(eid)
@@ -88,12 +84,12 @@ func (h *ActivityHandler) List(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid entityId", "errorCode": "BAD_REQUEST"})
 			return
 		}
-		list, err := h.service.ListByEntity(ctx, et, id, limit)
+		list, total, err := h.service.ListByEntity(ctx, et, id, orgHeader, p.Page, p.Size)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "errorCode": "INTERNAL_ERROR"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": mapActivities(list)})
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": pageEnvelope(mapActivities(list), p.Page, p.Size, total)})
 		return
 	}
 
@@ -103,38 +99,32 @@ func (h *ActivityHandler) List(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid userId", "errorCode": "BAD_REQUEST"})
 			return
 		}
-		list, err := h.service.ListByUser(ctx, id, limit)
+		list, total, err := h.service.ListByUser(ctx, id, orgHeader, p.Page, p.Size)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "errorCode": "INTERNAL_ERROR"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": mapActivities(list)})
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": pageEnvelope(mapActivities(list), p.Page, p.Size, total)})
 		return
 	}
 
-	if oid := c.Query("organizationId"); oid != "" {
-		id, err := uuid.Parse(oid)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid organizationId", "errorCode": "BAD_REQUEST"})
-			return
-		}
-		list, err := h.service.ListByOrg(ctx, id, limit)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "errorCode": "INTERNAL_ERROR"})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": mapActivities(list)})
+	orgID, ok := organizationIDFromRequest(c)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success":   false,
+			"message":   "provide X-Organization-Id / organizationId, or entityType+entityId, or userId",
+			"errorCode": "BAD_REQUEST",
+		})
 		return
 	}
-
-	c.JSON(http.StatusBadRequest, gin.H{
-		"success":   false,
-		"message":   "provide organizationId, or entityType+entityId, or userId",
-		"errorCode": "BAD_REQUEST",
-	})
+	list, total, err := h.service.ListByOrg(ctx, orgID, p.Page, p.Size)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "errorCode": "INTERNAL_ERROR"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": pageEnvelope(mapActivities(list), p.Page, p.Size, total)})
 }
 
-// ListByEntity: GET /activity/entity/:type/:id
 func (h *ActivityHandler) ListByEntity(c *gin.Context) {
 	if _, ok := middleware.UserID(c); !ok {
 		unauthorized(c)
@@ -145,15 +135,15 @@ func (h *ActivityHandler) ListByEntity(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid id", "errorCode": "BAD_REQUEST"})
 		return
 	}
-	list, err := h.service.ListByEntity(c.Request.Context(), c.Param("type"), id, parseLimit(c))
+	p := parsePage(c)
+	list, total, err := h.service.ListByEntity(c.Request.Context(), c.Param("type"), id, optionalOrgHeader(c), p.Page, p.Size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "errorCode": "INTERNAL_ERROR"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": mapActivities(list)})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": pageEnvelope(mapActivities(list), p.Page, p.Size, total)})
 }
 
-// ListByUser: GET /activity/user/:id
 func (h *ActivityHandler) ListByUser(c *gin.Context) {
 	if _, ok := middleware.UserID(c); !ok {
 		unauthorized(c)
@@ -164,10 +154,11 @@ func (h *ActivityHandler) ListByUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid id", "errorCode": "BAD_REQUEST"})
 		return
 	}
-	list, err := h.service.ListByUser(c.Request.Context(), id, parseLimit(c))
+	p := parsePage(c)
+	list, total, err := h.service.ListByUser(c.Request.Context(), id, optionalOrgHeader(c), p.Page, p.Size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "errorCode": "INTERNAL_ERROR"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": mapActivities(list)})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": pageEnvelope(mapActivities(list), p.Page, p.Size, total)})
 }

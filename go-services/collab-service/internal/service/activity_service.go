@@ -226,14 +226,25 @@ func (s *ActivityService) resolveActor(ctx context.Context, userID uuid.UUID) (*
 	return actor, nil
 }
 
-func (s *ActivityService) ListByEntity(ctx context.Context, entityType string, entityID uuid.UUID, limit int) ([]model.ActivityFeed, error) {
-	return s.repo.ListByEntity(ctx, entityType, entityID, limit)
+func (s *ActivityService) ListByEntity(
+	ctx context.Context,
+	entityType string,
+	entityID uuid.UUID,
+	orgID *uuid.UUID,
+	page, size int,
+) ([]model.ActivityFeed, int64, error) {
+	return s.repo.ListByEntity(ctx, entityType, entityID, orgID, page, size)
 }
 
-func (s *ActivityService) ListByUser(ctx context.Context, userID uuid.UUID, limit int) ([]model.ActivityFeed, error) {
-	return s.repo.ListByUser(ctx, userID, limit)
+func (s *ActivityService) ListByUser(
+	ctx context.Context,
+	userID uuid.UUID,
+	orgID *uuid.UUID,
+	page, size int,
+) ([]model.ActivityFeed, int64, error) {
+	return s.repo.ListByUser(ctx, userID, orgID, page, size)
 }
 
-func (s *ActivityService) ListByOrg(ctx context.Context, orgID uuid.UUID, limit int) ([]model.ActivityFeed, error) {
-	return s.repo.ListByOrg(ctx, orgID, limit)
+func (s *ActivityService) ListByOrg(ctx context.Context, orgID uuid.UUID, page, size int) ([]model.ActivityFeed, int64, error) {
+	return s.repo.ListByOrg(ctx, orgID, page, size)
 }

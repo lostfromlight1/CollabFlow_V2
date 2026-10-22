@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/collabflow/collab-service/internal/middleware"
@@ -58,6 +59,14 @@ func inviteDTO(inv *model.Invitation) invitationDTO {
 	}
 }
 
+func mapInviteList(list []model.Invitation) []invitationDTO {
+	out := make([]invitationDTO, 0, len(list))
+	for i := range list {
+		out = append(out, inviteDTO(&list[i]))
+	}
+	return out
+}
+
 func (h *InvitationHandler) Create(c *gin.Context) {
 	userID, ok := middleware.UserID(c)
 	if !ok {
@@ -68,6 +77,10 @@ func (h *InvitationHandler) Create(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error(), "errorCode": "VALIDATION_FAILED"})
 		return
+	}
+	// Prefer org header when present (Wave 2+ session org context).
+	if org := optionalOrgHeader(c); org != nil {
+		req.OrganizationID = *org
 	}
 	inv, err := h.service.Create(c.Request.Context(), userID, service.CreateInvitationInput{
 		Email:          req.Email,
@@ -98,34 +111,32 @@ func (h *InvitationHandler) ListMine(c *gin.Context) {
 		unauthorized(c)
 		return
 	}
-	list, err := h.service.ListMine(c.Request.Context(), userID, middleware.Email(c))
+	p := parsePage(c)
+	list, total, err := h.service.ListMine(c.Request.Context(), userID, middleware.Email(c), optionalOrgHeader(c), p.Page, p.Size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "errorCode": "INTERNAL_ERROR"})
 		return
 	}
-	out := make([]invitationDTO, 0, len(list))
-	for i := range list {
-		out = append(out, inviteDTO(&list[i]))
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": out})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": pageEnvelope(mapInviteList(list), p.Page, p.Size, total)})
 }
 
 func (h *InvitationHandler) ListByOrg(c *gin.Context) {
-	orgID, err := uuid.Parse(c.Query("organizationId"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "organizationId required", "errorCode": "BAD_REQUEST"})
+	orgID, ok := organizationIDFromRequest(c)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success":   false,
+			"message":   "X-Organization-Id or organizationId query required",
+			"errorCode": "BAD_REQUEST",
+		})
 		return
 	}
-	list, err := h.service.ListByOrg(c.Request.Context(), orgID)
+	p := parsePage(c)
+	list, total, err := h.service.ListByOrg(c.Request.Context(), orgID, p.Page, p.Size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "errorCode": "INTERNAL_ERROR"})
 		return
 	}
-	out := make([]invitationDTO, 0, len(list))
-	for i := range list {
-		out = append(out, inviteDTO(&list[i]))
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": out})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": pageEnvelope(mapInviteList(list), p.Page, p.Size, total)})
 }
 
 func (h *InvitationHandler) Accept(c *gin.Context) {
@@ -134,7 +145,9 @@ func (h *InvitationHandler) Accept(c *gin.Context) {
 		unauthorized(c)
 		return
 	}
-	inv, err := h.service.Accept(c.Request.Context(), userID, middleware.Email(c), c.Param("token"))
+	// Forward the same Bearer JWT to platform (plus X-API-Key from collab config).
+	auth := c.GetHeader("Authorization")
+	inv, err := h.service.Accept(c.Request.Context(), userID, middleware.Email(c), c.Param("token"), auth)
 	if err != nil {
 		mapInviteErr(c, err)
 		return
@@ -170,6 +183,13 @@ func mapInviteErr(c *gin.Context, err error) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error(), "errorCode": "NOT_FOUND"})
 	case errors.Is(err, service.ErrInviteExpired), errors.Is(err, service.ErrInviteNotPending), errors.Is(err, service.ErrInviteEmailMismatch):
 		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": err.Error(), "errorCode": "FORBIDDEN"})
+	case errors.Is(err, service.ErrInvitePlatform):
+		// Surface platform body briefly for debugging (403 manage_members, etc.).
+		msg := err.Error()
+		if i := strings.Index(msg, ": "); i >= 0 {
+			msg = strings.TrimSpace(msg[i+2:])
+		}
+		c.JSON(http.StatusBadGateway, gin.H{"success": false, "message": msg, "errorCode": "PLATFORM_ERROR"})
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error(), "errorCode": "BAD_REQUEST"})
 	}

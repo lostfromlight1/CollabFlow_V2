@@ -79,13 +79,34 @@ func (r *NotificationRepository) CreateWithProcessed(
 	})
 }
 
-func (r *NotificationRepository) ListByRecipient(ctx context.Context, recipientID uuid.UUID) ([]model.Notification, error) {
+func (r *NotificationRepository) ListByRecipient(
+	ctx context.Context,
+	recipientID uuid.UUID,
+	orgID *uuid.UUID,
+	page, size int,
+) ([]model.Notification, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.Notification{}).Where("recipient_id = ?", recipientID)
+	if orgID != nil {
+		q = q.Where("organization_id = ?", *orgID)
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
 	var list []model.Notification
-	err := r.db.WithContext(ctx).
-		Where("recipient_id = ?", recipientID).
-		Order("created_at DESC").
-		Find(&list).Error
-	return list, err
+	err := q.Order("created_at DESC").Offset(page * size).Limit(size).Find(&list).Error
+	return list, total, err
+}
+
+func (r *NotificationRepository) CountUnread(ctx context.Context, recipientID uuid.UUID, orgID *uuid.UUID) (int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.Notification{}).
+		Where("recipient_id = ? AND is_read = ?", recipientID, false)
+	if orgID != nil {
+		q = q.Where("organization_id = ?", *orgID)
+	}
+	var n int64
+	err := q.Count(&n).Error
+	return n, err
 }
 
 func (r *NotificationRepository) MarkRead(ctx context.Context, id, recipientID uuid.UUID) error {
@@ -102,10 +123,13 @@ func (r *NotificationRepository) MarkRead(ctx context.Context, id, recipientID u
 	return nil
 }
 
-func (r *NotificationRepository) MarkAllRead(ctx context.Context, recipientID uuid.UUID) (int64, error) {
+func (r *NotificationRepository) MarkAllRead(ctx context.Context, recipientID uuid.UUID, orgID *uuid.UUID) (int64, error) {
 	now := time.Now().UTC()
-	res := r.db.WithContext(ctx).Model(&model.Notification{}).
-		Where("recipient_id = ? AND is_read = ?", recipientID, false).
-		Updates(map[string]any{"is_read": true, "read_at": now})
+	q := r.db.WithContext(ctx).Model(&model.Notification{}).
+		Where("recipient_id = ? AND is_read = ?", recipientID, false)
+	if orgID != nil {
+		q = q.Where("organization_id = ?", *orgID)
+	}
+	res := q.Updates(map[string]any{"is_read": true, "read_at": now})
 	return res.RowsAffected, res.Error
 }

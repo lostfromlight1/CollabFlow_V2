@@ -96,41 +96,53 @@ func (r *ActivityRepository) CreateWithProcessed(
 	})
 }
 
-func (r *ActivityRepository) ListByEntity(ctx context.Context, entityType string, entityID uuid.UUID, limit int) ([]model.ActivityFeed, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 50
+func (r *ActivityRepository) ListByEntity(
+	ctx context.Context,
+	entityType string,
+	entityID uuid.UUID,
+	orgID *uuid.UUID,
+	page, size int,
+) ([]model.ActivityFeed, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.ActivityFeed{}).
+		Where("entity_type = ? AND entity_id = ?", entityType, entityID)
+	if orgID != nil {
+		q = q.Where("organization_id = ?", *orgID)
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 	var list []model.ActivityFeed
-	err := r.db.WithContext(ctx).
-		Where("entity_type = ? AND entity_id = ?", entityType, entityID).
-		Order("created_at DESC").
-		Limit(limit).
-		Find(&list).Error
-	return list, err
+	err := q.Order("created_at DESC").Offset(page * size).Limit(size).Find(&list).Error
+	return list, total, err
 }
 
-func (r *ActivityRepository) ListByUser(ctx context.Context, userID uuid.UUID, limit int) ([]model.ActivityFeed, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 50
+func (r *ActivityRepository) ListByUser(
+	ctx context.Context,
+	userID uuid.UUID,
+	orgID *uuid.UUID,
+	page, size int,
+) ([]model.ActivityFeed, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.ActivityFeed{}).Where("user_id = ?", userID)
+	if orgID != nil {
+		q = q.Where("organization_id = ?", *orgID)
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 	var list []model.ActivityFeed
-	err := r.db.WithContext(ctx).
-		Where("user_id = ?", userID).
-		Order("created_at DESC").
-		Limit(limit).
-		Find(&list).Error
-	return list, err
+	err := q.Order("created_at DESC").Offset(page * size).Limit(size).Find(&list).Error
+	return list, total, err
 }
 
-func (r *ActivityRepository) ListByOrg(ctx context.Context, orgID uuid.UUID, limit int) ([]model.ActivityFeed, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 50
+func (r *ActivityRepository) ListByOrg(ctx context.Context, orgID uuid.UUID, page, size int) ([]model.ActivityFeed, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.ActivityFeed{}).Where("organization_id = ?", orgID)
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 	var list []model.ActivityFeed
-	err := r.db.WithContext(ctx).
-		Where("organization_id = ?", orgID).
-		Order("created_at DESC").
-		Limit(limit).
-		Find(&list).Error
-	return list, err
+	err := q.Order("created_at DESC").Offset(page * size).Limit(size).Find(&list).Error
+	return list, total, err
 }

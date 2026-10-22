@@ -12,6 +12,7 @@ import (
 	"github.com/collabflow/collab-service/internal/handler"
 	"github.com/collabflow/collab-service/internal/kafka"
 	"github.com/collabflow/collab-service/internal/middleware"
+	"github.com/collabflow/collab-service/internal/platform"
 	"github.com/collabflow/collab-service/internal/repository"
 	"github.com/collabflow/collab-service/internal/service"
 	"github.com/gin-gonic/gin"
@@ -33,8 +34,10 @@ func main() {
 	producer := kafka.NewProducer(cfg.KafkaBrokers)
 	defer producer.Close()
 
+	platformClient := platform.NewClient(cfg.PlatformServiceURI, cfg.APIKey)
+
 	notifService := service.NewNotificationService(notifRepo)
-	inviteService := service.NewInvitationService(inviteRepo)
+	inviteService := service.NewInvitationService(inviteRepo, platformClient, producer, cfg.AppPublicURL)
 	commentService := service.NewCommentService(commentRepo, notifRepo, producer)
 	activityService := service.NewActivityService(activityRepo)
 
@@ -59,6 +62,14 @@ func main() {
 	go assignedConsumer.Run(ctx)
 	go createdConsumer.Run(ctx)
 	go commentConsumer.Run(ctx)
+	if cfg.EmailServiceEnabled {
+		log.Printf("EMAIL_SERVICE_ENABLED=true — skipping collab email.send stub (use email-service SMTP)")
+	} else {
+		emailService := service.NewEmailService(notifRepo)
+		emailConsumer := kafka.NewEmailSendConsumer(cfg.KafkaBrokers, cfg.KafkaGroupID, emailService)
+		defer emailConsumer.Close()
+		go emailConsumer.Run(ctx)
+	}
 
 	r := gin.Default()
 	v1 := r.Group("/api/v1")
@@ -69,6 +80,8 @@ func main() {
 		auth := v1.Group("")
 		auth.Use(middleware.JWTAuth(cfg.JWTSecret))
 		{
+			// Static paths before :id siblings
+			auth.GET("/notifications/unread-count", notifHandler.UnreadCount)
 			auth.GET("/notifications", notifHandler.List)
 			auth.PUT("/notifications/read-all", notifHandler.MarkAllRead)
 			auth.PUT("/notifications/:id/read", notifHandler.MarkRead)
@@ -85,7 +98,6 @@ func main() {
 			auth.PUT("/comments/:id", commentHandler.Update)
 			auth.DELETE("/comments/:id", commentHandler.Delete)
 
-			// Register static paths before :param siblings where needed
 			auth.GET("/activity/entity/:type/:id", activityHandler.ListByEntity)
 			auth.GET("/activity/user/:id", activityHandler.ListByUser)
 			auth.GET("/activity", activityHandler.List)
@@ -93,7 +105,7 @@ func main() {
 	}
 
 	addr := ":" + cfg.HTTPPort
-	log.Printf("collab-service listening on %s", addr)
+	log.Printf("collab-service listening on %s (platform=%s)", addr, cfg.PlatformServiceURI)
 	if err := r.Run(addr); err != nil {
 		log.Fatal(err)
 	}

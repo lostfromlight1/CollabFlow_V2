@@ -8,29 +8,40 @@ import (
 // Config holds runtime settings from environment variables.
 // Java analogy: application.yml + @Value / @ConfigurationProperties.
 type Config struct {
-	HTTPPort       string
-	DBHost         string
-	DBPort         string
-	DBUser         string
-	DBPass         string
-	DBName         string
+	HTTPPort     string
+	DBHost       string
+	DBPort       string
+	DBUser       string
+	DBPass       string
+	DBName       string
 	KafkaBrokers string
 	KafkaGroupID string
 	JWTSecret    string
+	// Wave 4: invite accept → platform membership (sync HTTP).
+	PlatformServiceURI string
+	APIKey             string
+	// Public URL used in invitation email bodies (token link).
+	AppPublicURL string
+	// When true, skip Kafka email.send consumer (email-service owns SMTP).
+	EmailServiceEnabled bool
 }
 
 // Load reads env with the same local defaults as Java services / .env.example.
 func Load() Config {
 	return Config{
-		HTTPPort:     getenv("COLLAB_HTTP_PORT", "9081"),
-		DBHost:       getenv("POSTGRES_HOST", "localhost"),
-		DBPort:       getenv("POSTGRES_PORT", "5432"),
-		DBUser:       getenv("POSTGRES_USER", "postgres"),
-		DBPass:       getenv("POSTGRES_PASSWORD", "root"),
-		DBName:       getenv("POSTGRES_DB", "collabflow"),
-		KafkaBrokers: getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
-		KafkaGroupID: getenv("KAFKA_GROUP_ID", "collab-service"),
-		JWTSecret:    getenv("JWT_SECRET", "ChuPaDupaSecretKeydSQmmDuK70dcClyAHgcdfwedfweftNYqlgPXCTeIpmJ460="),
+		HTTPPort:           getenv("COLLAB_HTTP_PORT", "9081"),
+		DBHost:             getenv("POSTGRES_HOST", "localhost"),
+		DBPort:             getenv("POSTGRES_PORT", "5432"),
+		DBUser:             getenv("POSTGRES_USER", "postgres"),
+		DBPass:             getenv("POSTGRES_PASSWORD", "root"),
+		DBName:             getenv("POSTGRES_DB", "collabflow"),
+		KafkaBrokers:       getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
+		KafkaGroupID:       getenv("KAFKA_GROUP_ID", "collab-service"),
+		JWTSecret:          getenv("JWT_SECRET", "ChuPaDupaSecretKeydSQmmDuK70dcClyAHgcdfwedfweftNYqlgPXCTeIpmJ460="),
+		PlatformServiceURI: getenv("PLATFORM_SERVICE_URI", "http://localhost:8082"),
+		APIKey:             getenv("API_KEY", ""),
+		AppPublicURL:       getenv("APP_PUBLIC_URL", "http://localhost:3000"),
+		EmailServiceEnabled: getenv("EMAIL_SERVICE_ENABLED", "false") == "true",
 	}
 }
 

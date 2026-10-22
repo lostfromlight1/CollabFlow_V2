@@ -90,14 +90,23 @@ func (s *NotificationService) HandleTaskAssigned(ctx context.Context, env kafka.
 	return nil
 }
 
-func (s *NotificationService) ListMine(ctx context.Context, userID uuid.UUID) ([]model.Notification, error) {
-	return s.repo.ListByRecipient(ctx, userID)
+func (s *NotificationService) ListMine(
+	ctx context.Context,
+	userID uuid.UUID,
+	orgID *uuid.UUID,
+	page, size int,
+) ([]model.Notification, int64, error) {
+	return s.repo.ListByRecipient(ctx, userID, orgID, page, size)
+}
+
+func (s *NotificationService) UnreadCount(ctx context.Context, userID uuid.UUID, orgID *uuid.UUID) (int64, error) {
+	return s.repo.CountUnread(ctx, userID, orgID)
 }
 
 func (s *NotificationService) MarkRead(ctx context.Context, userID, notificationID uuid.UUID) error {
 	return s.repo.MarkRead(ctx, notificationID, userID)
 }
 
-func (s *NotificationService) MarkAllRead(ctx context.Context, userID uuid.UUID) (int64, error) {
-	return s.repo.MarkAllRead(ctx, userID)
+func (s *NotificationService) MarkAllRead(ctx context.Context, userID uuid.UUID, orgID *uuid.UUID) (int64, error) {
+	return s.repo.MarkAllRead(ctx, userID, orgID)
 }

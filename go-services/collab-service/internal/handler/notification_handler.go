@@ -54,22 +54,41 @@ func toDTO(n model.Notification) notificationDTO {
 	}
 }
 
+func mapNotifications(list []model.Notification) []notificationDTO {
+	out := make([]notificationDTO, 0, len(list))
+	for _, n := range list {
+		out = append(out, toDTO(n))
+	}
+	return out
+}
+
 func (h *NotificationHandler) List(c *gin.Context) {
 	userID, ok := middleware.UserID(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Unauthorized", "errorCode": "UNAUTHORIZED"})
 		return
 	}
-	list, err := h.service.ListMine(c.Request.Context(), userID)
+	p := parsePage(c)
+	list, total, err := h.service.ListMine(c.Request.Context(), userID, optionalOrgHeader(c), p.Page, p.Size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "errorCode": "INTERNAL_ERROR"})
 		return
 	}
-	out := make([]notificationDTO, 0, len(list))
-	for _, n := range list {
-		out = append(out, toDTO(n))
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": pageEnvelope(mapNotifications(list), p.Page, p.Size, total)})
+}
+
+func (h *NotificationHandler) UnreadCount(c *gin.Context) {
+	userID, ok := middleware.UserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Unauthorized", "errorCode": "UNAUTHORIZED"})
+		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": out})
+	n, err := h.service.UnreadCount(c.Request.Context(), userID, optionalOrgHeader(c))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "errorCode": "INTERNAL_ERROR"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OK", "data": gin.H{"count": n}})
 }
 
 func (h *NotificationHandler) MarkRead(c *gin.Context) {
@@ -100,7 +119,7 @@ func (h *NotificationHandler) MarkAllRead(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Unauthorized", "errorCode": "UNAUTHORIZED"})
 		return
 	}
-	n, err := h.service.MarkAllRead(c.Request.Context(), userID)
+	n, err := h.service.MarkAllRead(c.Request.Context(), userID, optionalOrgHeader(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "errorCode": "INTERNAL_ERROR"})
 		return
