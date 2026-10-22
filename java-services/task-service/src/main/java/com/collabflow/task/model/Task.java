@@ -250,6 +250,10 @@ public class Task {
         return sprintId;
     }
 
+    public void setSprintId(UUID sprintId) {
+        this.sprintId = sprintId;
+    }
+
     public int getAttachmentsCount() {
         return attachmentsCount;
     }

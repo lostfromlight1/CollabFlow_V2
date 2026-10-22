@@ -25,5 +25,10 @@ public final class SystemTaskRoles {
     public static final String TASK_ASSIGN = "task.assign";
     public static final String TASK_MOVE = "task.move";
 
+    public static final String SPRINT_CREATE = "sprint.create";
+    public static final String SPRINT_READ = "sprint.read";
+    public static final String SPRINT_UPDATE = "sprint.update";
+    public static final String SPRINT_DELETE = "sprint.delete";
+
     private SystemTaskRoles() {}
 }

@@ -1,10 +1,12 @@
 package com.collabflow.task.service.impl;
 
+import com.collabflow.common.api.PageResponse;
 import com.collabflow.common.exception.BusinessException;
 import com.collabflow.common.exception.ErrorCode;
 import com.collabflow.common.exception.ResourceNotFoundException;
 import com.collabflow.task.dto.request.AssignTaskRequest;
 import com.collabflow.task.dto.request.ChangeTaskStatusRequest;
+import com.collabflow.task.dto.request.CreateSubtaskRequest;
 import com.collabflow.task.dto.request.CreateTaskRequest;
 import com.collabflow.task.dto.request.UpdateTaskRequest;
 import com.collabflow.task.dto.response.TaskResponse;
@@ -43,6 +45,9 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -146,13 +151,37 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TaskResponse> listByProject(UUID projectId, UUID userId) {
-        log.debug("Listing tasks projectId={} userId={}", projectId, userId);
+    public PageResponse<TaskResponse> listByProject(
+            UUID projectId,
+            UUID userId,
+            UUID statusId,
+            UUID assigneeId,
+            String priority,
+            UUID sprintId,
+            int page,
+            int size
+    ) {
+        log.debug(
+                "Listing tasks projectId={} userId={} statusId={} assigneeId={} priority={} sprintId={} page={} size={}",
+                projectId, userId, statusId, assigneeId, priority, sprintId, page, size
+        );
         requireActiveProject(projectId);
         permissionService.requireProjectPermission(projectId, userId, SystemTaskRoles.TASK_READ);
-        return taskRepository.findByProjectIdOrderByCreatedAtDesc(projectId).stream()
-                .map(TaskResponse::from)
-                .toList();
+
+        String normalizedPriority = null;
+        if (priority != null && !priority.isBlank()) {
+            normalizedPriority = normalizePriority(priority);
+        }
+
+        int safePage = Math.max(page, 0);
+        int safeSize = size <= 0 ? 20 : Math.min(size, 100);
+        PageRequest pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Page<Task> result = taskRepository.findFiltered(
+                projectId, statusId, assigneeId, normalizedPriority, sprintId, pageable
+        );
+        List<TaskResponse> content = result.getContent().stream().map(TaskResponse::from).toList();
+        return PageResponse.of(content, result.getNumber(), result.getSize(), result.getTotalElements());
     }
 
     @Override
@@ -318,6 +347,37 @@ public class TaskServiceImpl implements TaskService {
         }
 
         return new TaskStatsResponse(projectId, total, byStatus, byPriority);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TaskResponse> listSubtasks(UUID parentTaskId, UUID userId) {
+        Task parent = requireTask(parentTaskId);
+        permissionService.requireProjectPermission(parent.getProjectId(), userId, SystemTaskRoles.TASK_READ);
+        return taskRepository.findByParentTaskIdOrderByCreatedAtAsc(parentTaskId).stream()
+                .map(TaskResponse::from)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public TaskResponse createSubtask(UUID parentTaskId, UUID actorId, CreateSubtaskRequest request) {
+        Task parent = requireTask(parentTaskId);
+        log.info("Creating subtask parentId={} actor={}", parentTaskId, actorId);
+
+        CreateTaskRequest createRequest = new CreateTaskRequest(
+                parent.getProjectId(),
+                request.name(),
+                request.description(),
+                request.taskTypeId(),
+                parentTaskId,
+                request.priority(),
+                request.startDate(),
+                request.dueDate(),
+                request.estimatedHours(),
+                request.storyPoints()
+        );
+        return create(actorId, createRequest);
     }
 
     private ProjectRef requireActiveProject(UUID projectId) {
