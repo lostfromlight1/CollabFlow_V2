@@ -22,3 +22,21 @@ type TaskAssignedData struct {
 	AssigneeID         *string `json:"assigneeId"`         // null = unassign → skip notify
 	PreviousAssigneeID *string `json:"previousAssigneeId"`
 }
+
+// TaskCreatedData matches TaskCreatedPayload from task-service.
+type TaskCreatedData struct {
+	TaskID      string `json:"taskId"`
+	ProjectID   string `json:"projectId"`
+	WorkspaceID string `json:"workspaceId"`
+	Name        string `json:"name"`
+	ReporterID  string `json:"reporterId"`
+	StatusID    string `json:"statusId"`
+}
+
+// CommentAddedData matches collab-service producer payload on comment.added.
+type CommentAddedData struct {
+	CommentID  string `json:"commentId"`
+	EntityType string `json:"entityType"`
+	EntityID   string `json:"entityId"`
+	AuthorID   string `json:"authorId"`
+}
