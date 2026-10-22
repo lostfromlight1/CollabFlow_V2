@@ -35,14 +35,24 @@ Older 16-service layout: historical notes live in [microservice.md](microservice
 |---|---------|------|------|------|
 | 1 | `auth-service` | Java | 8081 | users, refresh_tokens, JWT, Redis rate-limit |
 | 2 | `platform-service` | Java | 8082 | organizations, workspaces, projects, members, RBAC roles/permissions |
-| 3 | `task-service` | Java | 8083 | workflows, statuses, transitions, task_types, tasks (+ basic stats) |
+| 3 | `task-service` | Java | 8083 | workflows, statuses, transitions, task_types, tasks, sprints (+ basic stats) |
 | 4 | `collab-service` | Go | 9081 | notifications, invitations, comments, activity (+ email log stub) |
 | 5 | `realtime-service` | Go | 9082 | WebSocket rooms, Redis pub/sub, Kafka → broadcast |
 | 6 | `api-gateway` | Java | 8080 | routing, `X-API-Key`, JWT validation on protected routes |
 
 **Shared infra:** PostgreSQL **17**, Redis **8**, Kafka **3.9 + ZooKeeper** (Confluent **7.9.2**). Pins: [tech-stack.md](tech-stack.md).
 
-**Not in MVP:** sprints API (gateway path reserved only), documents, search, export, standalone email/analytics services — [future-plan.md](future-plan.md).
+**Not in MVP (Phase 3+):** search, export, analytics — [future-plan.md](future-plan.md).
+
+### Phase 2 deployables
+
+| # | Service | Lang | Port | Owns / role | Wave |
+|---|---------|------|------|-------------|------|
+| — | `user-service` | Java | 8084 | Profiles + admin user CRUD on shared `users` table | Wave 3 |
+| 7 | `document-service` | Go | 9083 | Documents stubs; MinIO env placeholders; schema in [database.md](database.md) | Wave 7 |
+| 8 | `email-service` | Go | 9084 | Consume `email.send` → real SMTP (MailHog locally) | Wave 8 |
+
+Details: [phase-2.md](phase-2.md), [document-service/README](../go-services/document-service/README.md), [email-service/README](../go-services/email-service/README.md).
 
 ---
 
@@ -63,13 +73,16 @@ Older 16-service layout: historical notes live in [microservice.md](microservice
 
 ```
 /api/v1/auth/**                                              → auth-service:8081
+/api/v1/users/** , /admin/users/**                           → user-service:8084
 /api/v1/organizations/** , /roles/** , /workspaces/** ,
-  /projects/** , /platform/**                                → platform-service:8082
+  /projects/** , /platform/** , /admin/organizations/**      → platform-service:8082
 /api/v1/tasks/** , /workflows/** , /task-types/** ,
-  /sprints/** (reserved — not implemented)                   → task-service:8083
+  /sprints/**                                                → task-service:8083
 /api/v1/notifications/** , /collab/** , /invitations/** ,
   /comments/** , /activity/**                                → collab-service:9081
 /api/v1/realtime/**                                          → realtime-service:9082
+/api/v1/documents/**                                         → document-service:9083   (Phase 2 Wave 7)
+# email-service:9084 — Kafka consumer; health direct (no gateway route yet)
 ```
 
 Endpoint catalog: `@ApiId` table below. Narrative reference: [microservice.md](microservice.md).
@@ -82,8 +95,9 @@ Endpoint catalog: `@ApiId` table below. Narrative reference: [microservice.md](m
 
 | Service | Topics |
 |---------|--------|
-| auth | `user.created` |
-| platform | `organization.created`, `organization.member_added`; `workspace.created\|updated\|deleted\|member_added\|member_removed`; `project.created\|updated\|deleted\|member_added\|member_removed` |
+| auth | `user.created` (public register when enabled); `email.send` (verify/reset) |
+| user-service | `user.created` (admin create), `user.updated` (profile) |
+| platform | `organization.created\|updated\|deleted\|member_added\|member_removed`; `workspace.created\|updated\|deleted\|member_added\|member_removed`; `project.created\|updated\|deleted\|member_added\|member_removed` |
 | task | `task.created`, `task.updated`, `task.deleted`, `task.assigned`, `task.status_changed` (status/assign also dual-publish `task.updated` for WS) |
 | collab | `comment.added` |
 
@@ -114,12 +128,15 @@ Platform org/workspace/project topics are produced for portfolio/event story; Go
 java-services/
   common/            # ApiResponse, ErrorResponse, ApiKeyFilter, GlobalExceptionHandler
   auth-service/
+  user-service/      # Phase 2 Wave 3 — profiles + admin users (:8084)
   platform-service/
   task-service/
   api-gateway/
 go-services/
   collab-service/
   realtime-service/
+  document-service/  # Phase 2 Wave 7 scaffold (:9083)
+  email-service/     # Phase 2 Wave 8 scaffold (:9084)
 infrastructure/      # docker-compose: postgres, redis, zookeeper, kafka
 docs/
 postman/
@@ -134,18 +151,23 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | Prefix | Area |
 |--------|------|
 | `AUTH-NNN` | auth-service |
+| `USER-NNN` | user-service (profiles + admin users) |
 | `PLAT-NNN` | platform health |
 | `ORG-NNN` | organizations + members |
+| `ADMIN-ORG-NNN` | master-admin org APIs (platform; reads `users.is_master_admin` from auth) |
 | `ROLE-NNN` | roles list |
 | `WS-NNN` | workspaces |
 | `PRJ-NNN` | projects |
 | `TASK-NNN` | tasks |
+| `SPRINT-NNN` | sprints |
 | `WF-NNN` | workflows / task-types |
 | `NOTIF-NNN` | collab notifications |
 | `INV-NNN` | collab invitations |
 | `CMT-NNN` | collab comments |
 | `ACT-NNN` | collab activity |
 | `RT-NNN` | realtime |
+| `DOC-NNN` | document-service (Phase 2) |
+| `EMAIL-NNN` | email-service health (Phase 2; mostly Kafka) |
 
 | Id | Method | Path |
 |----|--------|------|
@@ -155,17 +177,37 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | AUTH-004 | POST | `/api/v1/auth/refresh` |
 | AUTH-005 | POST | `/api/v1/auth/logout` |
 | AUTH-006 | GET | `/api/v1/auth/me` |
+| AUTH-007 | PUT | `/api/v1/auth/me` |
+| AUTH-008 | POST | `/api/v1/auth/verify-email` |
+| AUTH-009 | POST | `/api/v1/auth/resend-verification` |
+| AUTH-010 | POST | `/api/v1/auth/forgot-password` |
+| AUTH-011 | POST | `/api/v1/auth/reset-password` |
+| AUTH-012 | POST | `/api/v1/auth/change-password` |
+| AUTH-013 | GET | `/api/v1/auth/sessions` |
+| AUTH-014 | POST | `/api/v1/auth/sessions/revoke-all` |
+| AUTH-015 | POST | `/api/v1/auth/deactivate` |
+| AUTH-016 | POST | `/api/v1/auth/select-organization` |
+| AUTH-017 | GET | `/api/v1/auth/organizations` |
+| AUTH-020 | POST | `/api/v1/admin/users` | **deprecated** — moved to user-service `USER-020` |
+| USER-000 | GET | `/api/v1/users/health` |
+| USER-001 | GET | `/api/v1/users/me` |
+| USER-002 | PUT | `/api/v1/users/me` |
+| USER-020 | POST | `/api/v1/admin/users` |
 | PLAT-001 | GET | `/api/v1/platform/health` |
 | ROLE-001 | GET | `/api/v1/roles` |
-| ORG-001 | POST | `/api/v1/organizations` |
-| ORG-002 | GET | `/api/v1/organizations` |
+| ORG-001 | POST | `/api/v1/organizations` (gated when `collabflow.platform.self-serve-org-create=false`; master admin only) |
+| ORG-002 | GET | `/api/v1/organizations` (includes `roleId` / `roleName` for org picker) |
 | ORG-003 | GET | `/api/v1/organizations/{id}` |
 | ORG-004 | PUT | `/api/v1/organizations/{id}` |
 | ORG-005 | DELETE | `/api/v1/organizations/{id}` |
 | ORG-006 | GET | `/api/v1/organizations/{id}/members` |
-| ORG-007 | POST | `/api/v1/organizations/{id}/members` |
+| ORG-007 | POST | `/api/v1/organizations/{id}/members` (X-API-Key + JWT; Wave 4 invite accept) |
 | ORG-008 | PUT | `/api/v1/organizations/{id}/members/{memberId}` |
 | ORG-009 | DELETE | `/api/v1/organizations/{id}/members/{memberId}` |
+| ORG-010 | POST | `/api/v1/organizations/{id}/transfer-ownership` |
+| ADMIN-ORG-001 | POST | `/api/v1/admin/organizations` |
+| ADMIN-ORG-002 | POST | `/api/v1/admin/organizations/{id}/members` |
+| ADMIN-ORG-003 | POST | `/api/v1/admin/organizations/{id}/transfer-ownership` |
 | WS-001 | POST | `/api/v1/workspaces` |
 | WS-002 | GET | `/api/v1/organizations/{orgId}/workspaces` |
 | WS-003 | GET | `/api/v1/workspaces/{id}` |
@@ -187,13 +229,24 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | PRJ-009 | DELETE | `/api/v1/projects/{id}/members/{memberId}` |
 | TASK-000 | GET | `/api/v1/tasks/health` |
 | TASK-001 | POST | `/api/v1/tasks` |
-| TASK-002 | GET | `/api/v1/tasks?projectId=` |
+| TASK-002 | GET | `/api/v1/tasks?projectId=` (filters: `statusId`, `assigneeId`, `priority`, `sprintId`; page/size → `PageResponse`) |
 | TASK-003 | GET | `/api/v1/tasks/{id}` |
 | TASK-004 | PUT | `/api/v1/tasks/{id}` |
 | TASK-005 | DELETE | `/api/v1/tasks/{id}` |
 | TASK-006 | PUT | `/api/v1/tasks/{id}/status` |
 | TASK-007 | PUT | `/api/v1/tasks/{id}/assign` |
 | TASK-008 | GET | `/api/v1/tasks/stats?projectId=` |
+| TASK-009 | GET | `/api/v1/tasks/{id}/subtasks` |
+| TASK-010 | POST | `/api/v1/tasks/{id}/subtasks` |
+| SPRINT-001 | POST | `/api/v1/sprints` |
+| SPRINT-002 | GET | `/api/v1/sprints?projectId=` |
+| SPRINT-003 | GET | `/api/v1/sprints/{id}` |
+| SPRINT-004 | PUT | `/api/v1/sprints/{id}` |
+| SPRINT-005 | DELETE | `/api/v1/sprints/{id}` |
+| SPRINT-006 | POST | `/api/v1/sprints/{id}/start` |
+| SPRINT-007 | POST | `/api/v1/sprints/{id}/complete` |
+| SPRINT-008 | POST | `/api/v1/sprints/{id}/tasks` |
+| SPRINT-009 | DELETE | `/api/v1/sprints/{id}/tasks/{taskId}` |
 | WF-001 | GET | `/api/v1/workflows/default` |
 | WF-002 | GET | `/api/v1/workflows/{id}` |
 | WF-003 | GET | `/api/v1/workflows/{id}/statuses` |
@@ -202,6 +255,7 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | NOTIF-001 | GET | `/api/v1/notifications` |
 | NOTIF-002 | PUT | `/api/v1/notifications/{id}/read` |
 | NOTIF-003 | PUT | `/api/v1/notifications/read-all` |
+| NOTIF-004 | GET | `/api/v1/notifications/unread-count` |
 | INV-001 | POST | `/api/v1/invitations` |
 | INV-002 | GET | `/api/v1/invitations/token/{token}` |
 | INV-003 | GET | `/api/v1/invitations` |
@@ -220,6 +274,10 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | RT-000 | GET | `/api/v1/realtime/health` |
 | RT-001 | GET (WS) | `/api/v1/realtime/ws` |
 | RT-002 | POST | `/api/v1/realtime/broadcast` |
+| DOC-000 | GET | `/api/v1/documents/health` |
+| DOC-001 | POST | `/api/v1/documents/upload` (Wave 7 stub) |
+| DOC-002 | GET | `/api/v1/documents?projectId=` (Wave 7 stub) |
+| EMAIL-000 | GET | `/api/v1/email/health` (direct `:9084`) |
 
 **OpenAPI (Java):** Swagger UI on direct ports — auth `:8081`, platform `:8082`, task `:8083` → `/swagger-ui.html` (send `X-API-Key`). Gateway does not proxy Swagger.
 

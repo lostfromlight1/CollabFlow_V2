@@ -63,14 +63,14 @@ Gateway: every `/api/**` needs `X-API-Key`. Protected routes need `Authorization
 **Responsibility:** Route `/api/v1/**` to upstreams; validate `X-API-Key`; JWT for protected paths.
 
 **Routes:** see [services-mvp.md](services-mvp.md) route map.  
-**Note:** `/api/v1/sprints/**` is reserved on the gateway; **no sprint handlers** in MVP.
+**Note:** `/api/v1/sprints/**` is implemented on **task-service** (Phase 2 Wave 5). See ApiId catalog in [services-mvp.md](services-mvp.md).
 
 ---
 
 ## 2. auth-service (Java · 8081)
 
 **Owns:** `users`, `refresh_tokens`  
-**Kafka produce:** `user.created`  
+**Kafka produce:** `user.created`, `email.send` (verify/reset — Phase 2)  
 **Redis:** login/register rate-limit  
 
 | Method | Path | Notes |
@@ -149,21 +149,23 @@ Gateway: every `/api/**` needs `X-API-Key`. Protected routes need `Authorization
 | GET | `/api/v1/workflows/{id}/statuses` |
 | GET | `/api/v1/task-types` |
 
-**Not in MVP:** sprint CRUD, custom-field admin API, bulk update, task dependencies API, workflow create/update (seeded default workflow only).
+**Phase 2 Wave 5 (shipped):** sprint CRUD / start / complete / attach-detach; sub-tasks; task list filters + pagination.  
+**Still deferred:** custom-field admin API, bulk update, task dependencies API, workflow create/update (seeded default workflow only).
 
 ---
 
 ## 5. collab-service (Go · 9081)
 
 **Owns:** `notifications`, `invitations`, `comments`, `activity_feed` (+ related mention rows as implemented)  
-**Kafka consume:** `task.assigned`, `task.created`, `comment.added`  
-**Kafka produce:** `comment.added`  
-**Email:** log stub only (no separate email-service)
+**Kafka consume:** `task.assigned`, `task.created`, `comment.added`, `email.send`  
+**Kafka produce:** `comment.added`, `email.send` (invitation create)  
+**Email:** consume `email.send` → structured log stub (no SMTP; standalone email-service = Wave 8)
 
 | Method | Path |
 |--------|------|
 | GET | `/api/v1/collab/health` |
 | GET | `/api/v1/notifications` |
+| GET | `/api/v1/notifications/unread-count` |
 | PUT | `/api/v1/notifications/{id}/read` |
 | PUT | `/api/v1/notifications/read-all` |
 | POST | `/api/v1/invitations` |
@@ -201,13 +203,17 @@ Client flow: connect with JWT query/header as documented in service README; `{"a
 
 ## Kafka event catalog (shipped)
 
-Envelope: shared JSON domain event (`eventId`, `eventType`, `occurredAt`, `payload`) — produce **after** successful DB commit.
+Envelope: shared JSON domain event (`eventId`, `eventType`, `timestamp`, `version`, `data`) — produce **after** successful DB commit. (`payload` is accepted by Go consumers as an alias for `data`.)
 
 | Topic | Producer | Primary consumer(s) |
 |-------|----------|---------------------|
 | `user.created` | auth | (none in MVP — available for Phase 2) |
+| `email.send` | auth (verify/reset); collab (invitation) | collab stub **and** email-service (Wave 8; coexist via separate groups) |
 | `organization.created` | platform | (none in MVP) |
+| `organization.updated` | platform | (none in MVP) |
+| `organization.deleted` | platform | (none in MVP) |
 | `organization.member_added` | platform | (none in MVP) |
+| `organization.member_removed` | platform | (none in MVP) |
 | `workspace.*` | platform | (none in MVP) |
 | `project.*` | platform | (none in MVP) |
 | `task.created` | task | collab → activity |
@@ -216,6 +222,16 @@ Envelope: shared JSON domain event (`eventId`, `eventType`, `occurredAt`, `paylo
 | `task.assigned` | task | collab → notification |
 | `task.status_changed` | task | (+ dual `task.updated` for WS) |
 | `comment.added` | collab | collab activity + realtime WS |
+
+### `email.send` data
+
+| Field | Notes |
+|-------|--------|
+| `to` | Recipient address |
+| `subject` | Subject line |
+| `body` | Plain body (MVP) |
+| `template` | `verify_email` \| `password_reset` \| `invitation` \| `generic` |
+| `correlationId` | Optional trace / request id |
 
 ---
 
@@ -245,11 +261,12 @@ Previously planned as separate deployables. **Do not resurrect** unless expandin
 | organization / workspace / project services | Merged → `platform-service` |
 | workflow-service | Merged → `task-service` (read seeded workflows) |
 | notification / invitation / comment / activity / email | Merged → `collab-service` (email = stub) |
-| document-service | Phase 2 |
+| document-service | Phase 2 Wave 7 scaffold — `:9083`, `/api/v1/documents/**` |
+| email-service | Phase 2 Wave 8 scaffold — `:9084`, consume `email.send` |
 | search-service | Phase 3 |
 | export-service | Phase 3 |
 | analytics-service | Phase 3 (MVP has task stats only) |
-| sprint APIs | Optional stretch inside `task-service` |
+| sprint APIs | Shipped in `task-service` (Phase 2 Wave 5) |
 | Kong gateway | Replaced by Spring Cloud Gateway |
 
 Full archived week plan: [archive/legacy-16-service-plan.md](archive/legacy-16-service-plan.md).

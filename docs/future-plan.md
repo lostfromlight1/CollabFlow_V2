@@ -1,7 +1,7 @@
 # CollabFlow — Future Plan (deferred / reduced services)
 
 **Purpose:** Remember what we **cut or merged** when slimmed from ~16 services to the [MVP](services-mvp.md).  
-**Slim MVP is complete** — build these only when intentionally expanding scope (start with **document-service**).
+**Slim MVP is complete** — Phase 2 starts with **admin-provisioned tenancy** (not documents first). Ordered waves: [phase-2.md](phase-2.md).
 
 Canonical MVP services: [services-mvp.md](services-mvp.md).  
 Endpoint / Kafka reference for the slim MVP: [microservice.md](microservice.md).
@@ -43,14 +43,33 @@ These existed in the old plan as their own services. They are **folded into MVP*
 
 These were **reduced out of MVP** on purpose. Bring them back as new services (or modules) after auth → platform → task → collab → realtime is working.
 
-### Phase 2 — Collaboration & media
+### Phase 2 — Tenancy first, then media / email
 
-| Future service | Lang (suggested) | What it does | Depends on |
-|----------------|------------------|--------------|------------|
-| **document-service** | Go | Upload/download, folders, versions, permissions; MinIO/S3 | platform (entity IDs), auth |
-| **email-service** (standalone) | Go | Queue, templates, SendGrid/Mailgun, retries | Kafka `email.send`, Redis queue |
+**Ordered checklist (single source):** [phase-2.md](phase-2.md) — Waves 0→8. Tick boxes also live in each service README.
+
+| Future service | Lang (suggested) | What it does | When |
+|----------------|------------------|--------------|------|
+| **user-service** | Java | Split from auth: profiles, admin user CRUD; auth keeps login/tokens/verify | Wave 3 (after admin APIs work on auth) |
+| **document-service** | Go | Upload/download, folders, versions; MinIO/S3 | Wave 7 — **scaffold on :9083** (stubs + MinIO env); full storage later |
+| **email-service** (standalone) | Go | SMTP/templates/retries | Wave 8 — **scaffold on :9084** (Kafka consume + SMTP-ready log); real SMTP later |
+
+**Email in Phase 2A:** Auth (and later collab invites) **publish** Kafka `email.send`; **collab stub consumer** logs/sends. Wave 8 extract (`email-service`) can **coexist** with the stub; disable collab’s consumer later via `EMAIL_SERVICE_ENABLED=true` (documented, not wired).
 
 Schema for documents already sketched in [database.md](database.md) (marked Phase 2).
+
+**Product story:** Master **admin portal** creates orgs and users; gate public self-register and self-serve org create; login → email verify → org picker → `X-Organization-Id`. No personal/friends self-serve org.
+
+| Area | README Phase 2 TODO |
+|------|---------------------|
+| Auth / admin seed / verify | [auth-service/README.md](../java-services/auth-service/README.md) |
+| Gateway / CORS / org header / sprints JWT | [api-gateway/README.md](../java-services/api-gateway/README.md) |
+| Platform admin org/member | [platform-service/README.md](../java-services/platform-service/README.md) |
+| Common DTOs / org header / request-id | [common/README.md](../java-services/common/README.md) |
+| Task sprints / filters | [task-service/README.md](../java-services/task-service/README.md) |
+| Collab invite + email stub | [collab-service/README.md](../go-services/collab-service/README.md) |
+| Realtime ACL | [realtime-service/README.md](../go-services/realtime-service/README.md) |
+| Documents (Wave 7) | [document-service/README.md](../go-services/document-service/README.md) |
+| Email extract (Wave 8) | [email-service/README.md](../go-services/email-service/README.md) |
 
 ### Phase 3 — Insights & data out
 
@@ -76,7 +95,10 @@ Schema for documents already sketched in [database.md](database.md) (marked Phas
 MVP done (6 services)
     │
     ▼
-Phase 2: document-service  →  standalone email-service (if needed)
+Phase 2 waves (see phase-2.md):
+  W0 foundations → W1 admin/identity → W2 org session
+  → W3 user-service → W4 collab/email stub → W5 task → W6 realtime
+  → W7 document-service → W8 email-service extract
     │
     ▼
 Phase 3: search (Postgres FTS → ES)  →  analytics-service  →  export-service
@@ -104,4 +126,4 @@ Until then, resist splitting `platform` or `collab` just for symmetry with the o
 
 ---
 
-**Last updated:** 2026-10-21
+**Last updated:** 2026-10-23

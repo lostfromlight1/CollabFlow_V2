@@ -48,7 +48,7 @@ Canonical services: [services-mvp.md](services-mvp.md). Progress: [progress-trac
 
 - Language level: **21** (no preview features)
 - Packaging: Boot jar
-- Config: `application.yml` + **env vars** — `API_KEY` / `JWT_SECRET` from repo-root `.env` only (no secret literals in YAML). `bootRun` loads `.env` (see [setup.md](setup.md))
+- Config: `application.yml` + **env vars** — `API_KEY` / `JWT_SECRET` from repo-root `.env` only (no secret literals in YAML). `bootRun` loads `.env` (see [running.md](running.md))
 - Always commit `gradlew` / `gradlew.bat` + `gradle/wrapper/` (including `gradle-wrapper.jar`)
 
 ---

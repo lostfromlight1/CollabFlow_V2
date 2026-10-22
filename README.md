@@ -4,7 +4,7 @@ Multi-tenant collaboration and project management
 **Hierarchy:** Organization → Workspace → Project → Task.
 
 **Status:** Slim **MVP complete** (Weeks 1–14). Tracker: [docs/progress-tracker.md](docs/progress-tracker.md).  
-Demo script: [docs/e2e-demo.md](docs/e2e-demo.md) · Postman: [postman/](postman/).
+Run guide: [docs/running.md](docs/running.md) · Demo: [docs/e2e-demo.md](docs/e2e-demo.md) · Postman: [postman/](postman/).
 
 ## Portfolio — what / why
 
@@ -12,14 +12,16 @@ CollabFlow is a multi-tenant project tool built as a **slim microservice** backe
 
 **What I practiced:** service boundaries, JWT at the gateway, Flyway vs GORM AutoMigrate, Kafka after DB commit, consumer idempotency, and Redis pub/sub for multi-instance-ready WS.
 
-## Services (6)
+## Services
+
+**MVP (6)** + Phase 2: user `:8084`, email `:9084` (document stubs `:9083`). Full table: [docs/running.md](docs/running.md#3-port-map-apps).
 
 | Service | Stack | Port | Responsibility |
 |---------|--------|------|----------------|
 | api-gateway | Spring Cloud Gateway | 8080 | Edge routing, API key, JWT |
-| auth-service | Java 21 / Boot 4.1 | 8081 | Users, JWT |
+| auth-service | Java 21 / Boot 4.1 | 8081 | Users, JWT, master admin |
 | platform-service | Java 21 / Boot 4.1 | 8082 | Org + workspace + project + RBAC |
-| task-service | Java 21 / Boot 4.1 | 8083 | Workflows + tasks + stats |
+| task-service | Java 21 / Boot 4.1 | 8083 | Workflows + tasks + sprints |
 | collab-service | Go 1.27 / Gin | 9081 | Notifications, invitations, comments, activity |
 | realtime-service | Go 1.27 / WS | 9082 | WebSocket rooms + Redis + Kafka |
 
@@ -27,16 +29,9 @@ Versions: [docs/tech-stack.md](docs/tech-stack.md). Boundaries / ApiIds: [docs/s
 
 ## Quick start
 
-1. [docs/setup.md](docs/setup.md) — JDK 21, Go 1.27, Docker  
-2. Copy `.env.example` → `.env`  
-3. Infra:
-
-```powershell
-cd infrastructure
-docker compose --env-file ../.env up -d
-```
-
-4. Run services (gateway last or in parallel), then Postman **CollabFlow Local** or [e2e-demo.md](docs/e2e-demo.md).
+1. [docs/setup.md](docs/setup.md) — install JDK 21, Go 1.27, Docker  
+2. [docs/running.md](docs/running.md) — `.env`, Compose (Postgres/Redis/Kafka/MailHog), start Java + Go  
+3. [docs/e2e-demo.md](docs/e2e-demo.md) or Postman **Auth → 4. Phase 2 admin tenancy**
 
 ## OpenAPI (Java)
 
@@ -80,23 +75,20 @@ Realtime WS: `ws://localhost:9082/api/v1/realtime/ws?token=$TOKEN` then
 
 | Doc | Contents |
 |-----|----------|
-| [docs/implementation-guide.md](docs/implementation-guide.md) | Week-by-week plan |
-| [docs/progress-tracker.md](docs/progress-tracker.md) | Checkboxes |
-| [docs/e2e-demo.md](docs/e2e-demo.md) | End-to-end demo |
+| [docs/setup.md](docs/setup.md) | Install tools (Windows / Fedora) |
+| [docs/running.md](docs/running.md) | Run infra + every service |
+| [docs/e2e-demo.md](docs/e2e-demo.md) | E2E / testing narrative |
 | [docs/services-mvp.md](docs/services-mvp.md) | Ports + ApiId catalog |
-| [docs/future-plan.md](docs/future-plan.md) | Deferred / Phase 2 |
+| [docs/phase-2.md](docs/phase-2.md) | Phase 2 waves |
+| [docs/future-plan.md](docs/future-plan.md) | Deferred backlog |
 | [AGENTS.md](AGENTS.md) | Cursor agent guide |
-
-## Phase 2 (optional next)
-
-MVP stops here. First Phase 2 pick from [future-plan.md](docs/future-plan.md): **document-service** (uploads / folders) when you want to expand—not required for the MVP checklist.
 
 ## Repo layout
 
 ```
-java-services/     auth, platform, task, api-gateway, common
-go-services/       collab, realtime
-infrastructure/    docker-compose
-docs/              guides + schema
+java-services/     auth, platform, task, user, api-gateway, common
+go-services/       collab, realtime, email, document
+infrastructure/    docker-compose (Postgres, Redis, Kafka, MailHog)
+docs/              setup, running, schema, plans
 postman/           Auth + Platform collections
 ```

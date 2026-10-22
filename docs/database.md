@@ -1,8 +1,9 @@
 # CollabFlow Database Documentation
 
 **Database Name**: `collabflow`  
-**Version**: 2.4.0  
-**Status**: Slim MVP **complete** (Weeks 1–14)  
+**Version**: 2.5.0  
+**Status**: Slim MVP **complete** (Weeks 1–14); Phase 2 Wave 5 sprints migrated  
+
 **Technology**: **PostgreSQL 17** (shared database) — [tech-stack.md](tech-stack.md)  
 **ORM**: Spring Data JPA / Hibernate (Java, Boot 4.1.x) + GORM AutoMigrate (`collab-service`)  
 **Auth**: JWT via `auth-service`
@@ -20,11 +21,12 @@ All services connect to the same `collabflow` database. “Owns” = which servi
 
 | Slim service | How | Tables |
 |--------------|-----|--------|
-| `auth-service` | Flyway | `users`, `refresh_tokens` |
+| `auth-service` | Flyway | `users` (schema + credentials/sessions columns), `refresh_tokens`, `email_tokens` |
+| `user-service` | Shared table (no Flyway) | **Writes** profile fields + admin create on `users`; does not own migrations |
 | `platform-service` | Flyway | `roles`, `permissions`, `role_permissions`, `organizations`, `organization_members`, `workspaces`, `workspace_members`, `projects`, `project_members` |
-| `task-service` | Flyway | `status_workflows`, `workflow_statuses`, `workflow_transitions`, `task_types`, `tasks` (`sprint_id` nullable, **no** `sprints` table yet) |
+| `task-service` | Flyway | `status_workflows`, `workflow_statuses`, `workflow_transitions`, `task_types`, `tasks`, `sprints` (`tasks.sprint_id` FK) |
 | `collab-service` | GORM AutoMigrate | `notifications`, `invitations`, `comments`, `comment_mentions`, `activity_feed`, `processed_events` (consumer idempotency) |
-| `realtime-service` | — | **none** (Redis + Kafka only) |
+| `realtime-service` | — | **none** (Redis + Kafka; read-only ACL on `project_members` / `organization_members` / `projects` / `workspaces` / `tasks`) |
 | `api-gateway` | — | **none** |
 
 ### Design-only / not migrated in MVP
@@ -34,13 +36,13 @@ Kept in this doc for later; **do not** add Flyway/GORM until Phase 2+ ([future-p
 | Area | Tables |
 |------|--------|
 | Platform | `tags` |
-| Task extras | `sprints`, `watchers`, `custom_fields`, `custom_field_options`, `task_type_custom_fields`, `task_custom_field_values`, `task_dependencies`, `task_tags` |
+| Task extras | `watchers`, `custom_fields`, `custom_field_options`, `task_type_custom_fields`, `task_custom_field_values`, `task_dependencies`, `task_tags` |
 | Collab extras | `comment_attachments`, `comment_reactions` |
 | Phase 2 documents | `document_folders`, `documents`, `document_permissions`, `document_tags` |
 
 **Cross-service reads:** OK (e.g. collab reads `users`). Prefer IDs in Kafka events over wide cross-owner joins.
 
-**Roles:** `roles` / `permissions` owned by **platform**. Task seeds extra `task.*` permissions into those shared tables.
+**Roles:** `roles` / `permissions` owned by **platform**. Task seeds `task.*` and `sprint.*` permissions into those shared tables.
 
 ---
 
@@ -48,9 +50,9 @@ Kept in this doc for later; **do not** add Flyway/GORM until Phase 2+ ([future-p
 
 | Shipped in MVP | Deferred |
 |----------------|----------|
-| Auth, platform hierarchy, RBAC seed, workflows + tasks, collab core tables above | Documents, tags, sprints table, custom fields, watchers, comment reactions/attachments |
+| Auth, platform hierarchy, RBAC seed, workflows + tasks + sprints, collab core tables above | Documents, tags, custom fields, watchers, comment reactions/attachments |
 | Default workflow + system task types seed | Search/export tables (none) |
-| `tasks.sprint_id` column reserved (nullable) | Sprint CRUD + FK |
+| `sprints` + `tasks.sprint_id` FK (Phase 2 Wave 5) | Sprint analytics / export |
 
 ---
 
@@ -74,11 +76,12 @@ Kept in this doc for later; **do not** add Flyway/GORM until Phase 2+ ([future-p
 
 ## Authentication Tables
 
-**Owner:** `auth-service`
+**Owner (schema / credentials):** `auth-service` (Flyway).  
+**Phase 2 Wave 3 split:** `users` remains a **shared** table. **`user-service`** owns profile mutations (`GET/PUT /api/v1/users/me`) and admin create (`POST /api/v1/admin/users`, including initial password hash). **`auth-service`** owns credentials/sessions/`email_tokens` (login, JWT, refresh, verify/reset, change-password) and still runs Flyway for `users` / `refresh_tokens` / `email_tokens`. Auth may still insert rows on public register when enabled.
 
 ### 1. users
 
-**Purpose**: Stores user account information for JWT authentication.
+**Purpose**: Stores user account information for JWT authentication and profile display.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -91,17 +94,36 @@ Kept in this doc for later; **do not** add Flyway/GORM until Phase 2+ ([future-p
 | bio | TEXT | NULL | User's biography/profile description |
 | is_active | BOOLEAN | DEFAULT true | Account status (active/inactive) |
 | is_email_verified | BOOLEAN | DEFAULT false | Email verification status |
+| is_master_admin | BOOLEAN | DEFAULT false | Phase 2: admin portal master admin |
 | created_at | TIMESTAMPTZ | DEFAULT CURRENT_TIMESTAMP | Account creation timestamp |
 | updated_at | TIMESTAMPTZ | DEFAULT CURRENT_TIMESTAMP | Last update timestamp |
 
 **Indexes**:
 - `idx_users_email` on email (for login queries)
 - `idx_users_is_active` on is_active (for filtering active users)
+- partial `idx_users_is_master_admin` where `is_master_admin = true`
 
 **Notes**:
 - Password should be hashed using bcrypt with minimum 10 rounds
 - Email should be case-insensitive for uniqueness checks
 - Avatar URL can be relative path or absolute URL
+- Master admin is seeded by auth-service on boot (`MASTER_ADMIN_EMAIL` / `MASTER_ADMIN_PASSWORD`)
+
+---
+
+### 1b. email_tokens (Phase 2 — auth)
+
+**Purpose**: One-time tokens for email verify and password reset.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Token row id |
+| user_id | UUID | FK users.id ON DELETE CASCADE | Owner |
+| token | VARCHAR(128) | UNIQUE, NOT NULL | Opaque token string |
+| purpose | VARCHAR(32) | NOT NULL | `VERIFY_EMAIL` or `RESET_PASSWORD` |
+| expires_at | TIMESTAMPTZ | NOT NULL | Expiry |
+| used_at | TIMESTAMPTZ | NULL | When consumed |
+| created_at | TIMESTAMPTZ | DEFAULT CURRENT_TIMESTAMP | Created |
 
 ---
 
@@ -741,7 +763,7 @@ Kept in this doc for later; **do not** add Flyway/GORM until Phase 2+ ([future-p
 
 ## Document Management Tables
 
-> **Phase 2 — deferred.** Do not create these tables in MVP Flyway migrations. Kept here so Phase 2 can reuse the design. Future owner: optional `document-service` (Go) or fold into `collab-service`.
+> **Phase 2 — Wave 7.** Do not create these tables in MVP Flyway migrations until document-service owns them. Scaffold: `go-services/document-service` (:9083). Owner: `document-service` (Go).
 
 ### 21. document_folders
 
@@ -1682,8 +1704,12 @@ ORDER BY n.created_at DESC;
 
 ---
 
-**Document Version**: 2.4.0  
-**Last Updated**: 2026-10-22  
+**Document Version**: 2.5.0  
+**Last Updated**: 2026-10-23  
+
+**Changes from v2.4.0**:
+- Migrated `sprints` (task-service Flyway V2); `tasks.sprint_id` now FK → `sprints.id` ON DELETE SET NULL
+- Seeded `sprint.create|read|update|delete` into project Admin/Member/Viewer roles
 
 **Changes from v2.3.0**:
 - Split **Migrated (shipped)** vs **design-only** tables to match Flyway + collab AutoMigrate

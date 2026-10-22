@@ -36,7 +36,7 @@
 - Create org (slug), list mine, get/update/soft-delete  
 - Members: add / update role / remove  
 - System roles + permission checks (`organization.*`)  
-- Kafka: `organization.created`, `organization.member_added`
+- Kafka: `organization.created`, `organization.updated`, `organization.deleted`, `organization.member_added`, `organization.member_removed`
 
 **Not in MVP:** billing/subscription plans, org analytics dashboards.
 

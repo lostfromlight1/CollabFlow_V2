@@ -1,41 +1,94 @@
-# CollabFlow — E2E demo script
+# CollabFlow — E2E / testing guide
 
-Portfolio / smoke path for the **completed** slim MVP (6 services). Week 13 deliverable; still the canonical demo.
+Portfolio smoke path for slim MVP + **Phase 2 admin tenancy**.
 
-## Prereqs
+**Start stack first:** [running.md](running.md) (`.env` → Compose + MailHog → Java/Go).  
+**Postman:** [postman/README.md](../postman/README.md).
 
-```powershell
-cd D:\codes\CollabFlow_V2\infrastructure
-docker compose --env-file ../.env up -d
-# Expect: postgres, redis, zookeeper, kafka healthy
-```
+---
 
-Start (separate terminals, from `java-services/` / `go-services/`): **gateway :8080**, **auth :8081**, **platform :8082**, **task :8083**, **collab :9081**, **realtime :9082**.
+## Phase 2 happy path (admin-provisioned)
 
-`API_KEY` / `JWT_SECRET` come from repo-root `.env` (Java `bootRun` loads it). Do not put secrets in `application.yml`.
-
-## Happy path
+Use Postman **CollabFlow Auth → 4. Phase 2 admin tenancy** (or curl below).
 
 | Step | Action | Expect |
 |------|--------|--------|
-| 1 | Postman **Auth → Register** | `accessToken`, `userId` |
-| 2 | Auth → **Register other user** | `otherUserId`, `otherAccessToken` |
-| 3 | Platform → create **org → workspace → project** | ids in env |
-| 4 | Add other user as org/workspace/project member (or invite accept) | membership OK |
-| 5 | Tasks → create task → **assign** to self or other | Kafka `task.assigned` |
-| 6 | Collab up **before** assign | `GET /notifications` has `TASK_ASSIGNED`; log `EMAIL_STUB` |
-| 7 | `GET /activity?entityType=TASK&entityId=` | `TASK_ASSIGNED` row; actor = assigner |
-| 8 | WS: `ws://localhost:9082/api/v1/realtime/ws?token=` → subscribe `project:{{projectId}}` | connected |
-| 9 | Update task name **or** re-assign / change status | WS `task.updated` |
-| 10 | Comment with `@{{otherUserId}}` | comment + mention notif; WS `comment.added` if subscribed to `task:` |
-| 11 | `GET /api/v1/tasks/stats?projectId=` | totals by status + priority |
+| 1 | `POST /api/v1/auth/login` as master admin | tokens; `GET /auth/me` → `masterAdmin=true` |
+| 2 | `POST /api/v1/admin/users` — create app user | `201`; MailHog shows **welcome** (SMTP) |
+| 3 | `POST /api/v1/admin/organizations` — `ownerUserId` = new user | org + default workspace |
+| 4 | Login as app user | `selectedOrganizationId` / `organizations[]` |
+| 5 | Product APIs with `Authorization` + `X-Organization-Id` + `X-API-Key` | 200 |
+| 6 | Create task / assign → collab + realtime | Kafka side effects |
+
+Optional: public-register verify uses `POST /auth/verify-email` + MailHog token (`AUTH_PUBLIC_REGISTER_ENABLED=true`).
+
+Master admin defaults (from `.env.example`): `admin@collabflow.local` / `ChangeMeAdmin123!`.  
+MailHog UI: http://localhost:8025
+
+### Curl sketch (gateway)
+
+```powershell
+$k = $env:API_KEY   # or load from .env — see running.md
+$base = "http://localhost:8080"
+
+# 1) Master admin login
+curl -s -X POST "$base/api/v1/auth/login" -H "Content-Type: application/json" -H "X-API-Key: $k" `
+  -d "{\"email\":\"admin@collabflow.local\",\"password\":\"ChangeMeAdmin123!\"}"
+# → save accessToken as $admin
+
+# 2) Admin create user
+curl -s -X POST "$base/api/v1/admin/users" -H "Content-Type: application/json" `
+  -H "X-API-Key: $k" -H "Authorization: Bearer $admin" `
+  -d "{\"email\":\"dev@example.com\",\"temporaryPassword\":\"password123\",\"name\":\"Dev\"}"
+# → MailHog shows welcome; admin-created users are emailVerified
+
+# 3) Admin create org (ownerUserId = created user id)
+# 4) Attach member if needed
+# 5) User login → call tasks with X-Organization-Id
+```
+
+---
+
+## Auth response shape (Phase 2)
+
+```json
+{
+  "success": true,
+  "data": {
+    "userId": "...",
+    "email": "...",
+    "name": "...",
+    "accessToken": "...",
+    "refreshToken": "...",
+    "tokenType": "Bearer",
+    "selectedOrganizationId": "...",
+    "organizations": [{ "id": "...", "name": "...", "slug": "...", "roleId": "..." }],
+    "requiresOrganizationSelection": false
+  }
+}
+```
+
+Postman scripts must use `j.data.userId` (not `j.data.user.id`).
+
+---
+
+## MVP self-serve (opt-in only)
+
+Public register / self-serve org create stay **off** unless:
+
+- `AUTH_PUBLIC_REGISTER_ENABLED=true`
+- `PLATFORM_SELF_SERVE_ORG_CREATE=true`
+
+---
 
 ## Cross-service checks
 
-- **Viewer** role: can `GET` tasks/stats; cannot assign/update (403).
-- Assign before collab starts → no notification (`LastOffset`); re-assign after collab is up.
-- Gateway needs `X-API-Key` + Bearer on HTTP; WS may use `?token=` (+ `?apiKey=` via gateway).
+- Missing `X-Organization-Id` on tasks/sprints → 400/403  
+- Realtime subscribe as non-member → FORBIDDEN; `/broadcast` only in dev  
+- Email: auth/invite/welcome → Kafka `email.send` → email-service → MailHog  
+
+---
 
 ## Done when
 
-You can narrate: *register → tenancy → task → Kafka → notification + activity → live WS*, without restarting mid-demo except the known “start collab first” rule.
+You can narrate: *master admin → create user (SMTP) → org + member → org login → hierarchy → Kafka inbox + WS*.

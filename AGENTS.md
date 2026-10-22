@@ -35,6 +35,7 @@ Do **not** follow [docs/archive/legacy-16-service-plan.md](docs/archive/legacy-1
 | Need | Doc |
 |------|-----|
 | PC setup (Windows/Fedora) | [docs/setup.md](docs/setup.md) |
+| Run infra + all services | [docs/running.md](docs/running.md) |
 | Implementation + weeks | [docs/implementation-guide.md](docs/implementation-guide.md) |
 | Progress tracker | [docs/progress-tracker.md](docs/progress-tracker.md) |
 | Services / ports / ApiId catalog | [docs/services-mvp.md](docs/services-mvp.md) |
