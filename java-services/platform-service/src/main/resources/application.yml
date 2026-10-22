@@ -4,6 +4,27 @@ server:
 spring:
   application:
     name: platform-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    # Own history table; schema already has auth tables → baseline at 0 then run V1+
+    table: flyway_platform_history
+    baseline-on-migrate: true
+    baseline-version: "0"
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
 
 management:
   endpoints:
@@ -14,7 +35,13 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+    operations-sorter: method
 
+# File logs: logback-spring.xml → logs/platform/platform-service.yyyy-MM-dd.log (repo root when using bootRun)
 collabflow:
+  logging:
+    home: ${LOG_HOME:logs}
   security:
     api-key: ${API_KEY:6e7f9c2b1a3d5e7f8b4fdf31e2f3a4b5c}
+  jwt:
+    secret: ${JWT_SECRET:MdSQmmDuK70dcClyAHgcdfwedfweftNYqlgPXCTeIpmJ460=}

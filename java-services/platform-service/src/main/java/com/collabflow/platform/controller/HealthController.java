@@ -2,6 +2,7 @@ package com.collabflow.platform.controller;
 
 import com.collabflow.common.api.ApiResponse;
 import com.collabflow.common.openapi.OpenApiSupport;
+import com.collabflow.common.web.ApiId;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +22,7 @@ public class HealthController {
     private static final Logger log = LoggerFactory.getLogger(HealthController.class);
 
     @GetMapping("/health")
+    @ApiId("PLAT-001")
     @Operation(summary = "Health check")
     public ApiResponse<Map<String, String>> health() {
         log.debug("GET /platform/health");

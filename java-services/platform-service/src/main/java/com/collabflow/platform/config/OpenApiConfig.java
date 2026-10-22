@@ -12,7 +12,7 @@ public class OpenApiConfig {
     OpenAPI platformOpenApi() {
         return OpenApiSupport.baseOpenApi(
                 "CollabFlow Platform Service",
-                "Organizations, workspaces, projects. All /api/** require X-API-Key.",
+                "Organizations, members, and RBAC. Requires X-API-Key + Bearer JWT.",
                 "v1"
         );
     }
