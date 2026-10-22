@@ -12,7 +12,7 @@ public class OpenApiConfig {
     OpenAPI taskOpenApi() {
         return OpenApiSupport.baseOpenApi(
                 "CollabFlow Task Service",
-                "Tasks and assignments. All /api/** require X-API-Key.",
+                "Workflows + tasks. Requires X-API-Key + Bearer JWT.",
                 "v1"
         );
     }
