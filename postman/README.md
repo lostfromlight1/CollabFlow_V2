@@ -15,7 +15,7 @@ Re-import (or Replace) collections after pulling so new folders/tests appear.
 | File | Folders / cases |
 |------|-----------------|
 | **Auth** | Health (± API key) · Happy path (register→login→me→refresh→logout→refresh-fails) · Validation (dup email, short password, bad email, wrong login, Me without token) · Second user (for Platform members) |
-| **Platform** | Roles · Org · Workspaces · Projects · Tasks · Notifications · **Invitations + Comments** |
+| **Platform** | Roles · Org · Workspaces · Projects · Tasks · Notifications · Invitations/Comments · **Activity** |
 | **Local env** | Shared tokens + `organizationId`, `workspaceId`, `projectId`, `taskId`, … |
 
 Most requests assert status + `ApiResponse` / `errorCode` via Postman **Tests**.
@@ -31,7 +31,8 @@ Most requests assert status + `ApiResponse` / `errorCode` via Postman **Tests**.
 7. **Platform → 7. Tasks** (needs active `projectId` + **task-service**)  
 8. **Platform → 8. Notifications** (needs **collab-service** + Kafka; assign then list)  
 9. **Platform → 9. Invitations + Comments** (needs `otherUserEmail` / `otherAccessToken` from Auth second user + `taskId`)  
-10. Run **Negative** folders anytime  
+10. **Platform → 10. Activity feed** (after assign / comment; collab up)  
+11. Run **Negative** folders anytime  
 
 Soft-delete / archive of parents breaks child folders — recreate org → workspace → project as needed.
 

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "c3d4e5f6-a7b8-9012-cdef-1234567890ab",
     "name": "CollabFlow Platform",
-    "description": "Org → Workspace → Project → Task → Notifications → Invitations/Comments via gateway (:8080).\n\nNeeds: auth, platform, task-service (:8083), **collab-service (:9081)**, Kafka.\n\nFolder 8: start collab first, then assign a task → list notifications.\nFolder 9: invitations (invite otherUserEmail) + comments with @userId mention.",
+    "description": "Org → Workspace → Project → Task → Notifications → Invitations/Comments → Activity via gateway (:8080).\n\nNeeds: auth, platform, task-service (:8083), **collab-service (:9081)**, Kafka.\n\nFolder 8–9: notifications / invites / comments.\nFolder 10: activity after assign (start collab first).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -2913,6 +2913,132 @@
               }
             ],
             "url": "{{baseUrl}}/api/v1/comments/{{commentId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Activity feed",
+      "item": [
+        {
+          "name": "List activity by task entity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test('array', () => pm.expect(data).to.be.an('array'));",
+                  "pm.test('has TASK_ASSIGNED or TASK_CREATED', () => {",
+                  "  if (!data.length) return;",
+                  "  const types = data.map(x => x.actionType);",
+                  "  pm.expect(types.some(t => t === 'TASK_ASSIGNED' || t === 'TASK_CREATED')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/activity?entityType=TASK&entityId={{taskId}}",
+            "description": "Run after folder 8 assign (collab must be up). Expect TASK_ASSIGNED."
+          }
+        },
+        {
+          "name": "List activity by entity path",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/activity/entity/TASK/{{taskId}}"
+          }
+        },
+        {
+          "name": "List activity by user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/activity/user/{{userId}}"
+          }
+        },
+        {
+          "name": "List activity by organization",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/activity?organizationId={{organizationId}}"
           }
         }
       ]
