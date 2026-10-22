@@ -13,7 +13,10 @@
     { "key": "userId", "value": "" },
     { "key": "userEmail", "value": "kaung@example.com" },
     { "key": "userPassword", "value": "password123" },
-    { "key": "userName", "value": "Kaung" }
+    { "key": "userName", "value": "Kaung" },
+    { "key": "otherUserId", "value": "" },
+    { "key": "otherUserEmail", "value": "" },
+    { "key": "otherAccessToken", "value": "" }
   ],
   "item": [
     {
@@ -532,6 +535,8 @@
                   "const j = pm.response.json();",
                   "pm.collectionVariables.set('otherUserId', j.data.user.id);",
                   "pm.environment.set('otherUserId', j.data.user.id);",
+                  "pm.collectionVariables.set('otherAccessToken', j.data.accessToken);",
+                  "pm.environment.set('otherAccessToken', j.data.accessToken);",
                   "pm.test('saved otherUserId', () => pm.expect(j.data.user.id).to.be.a('string'));"
                 ]
               }
