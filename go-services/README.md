@@ -10,4 +10,4 @@ Go **1.27**, **Gin**, **GORM**, **kafka-go**, **go-redis**. Versions: [docs/tech
 **Conventions:** see `.cursor/rules/golang-services.mdc`.  
 **Learning:** use skill `teach-and-build` when implementing these (Week 9+).
 
-Phase C started: `collab-service` Week 9 (health skeleton first).
+Phase C: `collab-service` (Weeks 9–11) + `realtime-service` (Week 12).
