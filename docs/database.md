@@ -1,46 +1,56 @@
 # CollabFlow Database Documentation
 
 **Database Name**: `collabflow`  
-**Version**: 2.3.0  
-**Technology**: **PostgreSQL 17** (shared database for MVP) — see [tech-stack.md](tech-stack.md)  
-**ORM**: Spring Data JPA / Hibernate (Java, Boot 4.1.x) + GORM (Go `collab-service`)  
-**Authentication**: Java JWT (Spring Security) via `auth-service`; frontend auth client later
+**Version**: 2.4.0  
+**Status**: Slim MVP **complete** (Weeks 1–14)  
+**Technology**: **PostgreSQL 17** (shared database) — [tech-stack.md](tech-stack.md)  
+**ORM**: Spring Data JPA / Hibernate (Java, Boot 4.1.x) + GORM AutoMigrate (`collab-service`)  
+**Auth**: JWT via `auth-service`
 
-> **Architecture:** Service deployables are defined in [services-mvp.md](services-mvp.md) (6 services).  
-> This file defines the **schema**. Table **ownership** below maps to slim services (not the old 16-way split).  
-> Document-related tables are **Phase 2** — keep in the doc for later; do not migrate them in MVP unless scope expands.
+> **Architecture:** Deployables in [services-mvp.md](services-mvp.md). This file is the **schema catalog**.  
+> Prefer **Migrated (shipped)** below when coding. Sections further down may still describe **design-only** columns/tables for Phase 2 — do not invent Flyway for those until scope expands.
 
 ---
 
 ## Table ownership (slim MVP)
 
-All services connect to the same `collabflow` database. “Owns” = which service runs migrations / writes for those tables.
+All services connect to the same `collabflow` database. “Owns” = which service migrates / writes.
 
-| Slim service | Tables (write owner) |
-|--------------|----------------------|
-| `auth-service` (Java) | `users`, `refresh_tokens` |
-| `platform-service` (Java) | `organizations`, `organization_members`, `workspaces`, `workspace_members`, `projects`, `project_members`, `roles`, `permissions`, `role_permissions`, `tags` |
-| `task-service` (Java) | `status_workflows`, `workflow_statuses`, `workflow_transitions`, `task_types`, `task_type_custom_fields`, `custom_fields`, `custom_field_options`, `tasks`, `task_custom_field_values`, `task_dependencies`, `task_tags`, `sprints`, `watchers` |
-| `collab-service` (Go) | `comments`, `comment_attachments`, `comment_reactions`, `comment_mentions`, `notifications`, `invitations`, `activity_feed` |
-| `realtime-service` (Go) | **none** (Redis + Kafka only) |
-| `api-gateway` (Java) | **none** |
+### Migrated (shipped)
 
-**Phase 2 (deferred — do not implement in MVP migrations):**  
-`document_folders`, `documents`, `document_permissions`, `document_tags` (and document upload flows).
+| Slim service | How | Tables |
+|--------------|-----|--------|
+| `auth-service` | Flyway | `users`, `refresh_tokens` |
+| `platform-service` | Flyway | `roles`, `permissions`, `role_permissions`, `organizations`, `organization_members`, `workspaces`, `workspace_members`, `projects`, `project_members` |
+| `task-service` | Flyway | `status_workflows`, `workflow_statuses`, `workflow_transitions`, `task_types`, `tasks` (`sprint_id` nullable, **no** `sprints` table yet) |
+| `collab-service` | GORM AutoMigrate | `notifications`, `invitations`, `comments`, `comment_mentions`, `activity_feed`, `processed_events` (consumer idempotency) |
+| `realtime-service` | — | **none** (Redis + Kafka only) |
+| `api-gateway` | — | **none** |
 
-**Cross-service reads:** Services may **read** tables they do not own (e.g. collab reads `users` for author names). Prefer IDs in Kafka events over wide joins across owners when possible.
+### Design-only / not migrated in MVP
 
-**Roles location:** `roles` / `permissions` live with **platform** (tenancy + RBAC). Task-service checks permissions via DB read or cached Redis keys — not a separate workflow-service DB.
+Kept in this doc for later; **do not** add Flyway/GORM until Phase 2+ ([future-plan.md](future-plan.md), [features.md](features.md)):
+
+| Area | Tables |
+|------|--------|
+| Platform | `tags` |
+| Task extras | `sprints`, `watchers`, `custom_fields`, `custom_field_options`, `task_type_custom_fields`, `task_custom_field_values`, `task_dependencies`, `task_tags` |
+| Collab extras | `comment_attachments`, `comment_reactions` |
+| Phase 2 documents | `document_folders`, `documents`, `document_permissions`, `document_tags` |
+
+**Cross-service reads:** OK (e.g. collab reads `users`). Prefer IDs in Kafka events over wide cross-owner joins.
+
+**Roles:** `roles` / `permissions` owned by **platform**. Task seeds extra `task.*` permissions into those shared tables.
 
 ---
 
 ## MVP vs full schema
 
-| Include in MVP migrations | Defer |
-|---------------------------|--------|
-| Auth, platform, task/workflow, collab tables above | Document tables |
-| System seed: roles, permissions, default workflow, system task types | Search/export-specific tables (none today) |
-| Sprints / watchers: OK in schema; can ship after core task CRUD | MinIO/S3 document storage |
+| Shipped in MVP | Deferred |
+|----------------|----------|
+| Auth, platform hierarchy, RBAC seed, workflows + tasks, collab core tables above | Documents, tags, sprints table, custom fields, watchers, comment reactions/attachments |
+| Default workflow + system task types seed | Search/export tables (none) |
+| `tasks.sprint_id` column reserved (nullable) | Sprint CRUD + FK |
 
 ---
 
@@ -1672,8 +1682,13 @@ ORDER BY n.created_at DESC;
 
 ---
 
-**Document Version**: 2.3.0  
-**Last Updated**: 2026-10-21  
+**Document Version**: 2.4.0  
+**Last Updated**: 2026-10-22  
+
+**Changes from v2.3.0**:
+- Split **Migrated (shipped)** vs **design-only** tables to match Flyway + collab AutoMigrate
+- Noted `processed_events`; `sprint_id` reserved without `sprints` table
+- MVP marked complete (Weeks 1–14)
 
 **Changes from v2.2.0**:
 - Aligned with slim MVP ([services-mvp.md](services-mvp.md)): table ownership by auth / platform / task / collab

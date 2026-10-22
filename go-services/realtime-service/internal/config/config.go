@@ -24,7 +24,7 @@ func Load() Config {
 		RedisPass:    getenv("REDIS_PASSWORD", ""),
 		KafkaBrokers: getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
 		KafkaGroupID: getenv("KAFKA_GROUP_ID", "realtime-service"),
-		JWTSecret:    getenv("JWT_SECRET", "MdSQmmDuK70dcClyAHgcdfwedfweftNYqlgPXCTeIpmJ460="),
+		JWTSecret:    getenv("JWT_SECRET", "ChuPaDupaSecretKeydSQmmDuK70dcClyAHgcdfwedfweftNYqlgPXCTeIpmJ460="),
 	}
 }
 

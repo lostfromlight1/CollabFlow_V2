@@ -13,6 +13,33 @@ allprojects {
     }
 }
 
+/** Parse repo-root `.env` (KEY=VALUE). Blanks and `#` comments skipped. */
+ext.loadRepoDotEnv = { File envFile ->
+    def map = [:]
+    if (!envFile.isFile()) {
+        return map
+    }
+    envFile.eachLine('UTF-8') { line ->
+        def trimmed = line.trim()
+        if (trimmed.isEmpty() || trimmed.startsWith('#')) {
+            return
+        }
+        def eq = trimmed.indexOf('=')
+        if (eq <= 0) {
+            return
+        }
+        def key = trimmed.substring(0, eq).trim()
+        def value = trimmed.substring(eq + 1).trim()
+        // optional surrounding quotes
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+                (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.substring(1, value.length() - 1)
+        }
+        map[key] = value
+    }
+    return map
+}
+
 subprojects {
     apply plugin: 'java'
     apply plugin: 'org.springframework.boot'
@@ -26,5 +53,39 @@ subprojects {
 
     tasks.withType(Test).configureEach {
         useJUnitPlatform()
+    }
+
+    // Inject secrets from repo-root `.env` into bootRun (OS env wins if already set)
+    afterEvaluate {
+        if (project.name == 'common') {
+            return
+        }
+        def bootRunTask = tasks.findByName('bootRun')
+        if (bootRunTask == null) {
+            return
+        }
+        def envFile = rootProject.projectDir.parentFile.toPath().resolve('.env').toFile()
+        def fromFile = rootProject.ext.loadRepoDotEnv(envFile)
+
+        fromFile.each { key, value ->
+            if (System.getenv(key) == null) {
+                bootRunTask.environment key, value
+            }
+        }
+
+        bootRunTask.doFirst {
+            def apiKey = System.getenv('API_KEY') ?: fromFile['API_KEY']
+            def jwtSecret = System.getenv('JWT_SECRET') ?: fromFile['JWT_SECRET']
+            if (!apiKey || !jwtSecret) {
+                throw new GradleException(
+                        "Missing API_KEY and/or JWT_SECRET.\n" +
+                        "Copy the template at the repo root, then edit secrets:\n" +
+                        "  Windows:  Copy-Item .env.example .env\n" +
+                        "  Linux:    cp .env.example .env\n" +
+                        "Expected file: ${envFile.absolutePath}\n" +
+                        "Do not put secrets in application.yml."
+                )
+            }
+        }
     }
 }

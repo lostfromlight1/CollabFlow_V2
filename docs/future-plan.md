@@ -1,10 +1,10 @@
 # CollabFlow — Future Plan (deferred / reduced services)
 
 **Purpose:** Remember what we **cut or merged** when slimmed from ~16 services to the [MVP](services-mvp.md).  
-**Do not build these as separate deployables until the slim MVP works end-to-end.**
+**Slim MVP is complete** — build these only when intentionally expanding scope (start with **document-service**).
 
 Canonical MVP services: [services-mvp.md](services-mvp.md).  
-Old full catalog (endpoints/events): [microservice.md](microservice.md).
+Endpoint / Kafka reference for the slim MVP: [microservice.md](microservice.md).
 
 ---
 

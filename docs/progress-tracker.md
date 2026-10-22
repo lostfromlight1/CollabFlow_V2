@@ -1,9 +1,10 @@
 # CollabFlow — Progress Tracker
 
-**How to use:** Change `[ ]` → `[x]` when a item is done.  
-**Canonical plan:** [implementation-guide.md](implementation-guide.md).
+**Status:** Slim MVP **complete** (Weeks 1–14).  
+**Canonical plan:** [implementation-guide.md](implementation-guide.md).  
+**What shipped:** [services-mvp.md](services-mvp.md) · [features.md](features.md)
 
-**Legend:** ⬜ not started · 🟨 in progress · ✅ done (use checkboxes below; update the summary table by hand).
+Use this file as a historical checklist. New work after MVP → [future-plan.md](future-plan.md).
 
 ---
 
@@ -11,7 +12,7 @@
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| A Foundation (W1–2) | ✅ | Infra + gateway skeleton |
+| A Foundation (W1–2) | ✅ | Infra + gateway |
 | B Java core (W3–8) | ✅ | Auth, platform, task |
 | C Go + events (W9–12) | ✅ | Collab + realtime |
 | D Integrate / portfolio (W13–14) | ✅ | E2E + OpenAPI + portfolio README |
@@ -21,15 +22,15 @@
 
 ## Services
 
-| Service | Status | First usable when |
-|---------|--------|-------------------|
-| infrastructure (Compose) | [x] | Week 1 — Postgres/Redis healthy; Kafka up |
-| api-gateway | [x] skeleton | Week 2 — routes stubbed |
-| auth-service | [x] usable | Week 4 — JWT + Kafka + Redis rate limit |
-| platform-service | [x] org+workspace+project usable | Week 7 — projects |
-| task-service | [x] usable | Week 8 — workflow seed + task CRUD |
-| collab-service | [x] usable | Weeks 9–11 — notif, invites, comments, activity |
-| realtime-service | [x] usable | Week 12 — WS + Redis + Kafka |
+| Service | Status | Notes |
+|---------|--------|-------|
+| infrastructure (Compose) | [x] | Postgres 17, Redis 8, ZK + Kafka CP 7.9 |
+| api-gateway | [x] | Routes + `X-API-Key` + JWT |
+| auth-service | [x] | JWT, refresh, Redis rate-limit, `user.created` |
+| platform-service | [x] | Org + workspace + project + RBAC |
+| task-service | [x] | Workflow seed, task CRUD/assign/status, stats |
+| collab-service | [x] | Notif, invites, comments, activity, email stub |
+| realtime-service | [x] | WS + Redis pub/sub + Kafka consume |
 
 ---
 
@@ -45,33 +46,33 @@
 
 ### Week 2 — Shells + Gateway
 - [x] Gradle skeletons for Java services
-- [x] `api-gateway` health + stub routing
+- [x] `api-gateway` health + routing
 - [x] Java service health endpoints
 - [x] `java-services/` conventions README
-- [ ] Smoke: `bootRun` auth + gateway, curl both URLs
+- [x] Smoke via gateway / Postman / [e2e-demo.md](e2e-demo.md)
 
 ---
 
 ## Phase B — Java core
 
 ### Week 3–4 — auth-service
-- [x] Package layout (controller/service/dto/model/…) + `:common` ApiResponse
+- [x] Package layout + `:common` ApiResponse
 - [x] Flyway: users, refresh_tokens
 - [x] Register / login / JWT
 - [x] Refresh + logout
-- [x] X-API-Key + Swagger + logging (shared standards)
+- [x] X-API-Key + Swagger + logging
 - [x] Postman collection (`postman/`)
 - [x] Redis rate-limit (login/register)
 - [x] Kafka: `user.created` (after commit)
 - [x] Gateway JWT for `/me` + edge API key
 - [x] Tests for auth happy path
-- [ ] Manual curl smoke (register → login → me via `:8080`)
+- [x] Manual smoke (register → login → me via `:8080` / Postman)
 
 ### Week 5 — platform (org)
 - [x] Flyway: orgs, members, roles, permissions + seed
 - [x] Org CRUD + members
 - [x] Permission checks
-- [x] Kafka org events (`organization.created`, `organization.member_added`)
+- [x] Kafka org events
 - [x] Manual Postman smoke via gateway
 
 ### Week 6 — platform (workspace)
@@ -87,12 +88,12 @@
 - [x] Kafka project events
 
 ### Week 8 — task-service
-- [x] Flyway: workflows + tasks (+ related)
+- [x] Flyway: workflows + tasks
 - [x] Default workflow seed
 - [x] Task CRUD + status transitions
 - [x] Task assign
 - [x] Kafka task events
-- [ ] (Optional) sprints basics
+- [ ] Sprints API — **deferred** (Phase 3 / optional; gateway path reserved only)
 
 ---
 
@@ -102,7 +103,7 @@
 - [x] Go module + Gin + GORM
 - [x] Consume `task.assigned` → notification
 - [x] Notification REST API
-- [x] Gateway collab routes (partial)
+- [x] Gateway collab routes
 
 ### Week 10 — collab (invitations + comments)
 - [x] Invitations API
@@ -112,7 +113,7 @@
 ### Week 11 — collab (activity + email stub)
 - [x] Activity feed from events
 - [x] Activity REST API
-- [x] Email stub (log only OK)
+- [x] Email stub (log only)
 
 ### Week 12 — realtime-service
 - [x] WebSocket + rooms
@@ -126,14 +127,14 @@
 
 ### Week 13
 - [x] E2E demo script documented
-- [x] Cross-service bug fix pass (assignerId + dual-publish task.updated for WS)
-- [x] Basic analytics endpoints
+- [x] Cross-service bug fix pass (assignerId + dual-publish `task.updated` for WS)
+- [x] Basic analytics (`GET /api/v1/tasks/stats`)
 
 ### Week 14
 - [x] OpenAPI / API examples
 - [x] Portfolio write-up in README
-- [x] MVP marked complete in summary table
-- [x] Phase 2 pick from future-plan (optional) — document-service next if expanding
+- [x] MVP marked complete
+- [x] Phase 2 pick — **document-service** next if expanding ([future-plan.md](future-plan.md))
 
 ---
 
@@ -152,20 +153,19 @@
 | Comments | collab | [x] |
 | Activity feed | collab | [x] |
 | Realtime | realtime | [x] |
-| Basic analytics | task/platform | [x] |
+| Basic analytics | task | [x] |
+| Sprints | task | [ ] deferred |
+| Documents | — | [ ] Phase 2 |
 
 ---
 
 ## Learning log (optional)
 
-Add a line after each week:
-
 | Week | Date | What I learned (3 bullets max) |
 |------|------|--------------------------------|
 | 1 | | |
-| 2 | | |
 | … | | |
 
 ---
 
-**Last updated:** 2026-10-21
+**Last updated:** 2026-10-22

@@ -19,6 +19,19 @@ Versions: [docs/tech-stack.md](../docs/tech-stack.md).
 
 All Java services share the same Boot/Java version. From `java-services/` you can build everything or run one module.
 
+## Secrets (do not put in YAML)
+
+`API_KEY` and `JWT_SECRET` live only in the **repo-root** `.env` (gitignored). Copy from `.env.example` once:
+
+```powershell
+# from repo root
+Copy-Item .env.example .env
+```
+
+`application.yml` uses `${API_KEY}` / `${JWT_SECRET}` with **no** defaults.  
+`gradlew …:bootRun` loads that `.env` into the process (OS env vars already set win).  
+IDE run configs that are not Gradle `bootRun` must set the same two variables themselves.
+
 ## Commands (from this folder)
 
 ```bash
@@ -26,7 +39,7 @@ All Java services share the same Boot/Java version. From `java-services/` you ca
 ./gradlew build          # Linux/macOS
 gradlew.bat build        # Windows
 
-# Run one service
+# Run one service (reads repo-root .env)
 ./gradlew :auth-service:bootRun
 ./gradlew :platform-service:bootRun
 ./gradlew :task-service:bootRun

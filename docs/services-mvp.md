@@ -1,13 +1,14 @@
 # CollabFlow — Slim MVP Services (canonical)
 
-**Status:** This is the **source of truth** for what we build.  
-The older 16-service layout in [microservice.md](microservice.md) is **reference / future backlog** only.
+**Status:** Slim MVP **complete** (Weeks 1–14). This file is the **source of truth** for deployables, routes, Kafka ownership, and the Java `@ApiId` catalog.
 
-**Why slim:** Keep Java + Go + Kafka + Redis + real microservice boundaries, without 16 deployables. Still challenging for a junior portfolio; easier to understand and finish.
+Older 16-service layout: historical notes live in [microservice.md](microservice.md) (deferred backlog) and [archive/legacy-16-service-plan.md](archive/legacy-16-service-plan.md). When owners conflict, **this file wins**.
+
+**Tracker:** [progress-tracker.md](progress-tracker.md) · **Plan:** [implementation-guide.md](implementation-guide.md) · **Versions:** [tech-stack.md](tech-stack.md)
 
 ---
 
-## Target: 6 services
+## Target: 6 services (shipped)
 
 ```
                  API Gateway (Spring Cloud Gateway — Java)
@@ -30,28 +31,29 @@ The older 16-service layout in [microservice.md](microservice.md) is **reference
    └─────────┘  └──────────┘        └───────────┘
 ```
 
-| # | Service | Lang | Port | Owns (from old split) |
-|---|---------|------|------|------------------------|
-| 1 | `auth-service` | Java | 8081 | auth-service |
-| 2 | `platform-service` | Java | 8082 | organization + workspace + project (+ members/roles usage) |
-| 3 | `task-service` | Java | 8083 | task + workflow (+ sprints when we reach that feature) |
-| 4 | `collab-service` | Go | 9081 | notification + invitation + comment + activity (+ simple email send) |
-| 5 | `realtime-service` | Go | 9082 | realtime-service (WebSocket + Redis pub/sub) |
-| 6 | API Gateway | Java | 8080 | routing, JWT validation, rate limit |
+| # | Service | Lang | Port | Owns |
+|---|---------|------|------|------|
+| 1 | `auth-service` | Java | 8081 | users, refresh_tokens, JWT, Redis rate-limit |
+| 2 | `platform-service` | Java | 8082 | organizations, workspaces, projects, members, RBAC roles/permissions |
+| 3 | `task-service` | Java | 8083 | workflows, statuses, transitions, task_types, tasks (+ basic stats) |
+| 4 | `collab-service` | Go | 9081 | notifications, invitations, comments, activity (+ email log stub) |
+| 5 | `realtime-service` | Go | 9082 | WebSocket rooms, Redis pub/sub, Kafka → broadcast |
+| 6 | `api-gateway` | Java | 8080 | routing, `X-API-Key`, JWT validation on protected routes |
 
-**Shared infra (not “business services”):** PostgreSQL **17**, Redis **8**, Kafka **3.9 + ZooKeeper** (Confluent Platform **7.9.x**). Docker Compose for local.  
-**Exact pins:** [tech-stack.md](tech-stack.md).
+**Shared infra:** PostgreSQL **17**, Redis **8**, Kafka **3.9 + ZooKeeper** (Confluent **7.9.2**). Pins: [tech-stack.md](tech-stack.md).
+
+**Not in MVP:** sprints API (gateway path reserved only), documents, search, export, standalone email/analytics services — [future-plan.md](future-plan.md).
 
 ---
 
-## What each service teaches you
+## What each service teaches
 
-| Service | You practice |
-|---------|----------------|
-| auth | Spring Security, JWT, Redis sessions (you already know Java — solid base) |
-| platform | Multi-tenant hierarchy, RBAC, modular monolith *inside* one service |
-| task | Complex domain, workflows, Kafka **produce** after writes |
-| collab | **Golang**, GORM, Kafka **consume**, notifications/comments |
+| Service | Practice |
+|---------|----------|
+| auth | Spring Security, JWT, Redis rate-limit |
+| platform | Multi-tenant hierarchy, RBAC |
+| task | Domain workflows, Kafka **produce** after writes, basic analytics |
+| collab | **Golang**, GORM, Kafka **consume**, notifications/comments/activity |
 | realtime | Go concurrency, WebSockets, Redis pub/sub |
 | gateway | Edge routing — how microservices are exposed |
 
@@ -60,64 +62,57 @@ The older 16-service layout in [microservice.md](microservice.md) is **reference
 ## API route map (gateway)
 
 ```
-/api/v1/auth/**           → auth-service:8081
-/api/v1/organizations/**  → platform-service:8082
-/api/v1/workspaces/**     → platform-service:8082
-/api/v1/projects/**       → platform-service:8082
-/api/v1/tasks/**          → task-service:8083
-/api/v1/workflows/**      → task-service:8083
-/api/v1/sprints/**        → task-service:8083
-/api/v1/notifications/**  → collab-service:9081
-/api/v1/invitations/**    → collab-service:9081
-/api/v1/comments/**       → collab-service:9081
-/api/v1/activity/**       → collab-service:9081
-/api/v1/realtime/**       → realtime-service:9082
+/api/v1/auth/**                                              → auth-service:8081
+/api/v1/organizations/** , /roles/** , /workspaces/** ,
+  /projects/** , /platform/**                                → platform-service:8082
+/api/v1/tasks/** , /workflows/** , /task-types/** ,
+  /sprints/** (reserved — not implemented)                   → task-service:8083
+/api/v1/notifications/** , /collab/** , /invitations/** ,
+  /comments/** , /activity/**                                → collab-service:9081
+/api/v1/realtime/**                                          → realtime-service:9082
 ```
 
-Endpoint details can still be copied from [microservice.md](microservice.md); only the **process boundary** changed (merged owners).
+Endpoint catalog: `@ApiId` table below. Narrative reference: [microservice.md](microservice.md).
 
 ---
 
-## Kafka (keep, but fewer producers/consumers)
+## Kafka (shipped)
 
-**Producers (Java):**
+**Producers**
 
-- auth → `user.created`, `user.updated`
-- platform → `organization.*`, `workspace.*`, `project.*`
-- task → `task.created`, `task.updated`, `task.assigned`, `task.status_changed`
+| Service | Topics |
+|---------|--------|
+| auth | `user.created` |
+| platform | `organization.created`, `organization.member_added`; `workspace.created\|updated\|deleted\|member_added\|member_removed`; `project.created\|updated\|deleted\|member_added\|member_removed` |
+| task | `task.created`, `task.updated`, `task.deleted`, `task.assigned`, `task.status_changed` (status/assign also dual-publish `task.updated` for WS) |
+| collab | `comment.added` |
 
-**Consumers (Go):**
+**Consumers**
 
-- collab → creates notifications, activity rows; handles invitation side effects
-- realtime → broadcasts task/comment updates to WebSocket rooms
+| Service | Topics → effect |
+|---------|-----------------|
+| collab | `task.assigned` → notification (+ email stub log); `task.created` → activity; `comment.added` → activity; mentions → in-process `COMMENT_MENTION` notification |
+| realtime | `task.updated`, `comment.added` → Redis rooms → WebSocket broadcast |
 
-Same event envelope as microservice.md. Fewer services = clearer event story for your portfolio.
-
----
-
-## Deferred (Phase 2+ — not MVP)
-
-Full backlog of **merged + deferred** services (what we reduced and when to bring them back): **[future-plan.md](future-plan.md)**.
-
-Do **not** build those as separate deployables until this slim MVP works end-to-end.
+Platform org/workspace/project topics are produced for portfolio/event story; Go does not consume them in MVP.
 
 ---
 
-## MVP feature order (unchanged product, fewer deployables)
+## Redis (shipped)
 
-1. Auth (`auth-service`)
-2. Org / workspace / project (`platform-service`)
-3. Task + workflow (`task-service`)
-4. Notifications, invitations, comments, activity (`collab-service`)
-5. Realtime updates (`realtime-service`)
-6. Basic analytics = read APIs on Java services (no new service)
+| Service | Use |
+|---------|-----|
+| auth | Login/register rate-limit (fail-open if Redis down) |
+| realtime | Pub/sub bus for multi-instance-ready WS |
+| collab | None in MVP |
 
 ---
 
-## Repo folders (when coding starts)
+## Repo layout
 
 ```
 java-services/
+  common/            # ApiResponse, ErrorResponse, ApiKeyFilter, GlobalExceptionHandler
   auth-service/
   platform-service/
   task-service/
@@ -125,33 +120,32 @@ java-services/
 go-services/
   collab-service/
   realtime-service/
-infrastructure/          # docker-compose: postgres, redis, zookeeper, kafka
+infrastructure/      # docker-compose: postgres, redis, zookeeper, kafka
 docs/
+postman/
 ```
-
-**Build plan:** [implementation-guide.md](implementation-guide.md) · **Tracker:** [progress-tracker.md](progress-tracker.md)
 
 ---
 
 ## Java `@ApiId` catalog (logs / MDC)
 
-Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spring.mdc`). Assign the next free number in that area. Not the same as HTTP `ErrorCode`.
+Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spring.mdc`). Go ids below are **documentation ids** for support/logs (no Java annotation). Not the same as HTTP `ErrorCode`.
 
 | Prefix | Area |
 |--------|------|
 | `AUTH-NNN` | auth-service |
-| `PLAT-NNN` | platform health / misc |
+| `PLAT-NNN` | platform health |
 | `ORG-NNN` | organizations + members |
 | `ROLE-NNN` | roles list |
-| `WS-NNN` | workspaces (Week 6+) |
-| `PRJ-NNN` | projects (Week 7+) |
-| `TASK-NNN` | task-service tasks |
+| `WS-NNN` | workspaces |
+| `PRJ-NNN` | projects |
+| `TASK-NNN` | tasks |
 | `WF-NNN` | workflows / task-types |
-| `NOTIF-NNN` | collab notifications (Go) |
-| `INV-NNN` | collab invitations (Go) |
-| `CMT-NNN` | collab comments (Go) |
-| `ACT-NNN` | collab activity feed (Go) |
-| `RT-NNN` | realtime WebSocket (Go) |
+| `NOTIF-NNN` | collab notifications |
+| `INV-NNN` | collab invitations |
+| `CMT-NNN` | collab comments |
+| `ACT-NNN` | collab activity |
+| `RT-NNN` | realtime |
 
 | Id | Method | Path |
 |----|--------|------|
@@ -227,10 +221,12 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | RT-001 | GET (WS) | `/api/v1/realtime/ws` |
 | RT-002 | POST | `/api/v1/realtime/broadcast` |
 
-File logs (local `bootRun`): `logs/auth/`, `logs/platform/`, `logs/task/` under repo root (`LOG_HOME` override). Collab Go: `go-services/collab-service`. Realtime Go: `go-services/realtime-service`.
+**OpenAPI (Java):** Swagger UI on direct ports — auth `:8081`, platform `:8082`, task `:8083` → `/swagger-ui.html` (send `X-API-Key`). Gateway does not proxy Swagger.
+
+**Logs (local `bootRun`):** `logs/auth/`, `logs/platform/`, `logs/task/` under repo root (`LOG_HOME` override). Go: under each `go-services/*` README.
 
 ---
 
-## Portfolio narrative (one paragraph)
+## Portfolio narrative
 
-> CollabFlow is a multi-tenant project tool with a **slim microservice** backend: three Spring Boot (Gradle) services for auth, tenancy/platform, and tasks; two Golang services for collaboration (Kafka consumers) and realtime (WebSocket + Redis); shared Postgres 17; Redis 8; Kafka 3.9 with ZooKeeper (Confluent 7.9). Scope was reduced from 16 services so boundaries stay real and the system stays finishable and explainable.
+> CollabFlow is a multi-tenant project tool with a **slim microservice** backend: three Spring Boot (Gradle) services for auth, tenancy/platform, and tasks; two Golang services for collaboration (Kafka consumers) and realtime (WebSocket + Redis); shared Postgres 17; Redis 8; Kafka 3.9 with ZooKeeper (Confluent 7.9). Scope was reduced from 16 services so boundaries stay real and the system stays finishable and explainable. Java owns the sync domain; Go owns async side effects and live updates.

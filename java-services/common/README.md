@@ -16,10 +16,12 @@ Each Boot app must scan this package, e.g.:
 })
 ```
 
-Config (every service):
+Config (every service) — secrets from env / repo-root `.env`, never literals in YAML:
 
 ```yaml
 collabflow:
   security:
-    api-key: ${API_KEY:...}
+    api-key: ${API_KEY}
+  jwt:
+    secret: ${JWT_SECRET}
 ```

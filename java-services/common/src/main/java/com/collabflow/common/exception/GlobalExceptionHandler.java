@@ -1,13 +1,20 @@
 package com.collabflow.common.exception;
 
 import com.collabflow.common.api.ErrorResponse;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * Shared exception → {@link ErrorResponse} mapping. Each service must component-scan
@@ -15,6 +22,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusiness(
@@ -47,8 +56,66 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    /**
+     * Bad JSON / wrong types in the body (e.g. truncated UUID for {@code userId}).
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadable(
+            HttpMessageNotReadableException ex,
+            HttpServletRequest request
+    ) {
+        Throwable cause = ex.getMostSpecificCause();
+        if (cause instanceof InvalidFormatException ife) {
+            String field = fieldName(ife);
+            String expected = expectedTypeLabel(ife.getTargetType());
+            String message = field != null
+                    ? "Invalid value for '" + field + "': expected " + expected
+                    : "Invalid request body: expected " + expected;
+            List<ErrorResponse.FieldErrorItem> fields = field != null
+                    ? List.of(new ErrorResponse.FieldErrorItem(field, "must be a valid " + expected))
+                    : null;
+            return ResponseEntity
+                    .badRequest()
+                    .body(ErrorResponse.of(
+                            ErrorCode.BAD_REQUEST.getCode(),
+                            message,
+                            request.getRequestURI(),
+                            fields
+                    ));
+        }
+        return ResponseEntity
+                .badRequest()
+                .body(ErrorResponse.of(
+                        ErrorCode.BAD_REQUEST.getCode(),
+                        "Malformed request body",
+                        request.getRequestURI()
+                ));
+    }
+
+    /**
+     * Wrong types in path/query (e.g. {@code /organizations/{id}} with a non-UUID).
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request
+    ) {
+        String name = ex.getName();
+        String expected = expectedTypeLabel(ex.getRequiredType());
+        String message = "Invalid value for '" + name + "': expected " + expected;
+        return ResponseEntity
+                .badRequest()
+                .body(ErrorResponse.of(
+                        ErrorCode.BAD_REQUEST.getCode(),
+                        message,
+                        request.getRequestURI(),
+                        List.of(new ErrorResponse.FieldErrorItem(name, "must be a valid " + expected))
+                ));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleOther(Exception ex, HttpServletRequest request) {
+        log.error("Unhandled error on {}", request.getRequestURI(), ex);
         return ResponseEntity
                 .internalServerError()
                 .body(ErrorResponse.of(
@@ -60,5 +127,23 @@ public class GlobalExceptionHandler {
 
     private ErrorResponse.FieldErrorItem toItem(FieldError error) {
         return new ErrorResponse.FieldErrorItem(error.getField(), error.getDefaultMessage());
+    }
+
+    private static String fieldName(InvalidFormatException ex) {
+        List<JsonMappingException.Reference> path = ex.getPath();
+        if (path == null || path.isEmpty()) {
+            return null;
+        }
+        return path.get(path.size() - 1).getFieldName();
+    }
+
+    private static String expectedTypeLabel(Class<?> type) {
+        if (type == null) {
+            return "a valid value";
+        }
+        if (UUID.class.equals(type)) {
+            return "UUID";
+        }
+        return type.getSimpleName();
     }
 }

@@ -22,7 +22,7 @@ cd D:\Codes\CollabFlow_V2\java-services
 ```
 
 ```powershell
-$k = "6e7f9c2b1a3d5e7f8b4fdf31e2f3a4b5c"
+$k = "6e7f9c2b1a3d5eligmanut69420a4b5c"
 curl http://localhost:8080/api/v1/auth/health -H "X-API-Key: $k"
 ```
 

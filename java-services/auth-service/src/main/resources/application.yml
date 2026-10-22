@@ -47,9 +47,9 @@ collabflow:
   logging:
     home: ${LOG_HOME:logs}
   security:
-    api-key: ${API_KEY:6e7f9c2b1a3d5e7f8b4fdf31e2f3a4b5c}
+    api-key: ${API_KEY}
   jwt:
-    secret: ${JWT_SECRET:MdSQmmDuK70dcClyAHgcdfwedfweftNYqlgPXCTeIpmJ460=}
+    secret: ${JWT_SECRET}
     access-token-minutes: ${JWT_ACCESS_MINUTES:30}
     refresh-token-days: ${JWT_REFRESH_DAYS:7}
   rate-limit:

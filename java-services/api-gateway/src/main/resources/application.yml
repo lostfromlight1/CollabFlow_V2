@@ -38,7 +38,7 @@ management:
 
 collabflow:
   security:
-    api-key: ${API_KEY:6e7f9c2b1a3d5e7f8b4fdf31e2f3a4b5c}
+    api-key: ${API_KEY}
   jwt:
     # Must match auth-service JWT_SECRET so the gateway can verify access tokens
-    secret: ${JWT_SECRET:MdSQmmDuK70dcClyAHgcdfwedfweftNYqlgPXCTeIpmJ460=}
+    secret: ${JWT_SECRET}

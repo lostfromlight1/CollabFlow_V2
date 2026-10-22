@@ -1,9 +1,9 @@
 # CollabFlow — Local Development Setup
 
-Guide for **Windows** and **Linux (Fedora)** so you (and contributors) can run and develop CollabFlow on any machine.
+Guide for **Windows** and **Linux (Fedora)** so you (and contributors) can run CollabFlow locally.
 
 **Pinned versions:** [tech-stack.md](tech-stack.md)  
-**This doc will grow** once `infrastructure/docker-compose.yml` and services exist. For now it covers **what to install before Week 1 coding**.
+**MVP status:** Complete (Weeks 1–14) — after tools + Compose, run services and [e2e-demo.md](e2e-demo.md).
 
 ---
 
@@ -26,12 +26,12 @@ Guide for **Windows** and **Linux (Fedora)** so you (and contributors) can run a
 
 ## 1. Install checklist (do this first)
 
-### Required now (before any coding)
+### Required
 
 - [ ] **Git**
 - [ ] **Docker** + Compose v2 (able to run containers)
 - [ ] **JDK 21** (Temurin recommended)
-- [ ] **Go 1.27.x** (needed from Week 9; install now so both machines match)
+- [ ] **Go 1.27.x** (collab + realtime)
 - [ ] **RAM:** ideally **16 GB** (8 GB minimum; Kafka + ZK + Postgres + Redis + IDEs are heavy)
 - [ ] **Disk:** ~10–20 GB free for images + builds
 
@@ -98,14 +98,27 @@ java -version
 # should show 21.x
 ```
 
-Set `JAVA_HOME` if tools don’t find Java:
+Set `JAVA_HOME` if tools don’t find Java (Gradle Wrapper needs this).  
+**Do not copy a placeholder** — use the real folder under `Eclipse Adoptium`:
 
 ```powershell
-# Example path — adjust to your install
-[System.Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Eclipse Adoptium\jdk-21.x.x-hotspot", "User")
+# Find your exact folder name (e.g. jdk-21.0.12.101-hotspot)
+Get-ChildItem "C:\Program Files\Eclipse Adoptium"
+
+# Then set JAVA_HOME to that full path (replace the folder name):
+[System.Environment]::SetEnvironmentVariable(
+  "JAVA_HOME",
+  "C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot",
+  "User"
+)
 ```
 
-Restart the terminal after setting `JAVA_HOME`.
+Close and reopen the terminal after setting `JAVA_HOME`, then confirm:
+
+```powershell
+echo $env:JAVA_HOME
+# folder must exist: Test-Path $env:JAVA_HOME
+```
 
 ### 2.4 Go 1.27.x
 
@@ -252,10 +265,14 @@ docker compose --env-file ../.env ps
 
 Details and smoke tests: [infrastructure/README.md](../infrastructure/README.md).
 
+**App secrets:** put `API_KEY` and `JWT_SECRET` only in that gitignored `.env`.  
+Java `application.yml` files reference `${API_KEY}` / `${JWT_SECRET}` with no committed defaults.  
+From `java-services/`, `gradlew …:bootRun` loads the repo-root `.env` automatically.
+
 ```bash
-# Java (Week 2+ — from a service folder)
-./gradlew bootRun          # Linux/macOS
-gradlew.bat bootRun        # Windows
+# Java (from java-services/)
+./gradlew :auth-service:bootRun          # Linux/macOS
+gradlew.bat :auth-service:bootRun        # Windows
 
 # Go (Week 9+)
 go run ./cmd/server
@@ -278,26 +295,26 @@ Default local ports (planned):
 
 ---
 
-## 6. Contributor quick start (when code exists)
+## 6. Contributor quick start
 
-1. Read [setup.md](setup.md) (this file) + [tech-stack.md](tech-stack.md)  
-2. Install required tools (section 1)  
-3. Clone repo  
-4. `docker compose up -d` in `infrastructure/`  
-5. Follow [implementation-guide.md](implementation-guide.md) / tick [progress-tracker.md](progress-tracker.md)  
-6. Open [AGENTS.md](../AGENTS.md) if using Cursor  
+1. Read this file + [tech-stack.md](tech-stack.md)  
+2. Install required tools (section 1); verify (section 4)  
+3. Clone repo; `Copy-Item .env.example .env`  
+4. `docker compose --env-file ../.env up -d` in `infrastructure/`  
+5. Start Java + Go services (`java-services/README.md`, `go-services/`)  
+6. Run [e2e-demo.md](e2e-demo.md) or Postman (`postman/`)  
+7. Open [AGENTS.md](../AGENTS.md) if using Cursor  
+
+Phase 2 work: [future-plan.md](future-plan.md). Historical weeks: [implementation-guide.md](implementation-guide.md).
 
 ---
 
-## 7. Do this **right now** (Kaung — initial start)
+## 7. Checklist (local machine)
 
-Before we write Week 1 Compose / first Java service:
-
-1. **Windows machine you’re on:** install/verify Docker Desktop, JDK 21, Go 1.27, Git.  
-2. Run the verify commands in section 4; fix anything that fails.  
-3. On **Fedora** (if you use it): same four tools via section 3.  
-4. You do **not** need to install Postgres/Redis/Kafka on the host.  
-5. Tell the agent when Docker + Java 21 + Go 1.27 work — then we start **Week 1** (`infrastructure/docker-compose.yml`).
+1. Docker Desktop / Engine running; JDK 21; Go 1.27; Git.  
+2. Verify commands in section 4.  
+3. Do **not** install Postgres/Redis/Kafka on the host — use Compose.  
+4. Secrets only in gitignored `.env` (Gradle `bootRun` loads it).  
 
 ---
 
@@ -308,6 +325,7 @@ Before we write Week 1 Compose / first Java service:
 | Docker: “engine not running” / `dockerDesktopLinuxEngine` pipe missing | **Start Docker Desktop** from the Start menu; wait until the whale icon is steady; then retry `docker version` |
 | Windows: WSL2 missing | `wsl --install`, reboot, reopen Docker |
 | `java` not found | Reopen terminal; check `JAVA_HOME` and PATH |
+| Gradle: Missing `API_KEY` / `JWT_SECRET` | Copy `.env.example` → `.env` at repo root; do not put secrets in `application.yml` |
 | `go` not 1.27 | Install from go.dev/dl, not an old distro package |
 | Windows: `Application Control policy has blocked` `go.exe` | See [§8.1](#81-windows-application-control-blocks-goexe) below |
 | Wrong `GOPATH` | `GOPATH` must **not** be the same folder as `GOROOT`. Use e.g. `%USERPROFILE%\go` for GOPATH (modules workspace/cache), `GOROOT` = install root only. Prefer PATH entry `...\Go\bin` |

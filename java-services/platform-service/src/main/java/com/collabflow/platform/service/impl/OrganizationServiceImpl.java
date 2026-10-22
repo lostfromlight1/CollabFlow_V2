@@ -21,6 +21,7 @@ import com.collabflow.platform.model.Role;
 import com.collabflow.platform.repository.OrganizationMemberRepository;
 import com.collabflow.platform.repository.OrganizationRepository;
 import com.collabflow.platform.repository.RoleRepository;
+import com.collabflow.platform.repository.UserRefRepository;
 import com.collabflow.platform.security.SystemRoles;
 import com.collabflow.platform.service.OrganizationService;
 import com.collabflow.platform.service.PermissionService;
@@ -40,6 +41,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository memberRepository;
     private final RoleRepository roleRepository;
+    private final UserRefRepository userRefRepository;
     private final PermissionService permissionService;
     private final ApplicationEventPublisher events;
 
@@ -47,12 +49,14 @@ public class OrganizationServiceImpl implements OrganizationService {
             OrganizationRepository organizationRepository,
             OrganizationMemberRepository memberRepository,
             RoleRepository roleRepository,
+            UserRefRepository userRefRepository,
             PermissionService permissionService,
             ApplicationEventPublisher events
     ) {
         this.organizationRepository = organizationRepository;
         this.memberRepository = memberRepository;
         this.roleRepository = roleRepository;
+        this.userRefRepository = userRefRepository;
         this.permissionService = permissionService;
         this.events = events;
     }
@@ -158,6 +162,9 @@ public class OrganizationServiceImpl implements OrganizationService {
         permissionService.requireOrgPermission(organizationId, actorId, SystemRoles.ORG_MANAGE_MEMBERS);
         Organization org = requireActiveOrg(organizationId);
 
+        if (!userRefRepository.existsByIdAndActiveTrue(request.userId())) {
+            throw new ResourceNotFoundException("User not found");
+        }
         if (memberRepository.existsByOrganizationIdAndUserId(organizationId, request.userId())) {
             throw new ConflictException("User is already a member");
         }

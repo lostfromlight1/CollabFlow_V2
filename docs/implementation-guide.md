@@ -1,162 +1,81 @@
 # CollabFlow — Implementation Guide (slim MVP)
 
-**Canonical build plan.** Replaces the archived 16-service / 20-week plan in [archive/legacy-16-service-plan.md](archive/legacy-16-service-plan.md) for day-to-day work.
+**Status:** Slim MVP **complete** (Weeks 1–14). This file is the **historical build plan** and learning path.  
+For day-to-day API/schema truth use [services-mvp.md](services-mvp.md), [tech-stack.md](tech-stack.md), [database.md](database.md).  
+Next expansion: [future-plan.md](future-plan.md). Tracker: [progress-tracker.md](progress-tracker.md).
 
-| | |
-|--|--|
-| Services | [services-mvp.md](services-mvp.md) |
-| Versions | [tech-stack.md](tech-stack.md) |
-| Schema | [database.md](database.md) |
-| Progress | [progress-tracker.md](progress-tracker.md) |
-| Later | [future-plan.md](future-plan.md) |
+Replaces the archived 16-service / 20-week plan in [archive/legacy-16-service-plan.md](archive/legacy-16-service-plan.md).
 
-**Total MVP target:** ~12–14 weeks part-time / learning pace (adjust freely).  
-**Rule:** Java core first; Go with `teach-and-build`. Check off items in the tracker when done.
+**Rule that got us here:** Java core first; Go with `teach-and-build`. Kafka **after** successful DB write.
 
 ---
 
-## Feature → service map (what first)
-
-Build in this order. Do not skip ahead to documents/search/export.
+## Feature → service map (what we built)
 
 | Order | Feature | Service | Lang | Notes |
 |------:|---------|---------|------|--------|
 | 0 | Local infra | `infrastructure/` | Docker | Postgres, Redis, ZK, Kafka |
-| 1 | API Gateway skeleton | `api-gateway` | Java | Routes + JWT validation (expand as services appear) |
-| 2 | Auth (register/login/refresh) | `auth-service` | Java | Your strength — solid base |
-| 3 | Org + workspace + project + RBAC | `platform-service` | Java | Hierarchy + roles |
-| 4 | Workflows + tasks (+ assign) | `task-service` | Java | Kafka **produce** |
-| 5 | Notifications, invitations, comments, activity | `collab-service` | Go | Kafka **consume** — learn Go here |
+| 1 | API Gateway | `api-gateway` | Java | Routes + API key + JWT |
+| 2 | Auth | `auth-service` | Java | Register/login/refresh |
+| 3 | Org / workspace / project + RBAC | `platform-service` | Java | Hierarchy |
+| 4 | Workflows + tasks (+ assign) | `task-service` | Java | Kafka **produce** + stats |
+| 5 | Notifications, invitations, comments, activity | `collab-service` | Go | Kafka **consume** |
 | 6 | Realtime WebSocket | `realtime-service` | Go | Redis pub/sub |
-| 7 | Basic analytics (counts) | `task-service` / `platform-service` | Java | No new service |
-| 8 | E2E polish + portfolio README | all | — | Demo script |
+| 7 | Basic analytics | `task-service` | Java | `GET /tasks/stats` |
+| 8 | E2E + portfolio | all | — | [e2e-demo.md](e2e-demo.md), root README |
 
 ---
 
-## Week-by-week plan
+## Week-by-week plan (all checked)
 
 ### Phase A — Foundation (Week 1–2)
 
-**Goal:** Run infra locally; empty service shells; gateway can hit health stubs.
-
 #### Week 1 — Infrastructure
 
-**Prereq:** PC tools installed — [setup.md](setup.md) (Docker, JDK 21, Go 1.27, Git).
-
-- [x] Create folders: `infrastructure/`, `java-services/`, `go-services/`
-- [x] Docker Compose: Postgres 17, Redis 8, ZooKeeper + Kafka (CP 7.9) — [tech-stack.md](tech-stack.md)
-- [x] Verify: DB connect, Redis PING, Kafka up (`docker compose ps`)
-- [x] Document env vars (`.env.example`)
-
-**Learning focus:** Docker networking, ZK role vs Kafka brokers.
+- [x] Folders: `infrastructure/`, `java-services/`, `go-services/`
+- [x] Docker Compose: Postgres 17, Redis 8, ZooKeeper + Kafka (CP 7.9)
+- [x] Verify infra healthy; `.env.example` documented
 
 #### Week 2 — Shells + Gateway
 
-- [x] Gradle Boot 4.1 skeletons: `auth-service`, `platform-service`, `task-service`, `api-gateway`
-- [x] Shared conventions — README in `java-services/`
-- [x] Gateway routes for `/api/v1/auth/**` (and platform/task path stubs)
-- [x] Health endpoints on each Java stub
-- [ ] You verify: `bootRun` auth + gateway, curl both URLs (see `java-services/README.md`)
-
-**Done when:** gateway returns auth stub JSON via `http://localhost:8080/api/v1/auth/health`.
+- [x] Gradle Boot 4.1 multi-module + gateway routes + health
+- [x] Conventions README; smoke via gateway / Postman / e2e doc
 
 ---
 
 ### Phase B — Java core (Week 3–8)
 
-#### Week 3 — auth-service (part 1)
+#### Week 3–4 — auth-service
 
-- [x] Package layout + shared `ApiResponse` / `ErrorResponse` (`:common`)
-- [x] Flyway: `users`, `refresh_tokens`
-- [x] Register + login + JWT access token
-- [x] Password hashing (bcrypt)
-- [x] Unit tests for auth happy path
-- [x] You verify with curl (see `auth-service/README.md`)
+- [x] `:common` envelopes; Flyway users/refresh_tokens
+- [x] Register/login/JWT/refresh/logout; bcrypt; tests
+- [x] Redis rate-limit; Kafka `user.created`; gateway JWT + `X-API-Key`
 
-**Learning focus:** Spring Security + JWT on Boot 4; unified API envelopes.
+#### Week 5–7 — platform-service
 
-#### Week 4 — auth-service (part 2)
+- [x] Org + RBAC seed; workspace + invite join; project + members
+- [x] Gateway routes; Kafka `organization.*` / `workspace.*` / `project.*`
 
-- [x] Refresh token rotation + logout/revoke (implemented with register/login)
-- [x] Redis rate-limit basics (login/register by IP; fail-open if Redis down)
-- [x] Publish `user.created` to Kafka after commit
-- [x] Wire gateway JWT validation for protected routes (`/me`) + edge `X-API-Key`
+#### Week 8 — task-service
 
-**Done when:** Register → login → refresh → `/me` through gateway with Bearer token.
-
-#### Week 5 — platform-service (org)
-
-- [x] Flyway: `organizations`, `organization_members`, `roles`, `permissions`, `role_permissions` + seeds
-- [x] Org CRUD + add/remove member + roles
-- [x] Permission check helper
-- [x] Events: `organization.created`, `organization.member_added`
-
-#### Week 6 — platform-service (workspace)
-
-- [x] Flyway: `workspaces`, `workspace_members`
-- [x] Workspace CRUD, invite code join
-- [x] Enforce: user must be org member
-- [x] Events: `workspace.*`
-
-#### Week 7 — platform-service (project)
-
-- [x] Flyway: `projects`, `project_members`
-- [x] Project CRUD + members
-- [x] Gateway routes for org/workspace/project
-- [x] Events: `project.*`
-
-**Done when:** User can create org → workspace → project with RBAC.
-
-#### Week 8 — task-service (workflow + task CRUD)
-
-- [x] Flyway: workflows, statuses, transitions, task_types, tasks (+ custom fields stubs if time)
-- [x] Seed default workflow
-- [x] Task CRUD + list/filter by project
-- [x] Status change with transition rules
-- [x] Events: `task.created`, `task.updated`, `task.status_changed`, `task.assigned`
-
-**Done when:** Create task, assign user, move status; events visible on Kafka topic.
-
-*(Optional stretch in Week 8–9: sprints table + basic sprint endpoints.)*
+- [x] Workflows + tasks Flyway; default workflow seed
+- [x] Task CRUD, status transitions, assign; Kafka task events
+- [ ] Optional sprints — **deferred** (not required for MVP complete)
 
 ---
 
 ### Phase C — Golang + events (Week 9–12)
 
-Use skill `teach-and-build` every week here.
+#### Week 9–11 — collab-service
 
-#### Week 9 — collab-service setup + notifications
-
-- [x] Go 1.27 module, Gin, GORM, config via env
-- [x] Flyway already applied from Java; GORM models for `notifications`
-- [x] Kafka consumer: `task.assigned` → create notification
-- [x] REST: list / mark read
-
-**Learning focus:** Go packages, GORM, kafka-go consumer, idempotency.
-
-#### Week 10 — invitations + comments
-
-- [x] Invitations CRUD + accept/decline (token)
-- [x] Comments CRUD + mentions parsing (basic)
-- [x] Events: `comment.added`; notify on mention
-- [x] Gateway routes for collab APIs
-
-#### Week 11 — activity feed + email stub
-
-- [x] Consume key events → `activity_feed` rows
-- [x] Activity list by entity / user
-- [x] Email: log stub or simple SMTP later (no separate email-service)
-
-**Done when:** Assign task → notification + activity appear via collab API.
+- [x] Gin + GORM; consume `task.assigned` → notifications
+- [x] Invitations + comments + mentions; `comment.added`
+- [x] Activity feed; email log stub; gateway collab routes
 
 #### Week 12 — realtime-service
 
-- [x] WebSocket endpoint + room subscribe (e.g. project/task)
-- [x] Redis pub/sub for multi-instance readiness (even if single instance)
-- [x] Consume `task.updated` / `comment.added` → broadcast
-- [x] Gateway WS route
-
-**Learning focus:** Go concurrency, WS, Redis pub/sub.
+- [x] WebSocket rooms; Redis pub/sub; consume `task.updated` / `comment.added`
+- [x] Gateway `/api/v1/realtime/**`
 
 ---
 
@@ -164,33 +83,36 @@ Use skill `teach-and-build` every week here.
 
 #### Week 13 — Integration
 
-- [x] End-to-end script: register → org → workspace → project → task → comment → see notification + WS update ([e2e-demo.md](e2e-demo.md))
-- [x] Fix auth/RBAC gaps across services (`assignerId` on assign; dual-publish for realtime)
-- [x] Basic analytics: task counts by status/project (on `task-service`)
+- [x] E2E script: [e2e-demo.md](e2e-demo.md)
+- [x] RBAC / assignerId / dual-publish for WS
+- [x] Task stats analytics
 
 #### Week 14 — Polish
 
-- [x] OpenAPI for Java services; short API examples in README
-- [x] Portfolio case-study paragraph (architecture + what you learned)
-- [x] Mark MVP complete in [progress-tracker.md](progress-tracker.md)
-- [x] Decide Phase 2 from [future-plan.md](future-plan.md) (documents, etc.) — pick: **document-service** when expanding
+- [x] OpenAPI (Java springdoc); API examples in README
+- [x] Portfolio case-study paragraph
+- [x] MVP marked complete in tracker
+- [x] Phase 2 pick: **document-service** when expanding
 
 ---
 
-## Suggested weekly rhythm (learning)
+## After MVP
 
-1. Read the week’s goal + related doc section
-2. Plan mode / `plan-mvp-feature` if unsure
-3. Implement small slice
-4. Verify yourself (curl / Docker logs)
-5. Check off tracker; write 3 bullets “what I learned”
+1. Do **not** resurrect the 16-service split without a clear need  
+2. Expand from [future-plan.md](future-plan.md) (documents first)  
+3. Keep [tech-stack.md](tech-stack.md) / [services-mvp.md](services-mvp.md) / [database.md](database.md) in sync with every schema or API change  
+
+Out of scope until you open Phase 2: document-service, search, export, standalone email/analytics, K8s hardening.
 
 ---
 
-## Out of scope until MVP tracker is green
+## Suggested rhythm (for Phase 2+)
 
-- document-service, search, export, standalone email/analytics services  
-- Splitting platform/collab back into many microservices  
-- Kubernetes / production hardening (optional stretch after Week 14)
+1. Read feature + [plan-mvp-feature](../.cursor/skills/plan-mvp-feature/SKILL.md) if unsure  
+2. Small vertical slice  
+3. Verify (Postman / e2e)  
+4. Update tracker + docs in the same change  
 
-See [future-plan.md](future-plan.md).
+---
+
+**Last updated:** 2026-10-22

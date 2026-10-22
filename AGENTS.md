@@ -22,12 +22,12 @@ Services: **[docs/services-mvp.md](docs/services-mvp.md)** — **6 deployables**
 | Events | **Kafka 3.9 + ZooKeeper** (Confluent Platform **7.9.x**) |
 | Frontend (later) | Next.js (version pinned when started) |
 
-## Build order
+## Build status
 
-1. **[docs/implementation-guide.md](docs/implementation-guide.md)** week-by-week  
-2. Check off **[docs/progress-tracker.md](docs/progress-tracker.md)**  
-3. Order: infra → gateway → **auth** → **platform** → **task** → **collab** → **realtime** → analytics/polish  
+Slim MVP **complete** (Weeks 1–14). Historical plan: [docs/implementation-guide.md](docs/implementation-guide.md).  
+Tracker: [docs/progress-tracker.md](docs/progress-tracker.md). Next expansion: [docs/future-plan.md](docs/future-plan.md) (document-service first).
 
+Original order was: infra → gateway → **auth** → **platform** → **task** → **collab** → **realtime** → polish.  
 Do **not** follow [docs/archive/legacy-16-service-plan.md](docs/archive/legacy-16-service-plan.md).
 
 ## Doc map
@@ -74,5 +74,6 @@ Do **not** follow [docs/archive/legacy-16-service-plan.md](docs/archive/legacy-1
 
 ## Repo status
 
-Slim MVP docs + Java core in progress (auth, gateway, platform org).  
-Folders: `java-services/`, `go-services/`, `infrastructure/`, `docs/`.
+Slim **6-service MVP complete** (auth, platform, task, collab, realtime, api-gateway).  
+Folders: `java-services/`, `go-services/`, `infrastructure/`, `docs/`, `postman/`.  
+Demo: [docs/e2e-demo.md](docs/e2e-demo.md). Secrets: repo-root `.env` only (not `application.yml`).

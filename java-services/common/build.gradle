@@ -5,12 +5,15 @@ dependencies {
     compileOnly 'org.springframework.boot:spring-boot-starter-json'
     compileOnly 'org.springframework.boot:spring-boot-starter-security'
     compileOnly 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
+    // Explicit for InvalidFormatException in GlobalExceptionHandler (compileOnly starters can omit)
+    compileOnly 'com.fasterxml.jackson.core:jackson-databind'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.springframework.boot:spring-boot-starter-validation'
     testImplementation 'org.springframework.boot:spring-boot-starter-json'
     testImplementation 'org.springframework.boot:spring-boot-starter-security'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 }
 
 tasks.named('bootJar') {

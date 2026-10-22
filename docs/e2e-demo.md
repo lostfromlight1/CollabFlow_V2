@@ -1,18 +1,18 @@
-# CollabFlow — E2E demo script (Week 13)
+# CollabFlow — E2E demo script
 
-Run infra + all 6 services, then walk this path once for a portfolio recording.
+Portfolio / smoke path for the **completed** slim MVP (6 services). Week 13 deliverable; still the canonical demo.
 
 ## Prereqs
 
 ```powershell
-cd D:\Codes\CollabFlow_V2\infrastructure
+cd D:\codes\CollabFlow_V2\infrastructure
 docker compose --env-file ../.env up -d
 # Expect: postgres, redis, zookeeper, kafka healthy
 ```
 
-Start (separate terminals): **gateway :8080**, **auth :8081**, **platform :8082**, **task :8083**, **collab :9081**, **realtime :9082**.
+Start (separate terminals, from `java-services/` / `go-services/`): **gateway :8080**, **auth :8081**, **platform :8082**, **task :8083**, **collab :9081**, **realtime :9082**.
 
-Same `JWT_SECRET` / `API_KEY` / Postgres as `.env`.
+`API_KEY` / `JWT_SECRET` come from repo-root `.env` (Java `bootRun` loads it). Do not put secrets in `application.yml`.
 
 ## Happy path
 
