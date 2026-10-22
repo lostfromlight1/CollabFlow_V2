@@ -25,6 +25,7 @@ func Connect(dsn string) (*gorm.DB, error) {
 		&model.Invitation{},
 		&model.Comment{},
 		&model.CommentMention{},
+		&model.ActivityFeed{},
 	); err != nil {
 		return nil, fmt.Errorf("auto-migrate: %w", err)
 	}

@@ -1,17 +1,19 @@
 # collab-service
 
 **Port:** 9081 · Go **1.27** / Gin / GORM / kafka-go  
-**Owns:** notifications (Week 9); invitations, comments, activity later (Weeks 10–11)
+**Owns:** notifications, invitations, comments, activity_feed (+ email log stub)
 
-## Week 9 — done
+## What / why
 
-| Phase | What |
-|-------|------|
-| 1 | Module + Gin health |
-| 2 | Config + GORM AutoMigrate (`notifications`, `processed_events`) |
-| 3 | Kafka consumer `task.assigned` → notification |
-| 4 | REST list / mark read + JWT |
-| 5 | Gateway routes + Postman folder 8 |
+Collab handles async side effects after Java writes: Kafka events become notifications and activity rows. Mentions and invites are sync HTTP on the same service so the MVP stays one Go deployable.
+
+## Weeks
+
+| Week | Scope |
+|------|--------|
+| 9 | `task.assigned` → notification + REST |
+| 10 | Invitations, comments, `@UUID` mentions, `comment.added` produce |
+| 11 | Activity feed from Kafka + email stub (log only) |
 
 ## Run
 
@@ -22,15 +24,12 @@ cd D:\Codes\CollabFlow_V2\go-services\collab-service
 go run ./cmd/server
 ```
 
-- Health: http://localhost:9081/api/v1/collab/health  
-- Via gateway: http://localhost:8080/api/v1/collab/health (restart gateway after Week 9 route change)
+## Smoke (Week 11)
 
-## Smoke
-
-1. Start collab (`go run ./cmd/server`)  
-2. Assign a task (Postman Tasks or folder 8)  
-3. Watch log: `notification created ...`  
-4. `GET /api/v1/notifications` with Bearer  
+1. Start collab **before** assign  
+2. Assign a task → log: `notification created` + `activity TASK_ASSIGNED` + `EMAIL_STUB`  
+3. `GET /api/v1/activity?entityType=TASK&entityId={{taskId}}`  
+4. Create a comment → `activity COMMENT_ADDED`
 
 ## Env
 
@@ -53,5 +52,6 @@ internal/repository/
 internal/service/
 internal/handler/
 internal/middleware/   # JWT ≈ Spring Security filter
-internal/kafka/        # consumer ≈ @KafkaListener
+internal/kafka/        # consumers ≈ @KafkaListener
+internal/email/        # StubSend log only
 ```
