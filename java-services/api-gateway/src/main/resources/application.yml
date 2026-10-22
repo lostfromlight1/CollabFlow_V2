@@ -16,7 +16,7 @@ spring:
             - id: platform-service
               uri: http://localhost:8082
               predicates:
-                - Path=/api/v1/organizations/**,/api/v1/workspaces/**,/api/v1/projects/**,/api/v1/platform/**
+                - Path=/api/v1/organizations/**,/api/v1/roles/**,/api/v1/workspaces/**,/api/v1/projects/**,/api/v1/platform/**
             - id: task-service
               uri: http://localhost:8083
               predicates:
