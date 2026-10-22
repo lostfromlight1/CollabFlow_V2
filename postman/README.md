@@ -15,7 +15,7 @@ Re-import (or Replace) collections after pulling so new folders/tests appear.
 | File | Folders / cases |
 |------|-----------------|
 | **Auth** | Health (± API key) · Happy path (register→login→me→refresh→logout→refresh-fails) · Validation (dup email, short password, bad email, wrong login, Me without token) · Second user (for Platform members) |
-| **Platform** | Roles · Org CRUD · Members (add/dup/update/remove) · Soft-delete · Negatives (401, bad slug, blank name, dup slug) |
+| **Platform** | Roles · Org CRUD · Members · Soft-delete · Negatives · **Workspaces** (CRUD, members, role update, invite join, soft-delete) |
 | **Local env** | Shared `accessToken`, `userId`, `otherUserId`, `organizationId`, … |
 
 Most requests assert status + `ApiResponse` / `errorCode` via Postman **Tests**.
@@ -25,10 +25,11 @@ Most requests assert status + `ApiResponse` / `errorCode` via Postman **Tests**.
 1. **Auth → 1. Happy path → Register (unique email)** — saves tokens + `userId` into the environment  
 2. **Auth → 3. Second user → Register other user** — saves `otherUserId`  
 3. **Platform → 1. Org happy path** (collection pre-request copies env token)  
-4. **Platform → 2. Members** (needs `otherUserId`)  
-5. Run **Negative** folders anytime  
+4. **Platform → 2. Members** (needs `otherUserId` as org member)  
+5. **Platform → 5. Workspaces** (needs `organizationId`; add member requires org membership)  
+6. Run **Negative** folders anytime  
 
-Soft-delete (folder 3) deactivates the org — run member cases before it, or create a fresh org first.
+Soft-delete (folder 3) deactivates the org — run workspace/member cases before it, or create a fresh org first.
 
 ## Headers
 
