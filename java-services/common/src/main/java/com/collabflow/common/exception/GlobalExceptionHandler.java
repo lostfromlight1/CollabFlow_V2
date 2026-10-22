@@ -4,10 +4,12 @@ import com.collabflow.common.api.ErrorResponse;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -110,6 +112,56 @@ public class GlobalExceptionHandler {
                         message,
                         request.getRequestURI(),
                         List.of(new ErrorResponse.FieldErrorItem(name, "must be a valid " + expected))
+                ));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(
+            ConstraintViolationException ex,
+            HttpServletRequest request
+    ) {
+        List<ErrorResponse.FieldErrorItem> fields = ex.getConstraintViolations().stream()
+                .map(v -> new ErrorResponse.FieldErrorItem(
+                        v.getPropertyPath() == null ? "value" : v.getPropertyPath().toString(),
+                        v.getMessage()
+                ))
+                .toList();
+        return ResponseEntity
+                .badRequest()
+                .body(ErrorResponse.of(
+                        ErrorCode.VALIDATION_FAILED.getCode(),
+                        "Validation failed",
+                        request.getRequestURI(),
+                        fields
+                ));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("Data integrity violation on {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
+        return ResponseEntity
+                .status(ErrorCode.CONFLICT.getStatus())
+                .body(ErrorResponse.of(
+                        ErrorCode.CONFLICT.getCode(),
+                        "Request conflicts with existing data",
+                        request.getRequestURI()
+                ));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(
+            IllegalArgumentException ex,
+            HttpServletRequest request
+    ) {
+        return ResponseEntity
+                .badRequest()
+                .body(ErrorResponse.of(
+                        ErrorCode.BAD_REQUEST.getCode(),
+                        ex.getMessage() != null ? ex.getMessage() : "Bad request",
+                        request.getRequestURI()
                 ));
     }
 

@@ -1,31 +1,114 @@
 # api-gateway
 
 **Port:** 8080 · Java 21 / Spring Cloud Gateway / Gradle  
-**Role:** Route `/api/v1/**`, require `X-API-Key`, validate JWT on protected routes.
+**Role:** Single HTTP edge for `/api/v1/**` — route, `X-API-Key`, JWT on protected paths  
+**MVP:** Complete · **Phase 2:** TODO checklist below
 
-## Security at the edge
+Upstream catalog: [services-mvp.md](../../docs/services-mvp.md).  
+**Ordered waves:** [docs/phase-2.md](../../docs/phase-2.md).
 
-| Check | Where |
+### See also / Depends on
+
+| Topic | Owner |
 |-------|--------|
-| `X-API-Key` | All `/api/**` (same `API_KEY` as services) |
-| Bearer JWT | `GET /api/v1/auth/me` (same `JWT_SECRET` as auth-service) |
-| Public | register, login, refresh, logout, health |
+| Org login + verify/reset public paths | [auth-service](../auth-service/README.md) |
+| Sprints **API** (handlers/table) | [task-service](../task-service/README.md) — gateway only fixes JWT |
+| WS JWT check (keep downstream) | [realtime-service](../../go-services/realtime-service/README.md) |
+| Request-id MDC in servlet services | [common](../common/README.md) — gateway emits `X-Request-Id` |
+| `/users/**` route | Wave 3 **user-service** |
+
+## What it does
+
+CollabFlow’s front door. Clients (Postman, future admin portal, future app UI) talk to **`:8080`**. The gateway checks **`X-API-Key`**, validates **Bearer JWT** on protected routes (same `JWT_SECRET` as auth), and proxies to auth / platform / task / collab / realtime. Downstream services still enforce their own API key + JWT (defense in depth).
+
+**Phase 2 direction:** align public paths with admin-provisioned auth, route **user-service**, forward **org context**, CORS for admin portal, and harden the edge (rate limit, timeouts, correlation ids).
+
+## Features (MVP — shipped)
+
+| Feature | What it does |
+|---------|----------------|
+| Path routing | `auth→8081`, `platform→8082`, `task→8083`, `collab→9081`, `realtime→9082`, `documents→9083` (Phase 2) |
+| `X-API-Key` | Required on all `/api/**`; WebSocket may use `?apiKey=` |
+| JWT resource server | HS256; most org/workspace/project/task/collab/realtime paths need Bearer |
+| Public auth | register, login, refresh, logout + service health paths |
+| WebSocket exception | `/api/v1/realtime/ws` permitAll at gateway; token checked inside realtime-service |
+| Actuator | `/actuator/health`, `info`, `gateway` |
+
+### Known MVP gap
+
+| Issue | Detail |
+|-------|--------|
+| `/api/v1/sprints/**` | Routed to task-service but **permitAll** and **no sprint handlers** — treat as placeholder; Phase 2 must require JWT or drop the route |
+
+### MVP learning notes
+
+| Piece | What / why |
+|-------|------------|
+| **API key at edge** | Stops anonymous internet traffic; services still check the same key |
+| **JWT at edge** | Reject bad/missing tokens before hitting Java/Go services |
+| **WS permitAll** | Browsers struggle with custom headers on WS; `?token=` + `?apiKey=` used instead |
+
+## Phase 2 — TODO
+
+Do **not** invent routes in [services-mvp.md](../../docs/services-mvp.md) until implemented. Coordinate with auth / user-service / platform Phase 2.
+
+### Security fixes / auth alignment
+
+- [x] **Fix sprints security** — require JWT; stop open `permitAll`
+- [x] **Public path set for Phase 2 auth** — permit verify/reset/resend; public register gated in auth
+- [ ] **Document or enforce WS auth** — keep downstream-only `?token=` + `?apiKey=` (optional gateway later)
+
+### Routing / tenancy / admin portal
+
+- [x] **Route `document-service`** — `/api/v1/documents/**` → `:9083` (Wave 7 scaffold)
+- [x] **Route `user-service`** — `/api/v1/users/**` + `/api/v1/admin/users/**` → user-service:8084
+- [x] **Org context at the edge** — forward `X-Organization-Id`; services validate membership
+- [x] **Admin portal CORS** — env `CORS_ALLOWED_ORIGINS`
+- [ ] **Admin route protection** — master-admin claim at edge (services check `is_master_admin` today)
+
+### Hardening
+
+- [x] **Env-based upstream URIs** — `AUTH_SERVICE_URI`, `PLATFORM_SERVICE_URI`, etc.
+- [x] **Lock down actuator** — health/info public; other actuator authenticated outside `dev`/`local`
+- [ ] **Gateway Redis rate limit** — edge limits on login / verify (backup to auth); fail-closed outside `dev`
+- [x] **Correlation ID filter** — generate/propagate `X-Request-Id`
+- [ ] **Downstream timeouts + circuit breaker** — so one dead service does not hang the edge
+- [x] **Unified 401/403 JSON** — match `:common` `ErrorResponse` for JWT denials (+ API-key filter)
+
+### Stretch / later
+
+- OpenAPI aggregation via gateway  
+- Per-tenant / per-API-key quotas  
+- Request size limits  
+- mTLS between gateway and services  
+
+## Security
+
+| Layer | How |
+|-------|-----|
+| Client gate | Header `X-API-Key` = env `API_KEY` (repo-root `.env`); WS: `?apiKey=` |
+| User auth | `Authorization: Bearer` (JWT from `JWT_SECRET`) |
+| Public (MVP) | auth register/login/refresh/logout + healths + realtime WS |
 
 ## Run
 
+Needs Docker infra if calling real services. Secrets from repo-root `.env` (`bootRun` loads them).
+
 ```powershell
-cd D:\Codes\CollabFlow_V2\java-services
-# Terminal A: auth-service (needs Postgres + Redis + Kafka from docker compose)
+cd D:\codes\CollabFlow_V2\java-services
+# Typical: start auth (and others) then gateway
 .\gradlew.bat :auth-service:bootRun
-# Terminal B:
 .\gradlew.bat :api-gateway:bootRun
 ```
 
+## Try it
+
 ```powershell
-$k = "6e7f9c2b1a3d5eligmanut69420a4b5c"
+$k = $env:API_KEY
 curl http://localhost:8080/api/v1/auth/health -H "X-API-Key: $k"
+
+# After login via :8080 — use accessToken
+curl http://localhost:8080/api/v1/auth/me -H "X-API-Key: $k" -H "Authorization: Bearer <accessToken>"
 ```
 
-Week 4 flow: register/login via `:8080` → copy `accessToken` → `GET /api/v1/auth/me` with Bearer + API key.
-
-Routes: [docs/services-mvp.md](../../docs/services-mvp.md).
+Full happy path: [e2e-demo.md](../../docs/e2e-demo.md) · Postman under `postman/`.

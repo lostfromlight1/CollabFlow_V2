@@ -54,4 +54,20 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().errorCode()).isEqualTo("BAD_REQUEST");
         assertThat(response.getBody().message()).contains("id").contains("UUID");
     }
+
+    @Test
+    void illegalArgumentReturnsBadRequest() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/v1/tasks");
+
+        ResponseEntity<ErrorResponse> response = handler.handleIllegalArgument(
+                new IllegalArgumentException("Invalid X-Organization-Id: expected UUID"),
+                request
+        );
+
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().errorCode()).isEqualTo("BAD_REQUEST");
+        assertThat(response.getBody().message()).contains("X-Organization-Id");
+    }
 }

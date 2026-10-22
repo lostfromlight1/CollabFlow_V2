@@ -10,31 +10,42 @@ spring:
         webflux:
           routes:
             - id: auth-service
-              uri: http://localhost:8081
+              uri: ${AUTH_SERVICE_URI:http://localhost:8081}
               predicates:
                 - Path=/api/v1/auth/**
-            - id: platform-service
-              uri: http://localhost:8082
+            - id: user-service
+              uri: ${USER_SERVICE_URI:http://localhost:8084}
               predicates:
-                - Path=/api/v1/organizations/**,/api/v1/roles/**,/api/v1/workspaces/**,/api/v1/projects/**,/api/v1/platform/**
+                - Path=/api/v1/users/**,/api/v1/admin/users/**
+            - id: platform-service
+              uri: ${PLATFORM_SERVICE_URI:http://localhost:8082}
+              predicates:
+                - Path=/api/v1/organizations/**,/api/v1/roles/**,/api/v1/workspaces/**,/api/v1/projects/**,/api/v1/platform/**,/api/v1/admin/organizations/**
             - id: task-service
-              uri: http://localhost:8083
+              uri: ${TASK_SERVICE_URI:http://localhost:8083}
               predicates:
                 - Path=/api/v1/tasks/**,/api/v1/workflows/**,/api/v1/task-types/**,/api/v1/sprints/**
             - id: collab-service
-              uri: http://localhost:9081
+              uri: ${COLLAB_SERVICE_URI:http://localhost:9081}
               predicates:
                 - Path=/api/v1/notifications/**,/api/v1/collab/**,/api/v1/invitations/**,/api/v1/comments/**,/api/v1/activity/**
             - id: realtime-service
-              uri: http://localhost:9082
+              uri: ${REALTIME_SERVICE_URI:http://localhost:9082}
               predicates:
                 - Path=/api/v1/realtime/**
+            - id: document-service
+              uri: ${DOCUMENT_SERVICE_URI:http://localhost:9083}
+              predicates:
+                - Path=/api/v1/documents/**
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,gateway
+  endpoint:
+    health:
+      show-details: when_authorized
 
 collabflow:
   security:
@@ -42,3 +53,6 @@ collabflow:
   jwt:
     # Must match auth-service JWT_SECRET so the gateway can verify access tokens
     secret: ${JWT_SECRET}
+  cors:
+    # Comma-separated origins for admin portal / app (empty = no CORS filter origins)
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
