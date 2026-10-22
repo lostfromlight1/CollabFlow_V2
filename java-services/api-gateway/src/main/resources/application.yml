@@ -25,6 +25,10 @@ spring:
               uri: http://localhost:9081
               predicates:
                 - Path=/api/v1/notifications/**,/api/v1/collab/**,/api/v1/invitations/**,/api/v1/comments/**,/api/v1/activity/**
+            - id: realtime-service
+              uri: http://localhost:9082
+              predicates:
+                - Path=/api/v1/realtime/**
 
 management:
   endpoints:

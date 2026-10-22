@@ -46,6 +46,10 @@ public class ApiKeyGatewayFilter implements WebFilter, Ordered {
 
         String expected = properties.getSecurity().getApiKey();
         String provided = exchange.getRequest().getHeaders().getFirst(HEADER_NAME);
+        // Browsers cannot set custom headers on WebSocket easily — allow ?apiKey= for WS only.
+        if (!StringUtils.hasText(provided) && path.startsWith("/api/v1/realtime/ws")) {
+            provided = exchange.getRequest().getQueryParams().getFirst("apiKey");
+        }
 
         if (!StringUtils.hasText(expected) || !expected.equals(provided)) {
             log.warn("Gateway rejected {} {} — missing/invalid {}",

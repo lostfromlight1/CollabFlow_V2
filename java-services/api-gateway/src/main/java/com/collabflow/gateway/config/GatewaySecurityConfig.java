@@ -47,6 +47,9 @@ public class GatewaySecurityConfig {
                         .pathMatchers("/api/v1/platform/health").permitAll()
                         .pathMatchers("/api/v1/tasks/health").permitAll()
                         .pathMatchers("/api/v1/collab/health").permitAll()
+                        .pathMatchers("/api/v1/realtime/health").permitAll()
+                        // WS auth is checked inside realtime-service (?token= or Authorization)
+                        .pathMatchers("/api/v1/realtime/ws").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
                         .pathMatchers(
                                 "/api/v1/organizations/**",
@@ -59,7 +62,8 @@ public class GatewaySecurityConfig {
                                 "/api/v1/notifications/**",
                                 "/api/v1/invitations/**",
                                 "/api/v1/comments/**",
-                                "/api/v1/activity/**"
+                                "/api/v1/activity/**",
+                                "/api/v1/realtime/**"
                         ).authenticated()
                         .pathMatchers(
                                 "/api/v1/sprints/**"
