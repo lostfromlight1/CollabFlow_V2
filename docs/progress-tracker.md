@@ -115,10 +115,10 @@
 - [x] Email stub (log only OK)
 
 ### Week 12 — realtime-service
-- [ ] WebSocket + rooms
-- [ ] Redis pub/sub
-- [ ] Consume task/comment events → broadcast
-- [ ] Gateway WS route
+- [x] WebSocket + rooms
+- [x] Redis pub/sub
+- [x] Consume task/comment events → broadcast
+- [x] Gateway WS route
 
 ---
 

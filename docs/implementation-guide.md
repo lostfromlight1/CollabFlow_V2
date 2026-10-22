@@ -151,10 +151,10 @@ Use skill `teach-and-build` every week here.
 
 #### Week 12 — realtime-service
 
-- [ ] WebSocket endpoint + room subscribe (e.g. project/task)
-- [ ] Redis pub/sub for multi-instance readiness (even if single instance)
-- [ ] Consume `task.updated` / `comment.added` → broadcast
-- [ ] Gateway WS route
+- [x] WebSocket endpoint + room subscribe (e.g. project/task)
+- [x] Redis pub/sub for multi-instance readiness (even if single instance)
+- [x] Consume `task.updated` / `comment.added` → broadcast
+- [x] Gateway WS route
 
 **Learning focus:** Go concurrency, WS, Redis pub/sub.
 

@@ -151,6 +151,7 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | `INV-NNN` | collab invitations (Go) |
 | `CMT-NNN` | collab comments (Go) |
 | `ACT-NNN` | collab activity feed (Go) |
+| `RT-NNN` | realtime WebSocket (Go) |
 
 | Id | Method | Path |
 |----|--------|------|
@@ -221,8 +222,11 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | ACT-002 | GET | `/api/v1/activity?entityType=&entityId=` |
 | ACT-003 | GET | `/api/v1/activity/entity/{type}/{id}` |
 | ACT-004 | GET | `/api/v1/activity/user/{id}` |
+| RT-000 | GET | `/api/v1/realtime/health` |
+| RT-001 | GET (WS) | `/api/v1/realtime/ws` |
+| RT-002 | POST | `/api/v1/realtime/broadcast` |
 
-File logs (local `bootRun`): `logs/auth/`, `logs/platform/`, `logs/task/` under repo root (`LOG_HOME` override). Collab Go: `go-services/collab-service`.
+File logs (local `bootRun`): `logs/auth/`, `logs/platform/`, `logs/task/` under repo root (`LOG_HOME` override). Collab Go: `go-services/collab-service`. Realtime Go: `go-services/realtime-service`.
 
 ---
 
