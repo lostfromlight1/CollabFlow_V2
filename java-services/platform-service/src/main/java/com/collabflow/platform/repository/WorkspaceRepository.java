@@ -12,5 +12,7 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, UUID> {
 
     List<Workspace> findByOrganizationIdAndActiveTrueOrderByNameAsc(UUID organizationId);
 
+    boolean existsByOrganizationIdAndActiveTrue(UUID organizationId);
+
     boolean existsByInviteCodeIgnoreCase(String inviteCode);
 }

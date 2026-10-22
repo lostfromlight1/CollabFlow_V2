@@ -3,9 +3,13 @@ package com.collabflow.platform.service.impl;
 import com.collabflow.common.exception.BusinessException;
 import com.collabflow.common.exception.ConflictException;
 import com.collabflow.common.exception.ErrorCode;
+import com.collabflow.common.exception.ForbiddenException;
 import com.collabflow.common.exception.ResourceNotFoundException;
+import com.collabflow.platform.config.PlatformProperties;
 import com.collabflow.platform.dto.request.AddMemberRequest;
+import com.collabflow.platform.dto.request.AdminCreateOrganizationRequest;
 import com.collabflow.platform.dto.request.CreateOrganizationRequest;
+import com.collabflow.platform.dto.request.TransferOwnershipRequest;
 import com.collabflow.platform.dto.request.UpdateMemberRoleRequest;
 import com.collabflow.platform.dto.request.UpdateOrganizationRequest;
 import com.collabflow.platform.dto.response.MemberResponse;
@@ -13,8 +17,14 @@ import com.collabflow.platform.dto.response.OrganizationResponse;
 import com.collabflow.platform.dto.response.RoleResponse;
 import com.collabflow.platform.event.MemberAddedDomainEvent;
 import com.collabflow.platform.event.MemberAddedPayload;
+import com.collabflow.platform.event.MemberRemovedDomainEvent;
+import com.collabflow.platform.event.MemberRemovedPayload;
 import com.collabflow.platform.event.OrganizationCreatedDomainEvent;
 import com.collabflow.platform.event.OrganizationCreatedPayload;
+import com.collabflow.platform.event.OrganizationDeletedDomainEvent;
+import com.collabflow.platform.event.OrganizationDeletedPayload;
+import com.collabflow.platform.event.OrganizationUpdatedDomainEvent;
+import com.collabflow.platform.event.OrganizationUpdatedPayload;
 import com.collabflow.platform.model.Organization;
 import com.collabflow.platform.model.OrganizationMember;
 import com.collabflow.platform.model.Role;
@@ -25,8 +35,13 @@ import com.collabflow.platform.repository.UserRefRepository;
 import com.collabflow.platform.security.SystemRoles;
 import com.collabflow.platform.service.OrganizationService;
 import com.collabflow.platform.service.PermissionService;
+import com.collabflow.platform.service.WorkspaceService;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -43,6 +58,8 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final RoleRepository roleRepository;
     private final UserRefRepository userRefRepository;
     private final PermissionService permissionService;
+    private final WorkspaceService workspaceService;
+    private final PlatformProperties platformProperties;
     private final ApplicationEventPublisher events;
 
     public OrganizationServiceImpl(
@@ -51,6 +68,8 @@ public class OrganizationServiceImpl implements OrganizationService {
             RoleRepository roleRepository,
             UserRefRepository userRefRepository,
             PermissionService permissionService,
+            WorkspaceService workspaceService,
+            PlatformProperties platformProperties,
             ApplicationEventPublisher events
     ) {
         this.organizationRepository = organizationRepository;
@@ -58,14 +77,43 @@ public class OrganizationServiceImpl implements OrganizationService {
         this.roleRepository = roleRepository;
         this.userRefRepository = userRefRepository;
         this.permissionService = permissionService;
+        this.workspaceService = workspaceService;
+        this.platformProperties = platformProperties;
         this.events = events;
     }
 
     @Override
     @Transactional
     public OrganizationResponse create(UUID actorId, CreateOrganizationRequest request) {
-        String slug = request.slug().trim().toLowerCase();
-        log.info("Creating organization slug={} actor={}", slug, actorId);
+        requireSelfServeOrMasterAdmin(actorId);
+        return createInternal(actorId, request.name(), request.description(), request.slug(), actorId);
+    }
+
+    @Override
+    @Transactional
+    public OrganizationResponse createAsAdmin(UUID adminId, AdminCreateOrganizationRequest request) {
+        requireMasterAdmin(adminId);
+        if (!userRefRepository.existsByIdAndActiveTrue(request.ownerUserId())) {
+            throw new ResourceNotFoundException("Owner user not found");
+        }
+        return createInternal(
+                adminId,
+                request.name(),
+                request.description(),
+                request.slug(),
+                request.ownerUserId()
+        );
+    }
+
+    private OrganizationResponse createInternal(
+            UUID actorId,
+            String name,
+            String description,
+            String slugRaw,
+            UUID ownerUserId
+    ) {
+        String slug = slugRaw.trim().toLowerCase();
+        log.info("Creating organization slug={} actor={} owner={}", slug, actorId, ownerUserId);
         if (organizationRepository.existsBySlugIgnoreCase(slug)) {
             throw new ConflictException("Organization slug already taken");
         }
@@ -74,26 +122,28 @@ public class OrganizationServiceImpl implements OrganizationService {
                 .orElseThrow(() -> new IllegalStateException("Organization Owner role not seeded"));
 
         Organization org = new Organization();
-        org.setName(request.name().trim());
-        org.setDescription(request.description());
+        org.setName(name.trim());
+        org.setDescription(description);
         org.setSlug(slug);
-        org.setOwnerId(actorId);
+        org.setOwnerId(ownerUserId);
         organizationRepository.save(org);
 
         OrganizationMember owner = new OrganizationMember();
         owner.setOrganizationId(org.getId());
-        owner.setUserId(actorId);
+        owner.setUserId(ownerUserId);
         owner.setRole(ownerRole);
         memberRepository.save(owner);
 
+        workspaceService.createDefaultForOrganization(org.getId(), ownerUserId);
+
         events.publishEvent(new OrganizationCreatedDomainEvent(
-                new OrganizationCreatedPayload(org.getId(), org.getName(), org.getSlug(), actorId)
+                new OrganizationCreatedPayload(org.getId(), org.getName(), org.getSlug(), ownerUserId)
         ));
         events.publishEvent(new MemberAddedDomainEvent(
-                new MemberAddedPayload(org.getId(), actorId, ownerRole.getId(), owner.getId())
+                new MemberAddedPayload(org.getId(), ownerUserId, ownerRole.getId(), owner.getId())
         ));
 
-        log.info("Created organization id={} slug={} owner={}", org.getId(), slug, actorId);
+        log.info("Created organization id={} slug={} owner={}", org.getId(), slug, ownerUserId);
         return OrganizationResponse.from(org);
     }
 
@@ -101,9 +151,26 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Transactional(readOnly = true)
     public List<OrganizationResponse> listMine(UUID userId) {
         log.debug("Listing organizations for userId={}", userId);
-        return organizationRepository.findActiveForUser(userId).stream()
-                .map(OrganizationResponse::from)
-                .toList();
+        List<OrganizationMember> memberships = memberRepository.findByUserIdOrderByJoinedAtAsc(userId);
+        if (memberships.isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID, Organization> orgsById = organizationRepository
+                .findAllById(memberships.stream().map(OrganizationMember::getOrganizationId).toList())
+                .stream()
+                .filter(Organization::isActive)
+                .collect(Collectors.toMap(Organization::getId, Function.identity()));
+
+        List<OrganizationResponse> result = new ArrayList<>();
+        for (OrganizationMember membership : memberships) {
+            Organization org = orgsById.get(membership.getOrganizationId());
+            if (org != null) {
+                result.add(OrganizationResponse.from(org, membership));
+            }
+        }
+        result.sort((a, b) -> a.name().compareToIgnoreCase(b.name()));
+        return result;
     }
 
     @Override
@@ -112,7 +179,9 @@ public class OrganizationServiceImpl implements OrganizationService {
         log.debug("Get organization id={} userId={}", organizationId, userId);
         permissionService.requireOrgMember(organizationId, userId);
         Organization org = requireActiveOrg(organizationId);
-        return OrganizationResponse.from(org);
+        return memberRepository.findByOrganizationIdAndUserId(organizationId, userId)
+                .map(m -> OrganizationResponse.from(org, m))
+                .orElseGet(() -> OrganizationResponse.from(org));
     }
 
     @Override
@@ -130,6 +199,9 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (request.logoUrl() != null) {
             org.setLogoUrl(request.logoUrl());
         }
+        events.publishEvent(new OrganizationUpdatedDomainEvent(
+                new OrganizationUpdatedPayload(org.getId(), org.getName(), org.getSlug())
+        ));
         log.info("Updated organization id={}", organizationId);
         return OrganizationResponse.from(org);
     }
@@ -141,6 +213,9 @@ public class OrganizationServiceImpl implements OrganizationService {
         permissionService.requireOrgPermission(organizationId, userId, SystemRoles.ORG_DELETE);
         Organization org = requireActiveOrg(organizationId);
         org.setActive(false);
+        events.publishEvent(new OrganizationDeletedDomainEvent(
+                new OrganizationDeletedPayload(organizationId)
+        ));
         log.info("Soft-deleted organization id={}", organizationId);
     }
 
@@ -159,7 +234,27 @@ public class OrganizationServiceImpl implements OrganizationService {
     public MemberResponse addMember(UUID organizationId, UUID actorId, AddMemberRequest request) {
         log.info("Adding member orgId={} actor={} newUser={} roleId={}",
                 organizationId, actorId, request.userId(), request.roleId());
-        permissionService.requireOrgPermission(organizationId, actorId, SystemRoles.ORG_MANAGE_MEMBERS);
+        // Wave 4: collab invite accept forwards the invitee's JWT and calls ORG-007
+        // with userId=self. Admins still need manage_members when adding someone else.
+        boolean selfJoin = actorId.equals(request.userId());
+        if (!selfJoin) {
+            permissionService.requireOrgPermission(organizationId, actorId, SystemRoles.ORG_MANAGE_MEMBERS);
+        } else if (!SystemRoles.ORGANIZATION_MEMBER.equals(request.roleId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "Self-join allows Organization Member role only");
+        }
+        return addMemberInternal(organizationId, request);
+    }
+
+    @Override
+    @Transactional
+    public MemberResponse addMemberAsAdmin(UUID organizationId, UUID adminId, AddMemberRequest request) {
+        log.info("Admin attach member orgId={} admin={} newUser={} roleId={}",
+                organizationId, adminId, request.userId(), request.roleId());
+        requireMasterAdmin(adminId);
+        return addMemberInternal(organizationId, request);
+    }
+
+    private MemberResponse addMemberInternal(UUID organizationId, AddMemberRequest request) {
         Organization org = requireActiveOrg(organizationId);
 
         if (!userRefRepository.existsByIdAndActiveTrue(request.userId())) {
@@ -229,8 +324,74 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (SystemRoles.ORGANIZATION_OWNER.equals(member.getRole().getId())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot remove the Organization Owner");
         }
+        UUID removedUserId = member.getUserId();
         memberRepository.delete(member);
+        events.publishEvent(new MemberRemovedDomainEvent(
+                new MemberRemovedPayload(organizationId, removedUserId, memberId)
+        ));
         log.info("Removed member id={} orgId={}", memberId, organizationId);
+    }
+
+    @Override
+    @Transactional
+    public OrganizationResponse transferOwnership(
+            UUID organizationId,
+            UUID actorId,
+            TransferOwnershipRequest request
+    ) {
+        Organization org = requireActiveOrg(organizationId);
+        if (!actorId.equals(org.getOwnerId())) {
+            throw new ForbiddenException("Only the current Organization Owner can transfer ownership");
+        }
+        return transferOwnershipInternal(org, actorId, request.newOwnerUserId());
+    }
+
+    @Override
+    @Transactional
+    public OrganizationResponse transferOwnershipAsAdmin(
+            UUID organizationId,
+            UUID adminId,
+            TransferOwnershipRequest request
+    ) {
+        requireMasterAdmin(adminId);
+        Organization org = requireActiveOrg(organizationId);
+        return transferOwnershipInternal(org, adminId, request.newOwnerUserId());
+    }
+
+    private OrganizationResponse transferOwnershipInternal(
+            Organization org,
+            UUID actorId,
+            UUID newOwnerUserId
+    ) {
+        UUID organizationId = org.getId();
+        log.info("Transferring ownership orgId={} actor={} newOwner={}", organizationId, actorId, newOwnerUserId);
+
+        if (newOwnerUserId.equals(org.getOwnerId())) {
+            throw new ConflictException("User is already the Organization Owner");
+        }
+
+        OrganizationMember newOwnerMember = memberRepository
+                .findByOrganizationIdAndUserId(organizationId, newOwnerUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("New owner must already be an organization member"));
+
+        OrganizationMember currentOwnerMember = memberRepository
+                .findByOrganizationIdAndUserId(organizationId, org.getOwnerId())
+                .orElseThrow(() -> new IllegalStateException("Current owner membership missing"));
+
+        Role ownerRole = roleRepository.findById(SystemRoles.ORGANIZATION_OWNER)
+                .orElseThrow(() -> new IllegalStateException("Organization Owner role not seeded"));
+        Role adminRole = roleRepository.findById(SystemRoles.ORGANIZATION_ADMIN)
+                .orElseThrow(() -> new IllegalStateException("Organization Admin role not seeded"));
+
+        currentOwnerMember.setRole(adminRole);
+        newOwnerMember.setRole(ownerRole);
+        org.setOwnerId(newOwnerUserId);
+
+        events.publishEvent(new OrganizationUpdatedDomainEvent(
+                new OrganizationUpdatedPayload(org.getId(), org.getName(), org.getSlug())
+        ));
+        log.info("Transferred ownership orgId={} newOwner={}", organizationId, newOwnerUserId);
+        return OrganizationResponse.from(org);
     }
 
     @Override
@@ -240,6 +401,19 @@ public class OrganizationServiceImpl implements OrganizationService {
         return roleRepository.findByScopeOrderByNameAsc("ORGANIZATION").stream()
                 .map(RoleResponse::from)
                 .toList();
+    }
+
+    private void requireSelfServeOrMasterAdmin(UUID actorId) {
+        if (platformProperties.isSelfServeOrgCreate()) {
+            return;
+        }
+        requireMasterAdmin(actorId);
+    }
+
+    private void requireMasterAdmin(UUID userId) {
+        if (!userRefRepository.existsByIdAndActiveTrueAndMasterAdminTrue(userId)) {
+            throw new ForbiddenException("Master admin required");
+        }
     }
 
     private Organization requireActiveOrg(UUID organizationId) {

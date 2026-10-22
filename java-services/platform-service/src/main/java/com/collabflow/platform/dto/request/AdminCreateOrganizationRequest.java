@@ -1,0 +1,27 @@
+package com.collabflow.platform.dto.request;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import java.util.UUID;
+
+public record AdminCreateOrganizationRequest(
+        @NotBlank @Size(max = 255)
+        @Schema(example = "Kaung Corp")
+        String name,
+
+        @Size(max = 2000)
+        String description,
+
+        @NotBlank
+        @Size(min = 2, max = 100)
+        @Pattern(regexp = "^[a-z0-9]+(?:-[a-z0-9]+)*$", message = "slug must be lowercase alphanumeric with hyphens")
+        @Schema(example = "kaung-corp")
+        String slug,
+
+        @NotNull
+        @Schema(description = "User who becomes Organization Owner")
+        UUID ownerUserId
+) {}

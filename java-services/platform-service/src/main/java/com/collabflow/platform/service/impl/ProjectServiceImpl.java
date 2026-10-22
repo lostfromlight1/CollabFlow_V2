@@ -220,7 +220,13 @@ public class ProjectServiceImpl implements ProjectService {
     public ProjectMemberResponse addMember(UUID projectId, UUID actorId, AddProjectMemberRequest request) {
         log.info("Adding project member project={} actor={} user={} role={}",
                 projectId, actorId, request.userId(), request.roleId());
-        permissionService.requireProjectPermission(projectId, actorId, SystemRoles.PROJECT_MANAGE_MEMBERS);
+        // Wave 4: collab invite accept may self-join after workspace membership is created.
+        boolean selfJoin = actorId.equals(request.userId());
+        if (!selfJoin) {
+            permissionService.requireProjectPermission(projectId, actorId, SystemRoles.PROJECT_MANAGE_MEMBERS);
+        } else if (!SystemRoles.PROJECT_MEMBER.equals(request.roleId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "Self-join allows Project Member role only");
+        }
         Project project = requireActiveProject(projectId);
         permissionService.requireWorkspaceMember(project.getWorkspaceId(), request.userId());
 

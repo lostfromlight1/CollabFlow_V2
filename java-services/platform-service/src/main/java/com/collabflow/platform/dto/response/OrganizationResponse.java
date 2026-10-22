@@ -1,6 +1,7 @@
 package com.collabflow.platform.dto.response;
 
 import com.collabflow.platform.model.Organization;
+import com.collabflow.platform.model.OrganizationMember;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -16,9 +17,22 @@ public record OrganizationResponse(
         Integer maxWorkspaces,
         boolean active,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        UUID roleId,
+        String roleName
 ) {
     public static OrganizationResponse from(Organization o) {
+        return from(o, null, null);
+    }
+
+    public static OrganizationResponse from(Organization o, OrganizationMember membership) {
+        if (membership == null) {
+            return from(o);
+        }
+        return from(o, membership.getRole().getId(), membership.getRole().getName());
+    }
+
+    private static OrganizationResponse from(Organization o, UUID roleId, String roleName) {
         return new OrganizationResponse(
                 o.getId(),
                 o.getName(),
@@ -31,7 +45,9 @@ public record OrganizationResponse(
                 o.getMaxWorkspaces(),
                 o.isActive(),
                 o.getCreatedAt(),
-                o.getUpdatedAt()
+                o.getUpdatedAt(),
+                roleId,
+                roleName
         );
     }
 }

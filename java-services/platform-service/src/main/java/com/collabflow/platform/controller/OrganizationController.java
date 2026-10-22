@@ -1,16 +1,21 @@
 package com.collabflow.platform.controller;
 
 import com.collabflow.common.api.ApiResponse;
+import com.collabflow.common.exception.BusinessException;
+import com.collabflow.common.exception.ErrorCode;
 import com.collabflow.common.openapi.OpenApiSupport;
+import com.collabflow.common.security.CurrentOrganizationId;
 import com.collabflow.common.security.CurrentUserId;
 import com.collabflow.common.web.ApiId;
 import com.collabflow.platform.dto.request.AddMemberRequest;
 import com.collabflow.platform.dto.request.CreateOrganizationRequest;
+import com.collabflow.platform.dto.request.TransferOwnershipRequest;
 import com.collabflow.platform.dto.request.UpdateMemberRoleRequest;
 import com.collabflow.platform.dto.request.UpdateOrganizationRequest;
 import com.collabflow.platform.dto.response.MemberResponse;
 import com.collabflow.platform.dto.response.OrganizationResponse;
 import com.collabflow.platform.dto.response.WorkspaceResponse;
+import com.collabflow.platform.service.OrganizationContextService;
 import com.collabflow.platform.service.OrganizationService;
 import com.collabflow.platform.service.WorkspaceService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,16 +48,22 @@ public class OrganizationController {
 
     private final OrganizationService organizationService;
     private final WorkspaceService workspaceService;
+    private final OrganizationContextService organizationContextService;
 
-    public OrganizationController(OrganizationService organizationService, WorkspaceService workspaceService) {
+    public OrganizationController(
+            OrganizationService organizationService,
+            WorkspaceService workspaceService,
+            OrganizationContextService organizationContextService
+    ) {
         this.organizationService = organizationService;
         this.workspaceService = workspaceService;
+        this.organizationContextService = organizationContextService;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @ApiId("ORG-001")
-    @Operation(summary = "Create organization (caller becomes Owner)")
+    @Operation(summary = "Create organization (caller becomes Owner). Gated when self-serve-org-create=false.")
     public ApiResponse<OrganizationResponse> create(
             @Valid @RequestBody CreateOrganizationRequest request,
             @CurrentUserId UUID userId
@@ -63,7 +74,7 @@ public class OrganizationController {
 
     @GetMapping
     @ApiId("ORG-002")
-    @Operation(summary = "List my organizations")
+    @Operation(summary = "List my organizations (includes roleId/roleName for org picker)")
     public ApiResponse<List<OrganizationResponse>> listMine(@CurrentUserId UUID userId) {
         log.info("GET /organizations userId={}", userId);
         return ApiResponse.ok(organizationService.listMine(userId));
@@ -72,7 +83,20 @@ public class OrganizationController {
     @GetMapping("/{id}")
     @ApiId("ORG-003")
     @Operation(summary = "Get organization")
-    public ApiResponse<OrganizationResponse> get(@PathVariable UUID id, @CurrentUserId UUID userId) {
+    public ApiResponse<OrganizationResponse> get(
+            @PathVariable UUID id,
+            @CurrentUserId UUID userId,
+            @CurrentOrganizationId UUID organizationId
+    ) {
+        if (organizationId != null) {
+            organizationContextService.requireMembership(userId, organizationId);
+            if (!organizationId.equals(id)) {
+                throw new BusinessException(
+                        ErrorCode.FORBIDDEN,
+                        "X-Organization-Id does not match path organization"
+                );
+            }
+        }
         log.info("GET /organizations/{} userId={}", id, userId);
         return ApiResponse.ok(organizationService.get(id, userId));
     }
@@ -152,4 +176,18 @@ public class OrganizationController {
         organizationService.removeMember(id, memberId, userId);
         return ApiResponse.okMessage("Member removed");
     }
+
+    @PostMapping("/{id}/transfer-ownership")
+    @ApiId("ORG-010")
+    @Operation(summary = "Transfer organization ownership (current Owner only)")
+    public ApiResponse<OrganizationResponse> transferOwnership(
+            @PathVariable UUID id,
+            @Valid @RequestBody TransferOwnershipRequest request,
+            @CurrentUserId UUID userId
+    ) {
+        log.info("POST /organizations/{}/transfer-ownership userId={} newOwner={}",
+                id, userId, request.newOwnerUserId());
+        return ApiResponse.ok("Ownership transferred", organizationService.transferOwnership(id, userId, request));
+    }
 }
+

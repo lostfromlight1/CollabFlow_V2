@@ -15,6 +15,12 @@ public interface WorkspaceService {
 
     WorkspaceResponse create(UUID actorId, CreateWorkspaceRequest request);
 
+    /**
+     * Seeds a default "General" workspace after org create (skips permission checks).
+     * No-op if the org already has an active workspace.
+     */
+    WorkspaceResponse createDefaultForOrganization(UUID organizationId, UUID ownerId);
+
     List<WorkspaceResponse> listByOrganization(UUID organizationId, UUID userId);
 
     WorkspaceResponse get(UUID workspaceId, UUID userId);

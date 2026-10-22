@@ -15,7 +15,10 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class OrganizationKafkaPublisher {
 
     public static final String TOPIC_CREATED = "organization.created";
+    public static final String TOPIC_UPDATED = "organization.updated";
+    public static final String TOPIC_DELETED = "organization.deleted";
     public static final String TOPIC_MEMBER_ADDED = "organization.member_added";
+    public static final String TOPIC_MEMBER_REMOVED = "organization.member_removed";
 
     private static final Logger log = LoggerFactory.getLogger(OrganizationKafkaPublisher.class);
 
@@ -35,8 +38,23 @@ public class OrganizationKafkaPublisher {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onUpdated(OrganizationUpdatedDomainEvent event) {
+        publish(TOPIC_UPDATED, event.payload().organizationId().toString(), event.payload());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onDeleted(OrganizationDeletedDomainEvent event) {
+        publish(TOPIC_DELETED, event.payload().organizationId().toString(), event.payload());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onMemberAdded(MemberAddedDomainEvent event) {
         publish(TOPIC_MEMBER_ADDED, event.payload().organizationId().toString(), event.payload());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onMemberRemoved(MemberRemovedDomainEvent event) {
+        publish(TOPIC_MEMBER_REMOVED, event.payload().organizationId().toString(), event.payload());
     }
 
     private void publish(String topic, String key, Object data) {

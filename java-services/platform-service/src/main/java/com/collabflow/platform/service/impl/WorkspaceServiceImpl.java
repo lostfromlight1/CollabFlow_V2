@@ -118,6 +118,46 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     }
 
     @Override
+    @Transactional
+    public WorkspaceResponse createDefaultForOrganization(UUID organizationId, UUID ownerId) {
+        if (workspaceRepository.existsByOrganizationIdAndActiveTrue(organizationId)) {
+            log.debug("Default workspace skipped; org {} already has workspaces", organizationId);
+            return workspaceRepository.findByOrganizationIdAndActiveTrueOrderByNameAsc(organizationId).stream()
+                    .findFirst()
+                    .map(WorkspaceResponse::from)
+                    .orElseThrow();
+        }
+
+        log.info("Creating default General workspace orgId={} owner={}", organizationId, ownerId);
+        Role adminRole = roleRepository.findById(SystemRoles.WORKSPACE_ADMIN)
+                .orElseThrow(() -> new IllegalStateException("Workspace Admin role not seeded"));
+
+        Workspace workspace = new Workspace();
+        workspace.setName("General");
+        workspace.setDescription("Default workspace");
+        workspace.setOrganizationId(organizationId);
+        workspace.setOwnerId(ownerId);
+        workspace.setInviteCode(generateUniqueInviteCode());
+        workspaceRepository.save(workspace);
+
+        WorkspaceMember owner = new WorkspaceMember();
+        owner.setWorkspaceId(workspace.getId());
+        owner.setUserId(ownerId);
+        owner.setRole(adminRole);
+        memberRepository.save(owner);
+
+        events.publishEvent(new WorkspaceCreatedDomainEvent(new WorkspaceCreatedPayload(
+                workspace.getId(), organizationId, workspace.getName(), ownerId
+        )));
+        events.publishEvent(new WorkspaceMemberAddedDomainEvent(new WorkspaceMemberAddedPayload(
+                workspace.getId(), organizationId, ownerId, adminRole.getId(), owner.getId()
+        )));
+
+        log.info("Created default workspace id={} orgId={}", workspace.getId(), organizationId);
+        return WorkspaceResponse.from(workspace);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<WorkspaceResponse> listByOrganization(UUID organizationId, UUID userId) {
         log.debug("Listing workspaces orgId={} userId={}", organizationId, userId);
@@ -193,7 +233,13 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     public WorkspaceMemberResponse addMember(UUID workspaceId, UUID actorId, AddWorkspaceMemberRequest request) {
         log.info("Adding workspace member ws={} actor={} user={} role={}",
                 workspaceId, actorId, request.userId(), request.roleId());
-        permissionService.requireWorkspacePermission(workspaceId, actorId, SystemRoles.WORKSPACE_MANAGE_MEMBERS);
+        // Wave 4: collab invite accept may self-join after org membership is created.
+        boolean selfJoin = actorId.equals(request.userId());
+        if (!selfJoin) {
+            permissionService.requireWorkspacePermission(workspaceId, actorId, SystemRoles.WORKSPACE_MANAGE_MEMBERS);
+        } else if (!SystemRoles.WORKSPACE_MEMBER.equals(request.roleId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "Self-join allows Workspace Member role only");
+        }
         Workspace workspace = requireActiveWorkspace(workspaceId);
         permissionService.requireOrgMember(workspace.getOrganizationId(), request.userId());
 
