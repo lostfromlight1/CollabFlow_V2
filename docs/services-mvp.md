@@ -145,7 +145,8 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | `ROLE-NNN` | roles list |
 | `WS-NNN` | workspaces (Week 6+) |
 | `PRJ-NNN` | projects (Week 7+) |
-| `TASK-NNN` | task-service |
+| `TASK-NNN` | task-service tasks |
+| `WF-NNN` | workflows / task-types |
 
 | Id | Method | Path |
 |----|--------|------|
@@ -185,8 +186,20 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | PRJ-007 | POST | `/api/v1/projects/{id}/members` |
 | PRJ-008 | PUT | `/api/v1/projects/{id}/members/{memberId}` |
 | PRJ-009 | DELETE | `/api/v1/projects/{id}/members/{memberId}` |
+| TASK-000 | GET | `/api/v1/tasks/health` |
+| TASK-001 | POST | `/api/v1/tasks` |
+| TASK-002 | GET | `/api/v1/tasks?projectId=` |
+| TASK-003 | GET | `/api/v1/tasks/{id}` |
+| TASK-004 | PUT | `/api/v1/tasks/{id}` |
+| TASK-005 | DELETE | `/api/v1/tasks/{id}` |
+| TASK-006 | PUT | `/api/v1/tasks/{id}/status` |
+| TASK-007 | PUT | `/api/v1/tasks/{id}/assign` |
+| WF-001 | GET | `/api/v1/workflows/default` |
+| WF-002 | GET | `/api/v1/workflows/{id}` |
+| WF-003 | GET | `/api/v1/workflows/{id}/statuses` |
+| WF-004 | GET | `/api/v1/task-types` |
 
-File logs (local `bootRun`): `logs/auth/auth-service.yyyy-MM-dd.log`, `logs/platform/platform-service.yyyy-MM-dd.log` under repo root (`LOG_HOME` override).
+File logs (local `bootRun`): `logs/auth/`, `logs/platform/`, `logs/task/` under repo root (`LOG_HOME` override).
 
 ---
 

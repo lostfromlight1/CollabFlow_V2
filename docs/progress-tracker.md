@@ -12,7 +12,7 @@
 | Phase | Status | Notes |
 |-------|--------|-------|
 | A Foundation (W1–2) | 🟨 | Week 1 done; Week 2 skeletons compiled |
-| B Java core (W3–8) | 🟨 | Week 7 platform project done; next Week 8 task-service |
+| B Java core (W3–8) | 🟨 | Week 8 task-service done; next Phase C Go (Week 9) |
 | C Go + events (W9–12) | ⬜ | |
 | D Integrate / portfolio (W13–14) | ⬜ | |
 | **MVP complete** | ⬜ | All phases green |
@@ -26,8 +26,8 @@
 | infrastructure (Compose) | [x] | Week 1 — Postgres/Redis healthy; Kafka up |
 | api-gateway | [x] skeleton | Week 2 — routes stubbed |
 | auth-service | [x] usable | Week 4 — JWT + Kafka + Redis rate limit |
-| platform-service | [x] org+workspace usable | Week 6 — workspaces + invite join |
-| task-service | [x] skeleton | Week 8 |
+| platform-service | [x] org+workspace+project usable | Week 7 — projects |
+| task-service | [x] usable | Week 8 — workflow seed + task CRUD |
 | collab-service | [ ] | Week 11 |
 | realtime-service | [ ] | Week 12 |
 
@@ -87,11 +87,11 @@
 - [x] Kafka project events
 
 ### Week 8 — task-service
-- [ ] Flyway: workflows + tasks (+ related)
-- [ ] Default workflow seed
-- [ ] Task CRUD + status transitions
-- [ ] Task assign
-- [ ] Kafka task events
+- [x] Flyway: workflows + tasks (+ related)
+- [x] Default workflow seed
+- [x] Task CRUD + status transitions
+- [x] Task assign
+- [x] Kafka task events
 - [ ] (Optional) sprints basics
 
 ---

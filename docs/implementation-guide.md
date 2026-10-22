@@ -110,11 +110,11 @@ Build in this order. Do not skip ahead to documents/search/export.
 
 #### Week 8 — task-service (workflow + task CRUD)
 
-- [ ] Flyway: workflows, statuses, transitions, task_types, tasks (+ custom fields stubs if time)
-- [ ] Seed default workflow
-- [ ] Task CRUD + list/filter by project
-- [ ] Status change with transition rules
-- [ ] Events: `task.created`, `task.updated`, `task.status_changed`, `task.assigned`
+- [x] Flyway: workflows, statuses, transitions, task_types, tasks (+ custom fields stubs if time)
+- [x] Seed default workflow
+- [x] Task CRUD + list/filter by project
+- [x] Status change with transition rules
+- [x] Events: `task.created`, `task.updated`, `task.status_changed`, `task.assigned`
 
 **Done when:** Create task, assign user, move status; events visible on Kafka topic.
 

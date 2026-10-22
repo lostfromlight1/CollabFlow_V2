@@ -15,8 +15,8 @@ Re-import (or Replace) collections after pulling so new folders/tests appear.
 | File | Folders / cases |
 |------|-----------------|
 | **Auth** | Health (± API key) · Happy path (register→login→me→refresh→logout→refresh-fails) · Validation (dup email, short password, bad email, wrong login, Me without token) · Second user (for Platform members) |
-| **Platform** | Roles · Org CRUD · Members · Soft-delete · Negatives · Workspaces · **Projects** (CRUD, members, archive) |
-| **Local env** | Shared `accessToken`, `userId`, `otherUserId`, `organizationId`, `workspaceId`, `projectId`, … |
+| **Platform** | Roles · Org · Members · Workspaces · Projects · **Tasks** (workflow, CRUD, status, assign) |
+| **Local env** | Shared tokens + `organizationId`, `workspaceId`, `projectId`, `taskId`, … |
 
 Most requests assert status + `ApiResponse` / `errorCode` via Postman **Tests**.
 
@@ -27,16 +27,17 @@ Most requests assert status + `ApiResponse` / `errorCode` via Postman **Tests**.
 3. **Platform → 1. Org happy path** (collection pre-request copies env token)  
 4. **Platform → 2. Members** (needs `otherUserId` as org member)  
 5. **Platform → 5. Workspaces** (needs `organizationId`; add member requires org membership) — skip Soft-delete workspace before Projects  
-6. **Platform → 6. Projects** (needs active `workspaceId`; add member requires workspace membership)  
-7. Run **Negative** folders anytime  
+6. **Platform → 6. Projects** (needs active `workspaceId`) — skip Archive before Tasks  
+7. **Platform → 7. Tasks** (needs active `projectId` + **task-service** running)  
+8. Run **Negative** folders anytime  
 
-Soft-delete org (folder 3) or workspace (folder 5) deactivates parents — run project cases on an active workspace, or create fresh org/workspace first.
+Soft-delete / archive of parents breaks child folders — recreate org → workspace → project as needed.
 
 ## Headers
 
 | Header | When |
 |--------|------|
 | `X-API-Key` | Almost every `/api/**` call |
-| `Authorization: Bearer {{accessToken}}` | Protected routes (`/me`, orgs, workspaces, projects, roles) |
+| `Authorization: Bearer {{accessToken}}` | Protected routes (`/me`, orgs, workspaces, projects, tasks, workflows, roles) |
 
-Gateway: `http://localhost:8080` · Swagger: `:8081` auth · `:8082` platform
+Gateway: `http://localhost:8080` · Swagger: `:8081` auth · `:8082` platform · `:8083` task
