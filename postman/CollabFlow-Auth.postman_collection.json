@@ -2,159 +2,556 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "CollabFlow Auth",
-    "description": "auth-service APIs. Every request needs header X-API-Key. /me also needs Bearer accessToken.\n\nImport CollabFlow-Local.postman_environment.json and select it.",
+    "description": "auth-service via gateway (:8080).\n\n**Happy path:** Register (or Login) → Me → Refresh → Logout.\n**Negative:** missing API key, bad body, wrong password, Me without Bearer.\n\nImport `CollabFlow-Local.postman_environment.json` and select **CollabFlow Local**.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080" },
     { "key": "apiKey", "value": "6e7f9c2b1a3d5e7f8b4fdf31e2f3a4b5c" },
     { "key": "accessToken", "value": "" },
-    { "key": "refreshToken", "value": "" }
+    { "key": "refreshToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "userEmail", "value": "kaung@example.com" },
+    { "key": "userPassword", "value": "password123" },
+    { "key": "userName", "value": "Kaung" }
   ],
   "item": [
     {
-      "name": "Health",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "X-API-Key", "value": "{{apiKey}}" }
-        ],
-        "url": "{{baseUrl}}/api/v1/auth/health"
-      }
-    },
-    {
-      "name": "Register",
-      "event": [
+      "name": "0. Health",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "if (pm.response.code === 201 || pm.response.code === 200) {",
-              "  const json = pm.response.json();",
-              "  if (json.data) {",
-              "    pm.collectionVariables.set('accessToken', json.data.accessToken);",
-              "    pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
-              "  }",
-              "}"
-            ]
+          "name": "Health OK",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('success envelope', () => {",
+                  "  pm.expect(j.success).to.eql(true);",
+                  "  pm.expect(j.data.service).to.eql('auth-service');",
+                  "  pm.expect(j.data.status).to.eql('UP');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/api/v1/auth/health"
+          }
+        },
+        {
+          "name": "Health without API key → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "const j = pm.response.json();",
+                  "pm.test('UNAUTHORIZED', () => pm.expect(j.errorCode).to.eql('UNAUTHORIZED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/auth/health",
+            "description": "Negative — missing X-API-Key."
+          }
+        },
+        {
+          "name": "Health wrong API key → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "wrong-key" }],
+            "url": "{{baseUrl}}/api/v1/auth/health"
           }
         }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "X-API-Key", "value": "{{apiKey}}" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"kaung@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"Kaung\"\n}"
-        },
-        "url": "{{baseUrl}}/api/v1/auth/register"
-      }
+      ]
     },
     {
-      "name": "Login",
-      "event": [
+      "name": "1. Happy path",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "if (pm.response.code === 200) {",
-              "  const json = pm.response.json();",
-              "  if (json.data) {",
-              "    pm.collectionVariables.set('accessToken', json.data.accessToken);",
-              "    pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
-              "  }",
-              "}"
-            ]
+          "name": "Register (unique email)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const email = 'kaung+' + Date.now() + '@example.com';",
+                  "pm.collectionVariables.set('userEmail', email);",
+                  "pm.environment.set('userEmail', email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.test('tokens + user', () => {",
+                  "  pm.expect(j.success).to.eql(true);",
+                  "  pm.expect(j.data.accessToken).to.be.a('string').and.not.empty;",
+                  "  pm.expect(j.data.refreshToken).to.be.a('string').and.not.empty;",
+                  "  pm.expect(j.data.user.id).to.be.a('string');",
+                  "  pm.expect(j.data.user.email).to.eql(pm.collectionVariables.get('userEmail'));",
+                  "});",
+                  "pm.collectionVariables.set('accessToken', j.data.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', j.data.refreshToken);",
+                  "pm.collectionVariables.set('userId', j.data.user.id);",
+                  "pm.environment.set('accessToken', j.data.accessToken);",
+                  "pm.environment.set('refreshToken', j.data.refreshToken);",
+                  "pm.environment.set('userId', j.data.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"name\": \"{{userName}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "description": "Pre-request sets a unique email so re-runs do not hit CONFLICT."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('tokens present', () => {",
+                  "  pm.expect(j.data.accessToken).to.be.a('string').and.not.empty;",
+                  "  pm.expect(j.data.refreshToken).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.collectionVariables.set('accessToken', j.data.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', j.data.refreshToken);",
+                  "pm.collectionVariables.set('userId', j.data.user.id);",
+                  "pm.environment.set('accessToken', j.data.accessToken);",
+                  "pm.environment.set('refreshToken', j.data.refreshToken);",
+                  "pm.environment.set('userId', j.data.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('profile matches', () => {",
+                  "  pm.expect(j.data.id).to.eql(pm.collectionVariables.get('userId'));",
+                  "  pm.expect(j.data.email).to.eql(pm.collectionVariables.get('userEmail'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/me"
+          }
+        },
+        {
+          "name": "Refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('rotated tokens', () => {",
+                  "  pm.expect(j.data.accessToken).to.be.a('string').and.not.empty;",
+                  "  pm.expect(j.data.refreshToken).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.collectionVariables.set('accessToken', j.data.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', j.data.refreshToken);",
+                  "pm.environment.set('accessToken', j.data.accessToken);",
+                  "pm.environment.set('refreshToken', j.data.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/refresh"
+          }
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('success', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/logout",
+            "description": "Revokes refresh token. Do not send Authorization Bearer."
+          }
+        },
+        {
+          "name": "Refresh after logout → fail",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('not success (401/404)', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([401, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/refresh",
+            "description": "Same refresh token should be invalid after logout."
           }
         }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "X-API-Key", "value": "{{apiKey}}" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"kaung@example.com\",\n  \"password\": \"password123\"\n}"
-        },
-        "url": "{{baseUrl}}/api/v1/auth/login",
-        "description": "MVP: email + password only. Later: organization (id/slug) will be required too."
-      }
+      ]
     },
     {
-      "name": "Refresh",
-      "event": [
+      "name": "2. Negative / validation",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "if (pm.response.code === 200) {",
-              "  const json = pm.response.json();",
-              "  if (json.data) {",
-              "    pm.collectionVariables.set('accessToken', json.data.accessToken);",
-              "    pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
-              "  }",
-              "}"
-            ]
+          "name": "Register duplicate email → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('CONFLICT', () => pm.expect(pm.response.json().errorCode).to.eql('CONFLICT'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"password123\",\n  \"name\": \"Dup\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "description": "Run after Happy path Register (reuses userEmail)."
+          }
+        },
+        {
+          "name": "Register short password → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('VALIDATION_FAILED', () => pm.expect(pm.response.json().errorCode).to.eql('VALIDATION_FAILED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"shortpw@example.com\",\n  \"password\": \"short\",\n  \"name\": \"X\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register"
+          }
+        },
+        {
+          "name": "Register invalid email → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"not-an-email\",\n  \"password\": \"password123\",\n  \"name\": \"X\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register"
+          }
+        },
+        {
+          "name": "Register blank name → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"blankname@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register"
+          }
+        },
+        {
+          "name": "Login wrong password → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('UNAUTHORIZED', () => pm.expect(pm.response.json().errorCode).to.eql('UNAUTHORIZED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"wrong-password\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Login unknown email → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nobody-exists@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Me without Bearer → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/api/v1/auth/me"
+          }
+        },
+        {
+          "name": "Me with garbage token → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer not.a.jwt" }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/me"
           }
         }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "X-API-Key", "value": "{{apiKey}}" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
-        },
-        "url": "{{baseUrl}}/api/v1/auth/refresh"
-      }
+      ]
     },
     {
-      "name": "Me",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "X-API-Key", "value": "{{apiKey}}" },
-          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-        ],
-        "url": "{{baseUrl}}/api/v1/auth/me",
-        "description": "Needs accessToken (JWT), not refreshToken. Re-login after JWT secret/algorithm changes."
-      }
-    },
-    {
-      "name": "Logout",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "X-API-Key", "value": "{{apiKey}}" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
-        },
-        "url": "{{baseUrl}}/api/v1/auth/logout",
-        "description": "Body refreshToken only. Do NOT send Authorization Bearer (logout is public)."
-      }
-    },
-    {
-      "name": "Health without API key (expect 401)",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": "{{baseUrl}}/api/v1/auth/health",
-        "description": "Negative test — should return UNAUTHORIZED without X-API-Key."
-      }
+      "name": "3. Second user (for Platform member tests)",
+      "item": [
+        {
+          "name": "Register other user",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const email = 'member+' + Date.now() + '@example.com';",
+                  "pm.collectionVariables.set('otherUserEmail', email);",
+                  "pm.environment.set('otherUserEmail', email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('otherUserId', j.data.user.id);",
+                  "pm.environment.set('otherUserId', j.data.user.id);",
+                  "pm.test('saved otherUserId', () => pm.expect(j.data.user.id).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{otherUserEmail}}\",\n  \"password\": \"password123\",\n  \"name\": \"Other Member\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "description": "Saves otherUserId into environment for Platform → Add member."
+          }
+        }
+      ]
     }
   ]
 }
