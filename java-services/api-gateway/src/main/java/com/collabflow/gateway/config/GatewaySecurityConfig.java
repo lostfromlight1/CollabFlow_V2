@@ -15,7 +15,7 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
 /**
- * Edge security: public auth routes; JWT for /me, platform, tasks/workflows, and roles.
+ * Edge security: public auth routes; JWT for platform, tasks, collab (notifications/invites/comments), roles.
  */
 @Configuration
 @EnableWebFluxSecurity
@@ -46,6 +46,7 @@ public class GatewaySecurityConfig {
                         ).permitAll()
                         .pathMatchers("/api/v1/platform/health").permitAll()
                         .pathMatchers("/api/v1/tasks/health").permitAll()
+                        .pathMatchers("/api/v1/collab/health").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
                         .pathMatchers(
                                 "/api/v1/organizations/**",
@@ -54,7 +55,10 @@ public class GatewaySecurityConfig {
                                 "/api/v1/roles/**",
                                 "/api/v1/tasks/**",
                                 "/api/v1/workflows/**",
-                                "/api/v1/task-types/**"
+                                "/api/v1/task-types/**",
+                                "/api/v1/notifications/**",
+                                "/api/v1/invitations/**",
+                                "/api/v1/comments/**"
                         ).authenticated()
                         .pathMatchers(
                                 "/api/v1/sprints/**"
