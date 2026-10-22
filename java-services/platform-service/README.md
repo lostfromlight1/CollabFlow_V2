@@ -1,7 +1,7 @@
 # platform-service
 
 **Port:** 8082 · Java 21 / Boot 4.1 / Gradle  
-**Owns:** organizations, organization_members, workspaces, workspace_members, roles, permissions, role_permissions
+**Owns:** organizations, organization_members, workspaces, workspace_members, projects, project_members, roles, permissions, role_permissions
 
 ## Week 5 — Organizations
 
@@ -18,6 +18,14 @@
 - Members + **join via invite code** (must already be org member)
 - Kafka: `workspace.created`, `workspace.updated`, `workspace.deleted`, `workspace.member_added`, `workspace.member_removed`
 
+## Week 7 — Projects
+
+- Create project under a workspace (`project.create` on **Workspace Admin**) → caller becomes **Project Admin** + owner
+- List ACTIVE projects by workspace (workspace member); get/update; DELETE archives (`status=ARCHIVED`)
+- Members: target must already be a **workspace member**
+- Optional `parentProjectId` on create (same workspace, ACTIVE parent only)
+- Kafka: `project.created`, `project.updated`, `project.deleted`, `project.member_added`, `project.member_removed`
+
 Seeded role IDs:
 
 | Role | UUID |
@@ -28,11 +36,14 @@ Seeded role IDs:
 | Workspace Admin | `a0000000-0000-4000-8000-000000000004` |
 | Workspace Member | `a0000000-0000-4000-8000-000000000005` |
 | Workspace Viewer | `a0000000-0000-4000-8000-000000000006` |
+| Project Admin | `a0000000-0000-4000-8000-000000000007` |
+| Project Member | `a0000000-0000-4000-8000-000000000008` |
+| Project Viewer | `a0000000-0000-4000-8000-000000000009` |
 
 ## Run
 
 Needs Postgres (`users` from auth Flyway first), Kafka. Prefer gateway `:8080`.
-Platform migrations use table `flyway_platform_history` (V1 roles, V2 orgs, V3 workspaces).
+Platform migrations use table `flyway_platform_history` (V1 roles, V2 orgs, V3 workspaces, V4 projects).
 `baseline-on-migrate` + `baseline-version: 0` is required because the shared schema already has auth tables.
 
 ```powershell
@@ -50,5 +61,5 @@ Swagger: http://localhost:8082/swagger-ui.html
 ## Conventions
 
 - Controllers use `@CurrentUserId` (JWT principal UUID) and `@ApiId` (MDC) — see `.cursor/rules/java-spring.mdc` + [services-mvp.md](../../docs/services-mvp.md).
-- Domain logic: `OrganizationService` / `WorkspaceService` + `service/impl/`
+- Domain logic: `OrganizationService` / `WorkspaceService` / `ProjectService` + `service/impl/`
 - Logs: console + dated files under repo `logs/platform/platform-service.yyyy-MM-dd.log`.

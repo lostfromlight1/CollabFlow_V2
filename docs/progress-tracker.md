@@ -12,7 +12,7 @@
 | Phase | Status | Notes |
 |-------|--------|-------|
 | A Foundation (W1–2) | 🟨 | Week 1 done; Week 2 skeletons compiled |
-| B Java core (W3–8) | 🟨 | Week 6 platform workspace done; next Week 7 project |
+| B Java core (W3–8) | 🟨 | Week 7 platform project done; next Week 8 task-service |
 | C Go + events (W9–12) | ⬜ | |
 | D Integrate / portfolio (W13–14) | ⬜ | |
 | **MVP complete** | ⬜ | All phases green |
@@ -81,10 +81,10 @@
 - [x] Kafka workspace events
 
 ### Week 7 — platform (project)
-- [ ] Flyway: projects, project_members
-- [ ] Project CRUD + members
-- [ ] Gateway routes for platform APIs
-- [ ] Kafka project events
+- [x] Flyway: projects, project_members
+- [x] Project CRUD + members
+- [x] Gateway routes for platform APIs
+- [x] Kafka project events
 
 ### Week 8 — task-service
 - [ ] Flyway: workflows + tasks (+ related)

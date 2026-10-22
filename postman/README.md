@@ -15,8 +15,8 @@ Re-import (or Replace) collections after pulling so new folders/tests appear.
 | File | Folders / cases |
 |------|-----------------|
 | **Auth** | Health (± API key) · Happy path (register→login→me→refresh→logout→refresh-fails) · Validation (dup email, short password, bad email, wrong login, Me without token) · Second user (for Platform members) |
-| **Platform** | Roles · Org CRUD · Members · Soft-delete · Negatives · **Workspaces** (CRUD, members, role update, invite join, soft-delete) |
-| **Local env** | Shared `accessToken`, `userId`, `otherUserId`, `organizationId`, … |
+| **Platform** | Roles · Org CRUD · Members · Soft-delete · Negatives · Workspaces · **Projects** (CRUD, members, archive) |
+| **Local env** | Shared `accessToken`, `userId`, `otherUserId`, `organizationId`, `workspaceId`, `projectId`, … |
 
 Most requests assert status + `ApiResponse` / `errorCode` via Postman **Tests**.
 
@@ -26,16 +26,17 @@ Most requests assert status + `ApiResponse` / `errorCode` via Postman **Tests**.
 2. **Auth → 3. Second user → Register other user** — saves `otherUserId`  
 3. **Platform → 1. Org happy path** (collection pre-request copies env token)  
 4. **Platform → 2. Members** (needs `otherUserId` as org member)  
-5. **Platform → 5. Workspaces** (needs `organizationId`; add member requires org membership)  
-6. Run **Negative** folders anytime  
+5. **Platform → 5. Workspaces** (needs `organizationId`; add member requires org membership) — skip Soft-delete workspace before Projects  
+6. **Platform → 6. Projects** (needs active `workspaceId`; add member requires workspace membership)  
+7. Run **Negative** folders anytime  
 
-Soft-delete (folder 3) deactivates the org — run workspace/member cases before it, or create a fresh org first.
+Soft-delete org (folder 3) or workspace (folder 5) deactivates parents — run project cases on an active workspace, or create fresh org/workspace first.
 
 ## Headers
 
 | Header | When |
 |--------|------|
 | `X-API-Key` | Almost every `/api/**` call |
-| `Authorization: Bearer {{accessToken}}` | Protected routes (`/me`, orgs, roles) |
+| `Authorization: Bearer {{accessToken}}` | Protected routes (`/me`, orgs, workspaces, projects, roles) |
 
 Gateway: `http://localhost:8080` · Swagger: `:8081` auth · `:8082` platform

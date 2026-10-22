@@ -101,10 +101,10 @@ Build in this order. Do not skip ahead to documents/search/export.
 
 #### Week 7 — platform-service (project)
 
-- [ ] Flyway: `projects`, `project_members`
-- [ ] Project CRUD + members
-- [ ] Gateway routes for org/workspace/project
-- [ ] Events: `project.*`
+- [x] Flyway: `projects`, `project_members`
+- [x] Project CRUD + members
+- [x] Gateway routes for org/workspace/project
+- [x] Events: `project.*`
 
 **Done when:** User can create org → workspace → project with RBAC.
 

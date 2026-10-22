@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "c3d4e5f6-a7b8-9012-cdef-1234567890ab",
     "name": "CollabFlow Platform",
-    "description": "Organization + Workspace APIs via gateway (:8080).\n\n**Setup:** Auth Register/Login → env `accessToken`. For members: Auth other user + add as org member before workspace member tests.\n\nFolders: org CRUD, members, soft-delete, negatives, **workspaces** (Week 6).",
+    "description": "Organization + Workspace + Project APIs via gateway (:8080).\n\n**Setup:** Auth Register/Login → env `accessToken`. For members: Auth other user + add as org/workspace member before project member tests.\n\nFolders: org CRUD, members, soft-delete, negatives, workspaces (Week 6), **projects** (Week 7).\n\nSkip Soft-delete workspace (folder 5) before running Projects, or create a fresh workspace first.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -20,7 +20,11 @@
     { "key": "workspaceInviteCode", "value": "" },
     { "key": "workspaceMemberId", "value": "" },
     { "key": "workspaceMemberRoleId", "value": "a0000000-0000-4000-8000-000000000005" },
-    { "key": "workspaceViewerRoleId", "value": "a0000000-0000-4000-8000-000000000006" }
+    { "key": "workspaceViewerRoleId", "value": "a0000000-0000-4000-8000-000000000006" },
+    { "key": "projectId", "value": "" },
+    { "key": "projectMemberId", "value": "" },
+    { "key": "projectMemberRoleId", "value": "a0000000-0000-4000-8000-000000000008" },
+    { "key": "projectViewerRoleId", "value": "a0000000-0000-4000-8000-000000000009" }
   ],
   "event": [
     {
@@ -29,7 +33,7 @@
         "type": "text/javascript",
         "exec": [
           "// Prefer environment vars from Auth / earlier Platform runs",
-          "['accessToken','otherUserId','organizationId','workspaceId','workspaceInviteCode'].forEach(k => {",
+          "['accessToken','otherUserId','organizationId','workspaceId','workspaceInviteCode','projectId'].forEach(k => {",
           "  const v = pm.environment.get(k);",
           "  if (v) pm.collectionVariables.set(k, v);",
           "});"
@@ -1095,6 +1099,359 @@
               { "key": "Authorization", "value": "Bearer {{accessToken}}" }
             ],
             "url": "{{baseUrl}}/api/v1/workspaces/{{workspaceId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Projects",
+      "item": [
+        {
+          "name": "List PROJECT roles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('three project roles', () => {",
+                  "  pm.expect(pm.response.json().data).to.be.an('array').with.lengthOf(3);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/roles?scope=PROJECT"
+          }
+        },
+        {
+          "name": "Create project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.test('project payload', () => {",
+                  "  pm.expect(j.data.id).to.be.a('string');",
+                  "  pm.expect(j.data.status).to.eql('ACTIVE');",
+                  "  pm.expect(j.data.workspaceId).to.eql(pm.collectionVariables.get('workspaceId') || pm.environment.get('workspaceId'));",
+                  "});",
+                  "pm.collectionVariables.set('projectId', j.data.id);",
+                  "pm.environment.set('projectId', j.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"name\": \"CollabFlow MVP\",\n  \"description\": \"Week 7 project\",\n  \"projectType\": \"SOFTWARE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/projects",
+            "description": "Needs active workspaceId (Workspace Admin). Skip Soft-delete workspace in folder 5 first."
+          }
+        },
+        {
+          "name": "List workspace projects",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const id = pm.collectionVariables.get('projectId');",
+                  "pm.test('includes created', () => {",
+                  "  pm.expect(pm.response.json().data.some(p => p.id === id)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/workspaces/{{workspaceId}}/projects"
+          }
+        },
+        {
+          "name": "Get project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}"
+          }
+        },
+        {
+          "name": "Update project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('name updated', () => pm.expect(pm.response.json().data.name).to.eql('CollabFlow MVP Updated'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"CollabFlow MVP Updated\",\n  \"description\": \"Updated\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}"
+          }
+        },
+        {
+          "name": "List project members",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('at least owner admin', () => {",
+                  "  pm.expect(pm.response.json().data.length).to.be.at.least(1);",
+                  "  pm.expect(pm.response.json().data[0].roleName).to.eql('Project Admin');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/members"
+          }
+        },
+        {
+          "name": "Add project member",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.test('member role', () => {",
+                  "  pm.expect(j.data.userId).to.eql(pm.collectionVariables.get('otherUserId'));",
+                  "  pm.expect(j.data.roleId).to.eql(pm.collectionVariables.get('projectMemberRoleId'));",
+                  "});",
+                  "pm.collectionVariables.set('projectMemberId', j.data.id);",
+                  "pm.environment.set('projectMemberId', j.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{otherUserId}}\",\n  \"roleId\": \"{{projectMemberRoleId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/members",
+            "description": "otherUserId must already be a workspace member."
+          }
+        },
+        {
+          "name": "Add same project member → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('CONFLICT', () => pm.expect(pm.response.json().errorCode).to.eql('CONFLICT'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{otherUserId}}\",\n  \"roleId\": \"{{projectMemberRoleId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/members"
+          }
+        },
+        {
+          "name": "Update project member → Viewer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('viewer role', () => {",
+                  "  pm.expect(pm.response.json().data.roleId).to.eql(pm.collectionVariables.get('projectViewerRoleId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleId\": \"{{projectViewerRoleId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/members/{{projectMemberId}}"
+          }
+        },
+        {
+          "name": "Create project without Bearer → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{apiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"name\": \"No Auth Project\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/projects"
+          }
+        },
+        {
+          "name": "Remove project member",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/members/{{projectMemberId}}"
+          }
+        },
+        {
+          "name": "Archive project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}"
+          }
+        },
+        {
+          "name": "Get archived project → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}"
           }
         }
       ]

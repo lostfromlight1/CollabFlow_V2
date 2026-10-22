@@ -5,6 +5,7 @@ import com.collabflow.common.openapi.OpenApiSupport;
 import com.collabflow.common.web.ApiId;
 import com.collabflow.platform.dto.response.RoleResponse;
 import com.collabflow.platform.service.OrganizationService;
+import com.collabflow.platform.service.ProjectService;
 import com.collabflow.platform.service.WorkspaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -28,17 +29,26 @@ public class RoleController {
 
     private final OrganizationService organizationService;
     private final WorkspaceService workspaceService;
+    private final ProjectService projectService;
 
-    public RoleController(OrganizationService organizationService, WorkspaceService workspaceService) {
+    public RoleController(
+            OrganizationService organizationService,
+            WorkspaceService workspaceService,
+            ProjectService projectService
+    ) {
         this.organizationService = organizationService;
         this.workspaceService = workspaceService;
+        this.projectService = projectService;
     }
 
     @GetMapping
     @ApiId("ROLE-001")
-    @Operation(summary = "List system roles by scope (ORGANIZATION | WORKSPACE)")
+    @Operation(summary = "List system roles by scope (ORGANIZATION | WORKSPACE | PROJECT)")
     public ApiResponse<List<RoleResponse>> list(@RequestParam(defaultValue = "ORGANIZATION") String scope) {
         log.info("GET /roles scope={}", scope);
+        if ("PROJECT".equalsIgnoreCase(scope)) {
+            return ApiResponse.ok(projectService.listProjectRoles());
+        }
         if ("WORKSPACE".equalsIgnoreCase(scope)) {
             return ApiResponse.ok(workspaceService.listWorkspaceRoles());
         }

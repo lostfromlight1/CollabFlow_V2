@@ -1,0 +1,32 @@
+package com.collabflow.platform.dto.request;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import java.time.Instant;
+import java.util.UUID;
+
+public record CreateProjectRequest(
+        @NotNull
+        @Schema(description = "Parent workspace id")
+        UUID workspaceId,
+
+        @NotBlank @Size(max = 255)
+        @Schema(example = "CollabFlow MVP")
+        String name,
+
+        @Size(max = 2000)
+        String description,
+
+        @Schema(allowableValues = {"SOFTWARE", "MARKETING", "HR", "CUSTOM"})
+        String projectType,
+
+        UUID parentProjectId,
+
+        UUID leadId,
+
+        Instant startDate,
+
+        Instant dueDate
+) {}

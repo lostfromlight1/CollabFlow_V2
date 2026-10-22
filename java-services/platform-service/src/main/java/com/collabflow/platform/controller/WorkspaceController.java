@@ -9,8 +9,10 @@ import com.collabflow.platform.dto.request.CreateWorkspaceRequest;
 import com.collabflow.platform.dto.request.JoinWorkspaceRequest;
 import com.collabflow.platform.dto.request.UpdateWorkspaceMemberRoleRequest;
 import com.collabflow.platform.dto.request.UpdateWorkspaceRequest;
+import com.collabflow.platform.dto.response.ProjectResponse;
 import com.collabflow.platform.dto.response.WorkspaceMemberResponse;
 import com.collabflow.platform.dto.response.WorkspaceResponse;
+import com.collabflow.platform.service.ProjectService;
 import com.collabflow.platform.service.WorkspaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -41,9 +43,11 @@ public class WorkspaceController {
     private static final Logger log = LoggerFactory.getLogger(WorkspaceController.class);
 
     private final WorkspaceService workspaceService;
+    private final ProjectService projectService;
 
-    public WorkspaceController(WorkspaceService workspaceService) {
+    public WorkspaceController(WorkspaceService workspaceService, ProjectService projectService) {
         this.workspaceService = workspaceService;
+        this.projectService = projectService;
     }
 
     @PostMapping
@@ -56,6 +60,14 @@ public class WorkspaceController {
     ) {
         log.info("POST /workspaces orgId={} userId={}", request.organizationId(), userId);
         return ApiResponse.ok("Workspace created", workspaceService.create(userId, request));
+    }
+
+    @GetMapping("/{id}/projects")
+    @ApiId("PRJ-002")
+    @Operation(summary = "List ACTIVE projects in workspace")
+    public ApiResponse<List<ProjectResponse>> listProjects(@PathVariable UUID id, @CurrentUserId UUID userId) {
+        log.info("GET /workspaces/{}/projects userId={}", id, userId);
+        return ApiResponse.ok(projectService.listByWorkspace(id, userId));
     }
 
     @GetMapping("/{id}")
