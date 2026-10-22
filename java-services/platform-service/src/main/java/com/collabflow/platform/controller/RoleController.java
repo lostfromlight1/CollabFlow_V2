@@ -5,6 +5,7 @@ import com.collabflow.common.openapi.OpenApiSupport;
 import com.collabflow.common.web.ApiId;
 import com.collabflow.platform.dto.response.RoleResponse;
 import com.collabflow.platform.service.OrganizationService;
+import com.collabflow.platform.service.WorkspaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,19 +27,24 @@ public class RoleController {
     private static final Logger log = LoggerFactory.getLogger(RoleController.class);
 
     private final OrganizationService organizationService;
+    private final WorkspaceService workspaceService;
 
-    public RoleController(OrganizationService organizationService) {
+    public RoleController(OrganizationService organizationService, WorkspaceService workspaceService) {
         this.organizationService = organizationService;
+        this.workspaceService = workspaceService;
     }
 
     @GetMapping
     @ApiId("ROLE-001")
-    @Operation(summary = "List system roles by scope")
+    @Operation(summary = "List system roles by scope (ORGANIZATION | WORKSPACE)")
     public ApiResponse<List<RoleResponse>> list(@RequestParam(defaultValue = "ORGANIZATION") String scope) {
         log.info("GET /roles scope={}", scope);
-        if (!"ORGANIZATION".equalsIgnoreCase(scope)) {
-            return ApiResponse.ok(List.of());
+        if ("WORKSPACE".equalsIgnoreCase(scope)) {
+            return ApiResponse.ok(workspaceService.listWorkspaceRoles());
         }
-        return ApiResponse.ok(organizationService.listOrganizationRoles());
+        if ("ORGANIZATION".equalsIgnoreCase(scope)) {
+            return ApiResponse.ok(organizationService.listOrganizationRoles());
+        }
+        return ApiResponse.ok(List.of());
     }
 }

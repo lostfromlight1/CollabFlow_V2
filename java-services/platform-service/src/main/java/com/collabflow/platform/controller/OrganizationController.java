@@ -10,7 +10,9 @@ import com.collabflow.platform.dto.request.UpdateMemberRoleRequest;
 import com.collabflow.platform.dto.request.UpdateOrganizationRequest;
 import com.collabflow.platform.dto.response.MemberResponse;
 import com.collabflow.platform.dto.response.OrganizationResponse;
+import com.collabflow.platform.dto.response.WorkspaceResponse;
 import com.collabflow.platform.service.OrganizationService;
+import com.collabflow.platform.service.WorkspaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,9 +42,11 @@ public class OrganizationController {
     private static final Logger log = LoggerFactory.getLogger(OrganizationController.class);
 
     private final OrganizationService organizationService;
+    private final WorkspaceService workspaceService;
 
-    public OrganizationController(OrganizationService organizationService) {
+    public OrganizationController(OrganizationService organizationService, WorkspaceService workspaceService) {
         this.organizationService = organizationService;
+        this.workspaceService = workspaceService;
     }
 
     @PostMapping
@@ -92,6 +96,14 @@ public class OrganizationController {
         log.info("DELETE /organizations/{} userId={}", id, userId);
         organizationService.softDelete(id, userId);
         return ApiResponse.okMessage("Organization deactivated");
+    }
+
+    @GetMapping("/{id}/workspaces")
+    @ApiId("WS-002")
+    @Operation(summary = "List workspaces in organization")
+    public ApiResponse<List<WorkspaceResponse>> listWorkspaces(@PathVariable UUID id, @CurrentUserId UUID userId) {
+        log.info("GET /organizations/{}/workspaces userId={}", id, userId);
+        return ApiResponse.ok(workspaceService.listByOrganization(id, userId));
     }
 
     @GetMapping("/{id}/members")
