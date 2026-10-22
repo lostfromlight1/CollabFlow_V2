@@ -199,6 +199,7 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | TASK-005 | DELETE | `/api/v1/tasks/{id}` |
 | TASK-006 | PUT | `/api/v1/tasks/{id}/status` |
 | TASK-007 | PUT | `/api/v1/tasks/{id}/assign` |
+| TASK-008 | GET | `/api/v1/tasks/stats?projectId=` |
 | WF-001 | GET | `/api/v1/workflows/default` |
 | WF-002 | GET | `/api/v1/workflows/{id}` |
 | WF-003 | GET | `/api/v1/workflows/{id}/statuses` |

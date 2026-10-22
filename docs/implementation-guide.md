@@ -164,9 +164,9 @@ Use skill `teach-and-build` every week here.
 
 #### Week 13 — Integration
 
-- [ ] End-to-end script: register → org → workspace → project → task → comment → see notification + WS update
-- [ ] Fix auth/RBAC gaps across services
-- [ ] Basic analytics: task counts by status/project (on `task-service`)
+- [x] End-to-end script: register → org → workspace → project → task → comment → see notification + WS update ([e2e-demo.md](e2e-demo.md))
+- [x] Fix auth/RBAC gaps across services (`assignerId` on assign; dual-publish for realtime)
+- [x] Basic analytics: task counts by status/project (on `task-service`)
 
 #### Week 14 — Polish
 

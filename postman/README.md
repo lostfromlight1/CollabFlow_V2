@@ -28,7 +28,7 @@ Most requests assert status + `ApiResponse` / `errorCode` via Postman **Tests**.
 4. **Platform → 2. Members** (needs `otherUserId` as org member)  
 5. **Platform → 5. Workspaces** (needs `organizationId`; add member requires org membership) — skip Soft-delete workspace before Projects  
 6. **Platform → 6. Projects** (needs active `workspaceId`) — skip Archive before Tasks  
-7. **Platform → 7. Tasks** (needs active `projectId` + **task-service**)  
+7. **Platform → 7. Tasks** (needs active `projectId` + **task-service**; includes **Task stats**)  
 8. **Platform → 8. Notifications** (needs **collab-service** + Kafka; assign then list)  
 9. **Platform → 9. Invitations + Comments** (needs `otherUserEmail` / `otherAccessToken` from Auth second user + `taskId`)  
 10. **Platform → 10. Activity feed** (after assign / comment; collab up)  

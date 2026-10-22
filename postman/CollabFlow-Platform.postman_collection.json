@@ -2415,6 +2415,38 @@
             ],
             "url": "{{baseUrl}}/api/v1/tasks/{{taskId}}"
           }
+        },
+        {
+          "name": "Task stats (analytics)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('has total', () => pm.expect(d.total).to.be.a('number'));",
+                  "pm.test('byStatus array', () => pm.expect(d.byStatus).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/tasks/stats?projectId={{projectId}}",
+            "description": "Week 13 basic analytics — counts by status + priority."
+          }
         }
       ]
     },

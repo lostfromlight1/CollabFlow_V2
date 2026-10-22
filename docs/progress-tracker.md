@@ -11,11 +11,11 @@
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| A Foundation (W1–2) | 🟨 | Week 1 done; Week 2 skeletons compiled |
-| B Java core (W3–8) | 🟨 | Week 8 task-service done; next Phase C Go (Week 9) |
-| C Go + events (W9–12) | 🟨 | Week 9 collab notifications (consume task.assigned) |
-| D Integrate / portfolio (W13–14) | ⬜ | |
-| **MVP complete** | ⬜ | All phases green |
+| A Foundation (W1–2) | ✅ | Infra + gateway skeleton |
+| B Java core (W3–8) | ✅ | Auth, platform, task |
+| C Go + events (W9–12) | ✅ | Collab + realtime |
+| D Integrate / portfolio (W13–14) | 🟨 | Week 13 integration done; Week 14 polish |
+| **MVP complete** | ⬜ | Finish Week 14 |
 
 ---
 
@@ -29,7 +29,7 @@
 | platform-service | [x] org+workspace+project usable | Week 7 — projects |
 | task-service | [x] usable | Week 8 — workflow seed + task CRUD |
 | collab-service | [x] notifications usable | Week 9 — task.assigned → notify |
-| realtime-service | [ ] | Week 12 |
+| realtime-service | [x] usable | Week 12 — WS + Redis + Kafka |
 
 ---
 
@@ -125,9 +125,9 @@
 ## Phase D — Integrate & portfolio
 
 ### Week 13
-- [ ] E2E demo script documented
-- [ ] Cross-service bugfix pass
-- [ ] Basic analytics endpoints
+- [x] E2E demo script documented
+- [x] Cross-service bug fix pass (assignerId + dual-publish task.updated for WS)
+- [x] Basic analytics endpoints
 
 ### Week 14
 - [ ] OpenAPI / API examples
@@ -141,18 +141,18 @@
 
 | Feature | Service | Done |
 |---------|---------|------|
-| Auth | auth | [ ] |
-| Organization | platform | [ ] |
-| Workspace | platform | [ ] |
-| Project | platform | [ ] |
-| Workflow | task | [ ] |
-| Task management | task | [ ] |
-| Notifications | collab | [ ] |
-| Invitations | collab | [ ] |
-| Comments | collab | [ ] |
-| Activity feed | collab | [ ] |
-| Realtime | realtime | [ ] |
-| Basic analytics | task/platform | [ ] |
+| Auth | auth | [x] |
+| Organization | platform | [x] |
+| Workspace | platform | [x] |
+| Project | platform | [x] |
+| Workflow | task | [x] |
+| Task management | task | [x] |
+| Notifications | collab | [x] |
+| Invitations | collab | [x] |
+| Comments | collab | [x] |
+| Activity feed | collab | [x] |
+| Realtime | realtime | [x] |
+| Basic analytics | task/platform | [x] |
 
 ---
 
