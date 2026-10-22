@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "c3d4e5f6-a7b8-9012-cdef-1234567890ab",
     "name": "CollabFlow Platform",
-    "description": "Org → Workspace → Project → Task → Notifications → Invitations/Comments → Activity via gateway (:8080).\n\nNeeds: auth, platform, task-service (:8083), **collab-service (:9081)**, Kafka.\n\nFolder 8–9: notifications / invites / comments.\nFolder 10: activity after assign (start collab first).",
+    "description": "Org → Workspace → Project → Task → Collab → Activity → Realtime via gateway (:8080).\n\nNeeds: auth, platform, task (:8083), collab (:9081), **realtime (:9082)**, Kafka, Redis.\n\nFolder 10: activity after assign.\nFolder 11: realtime health + broadcast (WS subscribe is manual — see request descriptions).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -133,6 +133,14 @@
     {
       "key": "commentId",
       "value": ""
+    },
+    {
+      "key": "realtimeDirectUrl",
+      "value": "http://localhost:9082"
+    },
+    {
+      "key": "wsRealtimeUrl",
+      "value": "ws://localhost:9082/api/v1/realtime/ws"
     }
   ],
   "event": [
@@ -3039,6 +3047,121 @@
               }
             ],
             "url": "{{baseUrl}}/api/v1/activity?organizationId={{organizationId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Realtime",
+      "item": [
+        {
+          "name": "Realtime health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('UP', () => pm.expect(pm.response.json().data.status).to.eql('UP'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/realtime/health",
+            "description": "realtime-service must be running on :9082. Redis (Docker) required."
+          }
+        },
+        {
+          "name": "Broadcast to project room (manual WS test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"room\": \"project:{{projectId}}\",\n  \"type\": \"test\",\n  \"data\": { \"hello\": \"from Postman\" }\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/realtime/broadcast",
+            "description": "1) Open WS: ws://localhost:9082/api/v1/realtime/ws?token={{accessToken}}\n2) Send: {\"action\":\"subscribe\",\"room\":\"project:{{projectId}}\"}\n3) Run this request — WS should receive type=test."
+          }
+        },
+        {
+          "name": "Update task name (fires task.updated → WS)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const name = 'Live WS ' + Date.now();",
+                  "pm.request.body.update(JSON.stringify({ name }));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Live WS update\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+            "description": "Subscribe WS to project:{{projectId}} first. Expect WS message type=task.updated."
           }
         }
       ]
