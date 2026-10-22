@@ -1,6 +1,5 @@
 package com.collabflow.common.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -15,8 +14,8 @@ import org.springframework.core.Ordered;
 public class CommonSecurityConfiguration {
 
     @Bean
-    ApiKeyFilter apiKeyFilter(ApiKeyProperties properties, ObjectMapper objectMapper) {
-        return new ApiKeyFilter(properties, objectMapper);
+    ApiKeyFilter apiKeyFilter(ApiKeyProperties properties) {
+        return new ApiKeyFilter(properties);
     }
 
     @Bean

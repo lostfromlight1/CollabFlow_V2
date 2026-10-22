@@ -127,7 +127,8 @@
           { "key": "X-API-Key", "value": "{{apiKey}}" },
           { "key": "Authorization", "value": "Bearer {{accessToken}}" }
         ],
-        "url": "{{baseUrl}}/api/v1/auth/me"
+        "url": "{{baseUrl}}/api/v1/auth/me",
+        "description": "Needs accessToken (JWT), not refreshToken. Re-login after JWT secret/algorithm changes."
       }
     },
     {
@@ -142,7 +143,8 @@
           "mode": "raw",
           "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
         },
-        "url": "{{baseUrl}}/api/v1/auth/logout"
+        "url": "{{baseUrl}}/api/v1/auth/logout",
+        "description": "Body refreshToken only. Do NOT send Authorization Bearer (logout is public)."
       }
     },
     {

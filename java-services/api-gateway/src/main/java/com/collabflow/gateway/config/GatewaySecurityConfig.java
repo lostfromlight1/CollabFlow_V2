@@ -15,16 +15,8 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
 /**
- * Gateway edge security.
- *
- * <ul>
- *   <li>Public auth endpoints: register / login / refresh / logout / health</li>
- *   <li>Protected: {@code GET /api/v1/auth/me} needs Bearer JWT (same secret as auth-service)</li>
- *   <li>Platform/task routes: permit for now (stubs); tighten when those APIs ship</li>
- * </ul>
- *
- * <p>Why JWT at the gateway? Reject bad tokens before they hit every service.
- * Auth-service still validates again for direct (non-gateway) calls.
+ * Edge security: public auth routes + JWT on {@code GET /api/v1/auth/me}.
+ * HS256 + same {@code JWT_SECRET} as auth-service.
  */
 @Configuration
 @EnableWebFluxSecurity
@@ -54,7 +46,6 @@ public class GatewaySecurityConfig {
                                 "/api/v1/auth/logout"
                         ).permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
-                        // Stubs until platform/task Week 5+
                         .pathMatchers(
                                 "/api/v1/platform/**",
                                 "/api/v1/organizations/**",

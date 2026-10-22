@@ -1,14 +1,13 @@
 package com.collabflow.common.security;
 
-import com.collabflow.common.api.ErrorResponse;
 import com.collabflow.common.exception.ErrorCode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -18,6 +17,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 /**
  * Rejects {@code /api/**} requests without a valid {@code X-API-Key} header.
  * Swagger, actuator, and non-API paths are skipped.
+ *
+ * <p>Writes JSON without injecting {@code ObjectMapper} — servlet filter beans
+ * can register before Jackson auto-config runs (Boot 4 / Tomcat init order).
  */
 public class ApiKeyFilter extends OncePerRequestFilter {
 
@@ -26,11 +28,9 @@ public class ApiKeyFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(ApiKeyFilter.class);
 
     private final ApiKeyProperties properties;
-    private final ObjectMapper objectMapper;
 
-    public ApiKeyFilter(ApiKeyProperties properties, ObjectMapper objectMapper) {
+    public ApiKeyFilter(ApiKeyProperties properties) {
         this.properties = properties;
-        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -42,7 +42,6 @@ public class ApiKeyFilter extends OncePerRequestFilter {
         if (path == null) {
             return true;
         }
-        // Only protect business APIs
         return !path.startsWith("/api/");
     }
 
@@ -74,7 +73,19 @@ public class ApiKeyFilter extends OncePerRequestFilter {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        ErrorResponse body = ErrorResponse.of(ErrorCode.UNAUTHORIZED.getCode(), message, request.getRequestURI());
-        objectMapper.writeValue(response.getOutputStream(), body);
+        String path = request.getRequestURI() != null ? request.getRequestURI() : "";
+        String body = """
+                {"success":false,"message":"%s","errorCode":"%s","path":"%s","timestamp":"%s"}
+                """.formatted(
+                escapeJson(message),
+                ErrorCode.UNAUTHORIZED.getCode(),
+                escapeJson(path),
+                Instant.now()
+        ).trim();
+        response.getOutputStream().write(body.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String escapeJson(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

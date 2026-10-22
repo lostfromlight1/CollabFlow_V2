@@ -24,12 +24,13 @@ public class JwtService {
     public String createAccessToken(UUID userId, String email) {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(properties.getAccessTokenMinutes() * 60);
+        // Force HS256 so api-gateway (Nimbus HS256) can verify the same token
         return Jwts.builder()
                 .subject(userId.toString())
                 .claim("email", email)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
-                .signWith(key)
+                .signWith(key, Jwts.SIG.HS256)
                 .compact();
     }
 
