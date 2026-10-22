@@ -143,9 +143,9 @@ Use skill `teach-and-build` every week here.
 
 #### Week 11 — activity feed + email stub
 
-- [ ] Consume key events → `activity_feed` rows
-- [ ] Activity list by entity / user
-- [ ] Email: log stub or simple SMTP later (no separate email-service)
+- [x] Consume key events → `activity_feed` rows
+- [x] Activity list by entity / user
+- [x] Email: log stub or simple SMTP later (no separate email-service)
 
 **Done when:** Assign task → notification + activity appear via collab API.
 

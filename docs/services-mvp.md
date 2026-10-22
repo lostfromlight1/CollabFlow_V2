@@ -150,6 +150,7 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | `NOTIF-NNN` | collab notifications (Go) |
 | `INV-NNN` | collab invitations (Go) |
 | `CMT-NNN` | collab comments (Go) |
+| `ACT-NNN` | collab activity feed (Go) |
 
 | Id | Method | Path |
 |----|--------|------|
@@ -216,6 +217,10 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | CMT-003 | GET | `/api/v1/comments/{id}` |
 | CMT-004 | PUT | `/api/v1/comments/{id}` |
 | CMT-005 | DELETE | `/api/v1/comments/{id}` |
+| ACT-001 | GET | `/api/v1/activity?organizationId=` |
+| ACT-002 | GET | `/api/v1/activity?entityType=&entityId=` |
+| ACT-003 | GET | `/api/v1/activity/entity/{type}/{id}` |
+| ACT-004 | GET | `/api/v1/activity/user/{id}` |
 
 File logs (local `bootRun`): `logs/auth/`, `logs/platform/`, `logs/task/` under repo root (`LOG_HOME` override). Collab Go: `go-services/collab-service`.
 

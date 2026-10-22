@@ -110,9 +110,9 @@
 - [x] Kafka comment events / mention notifications
 
 ### Week 11 — collab (activity + email stub)
-- [ ] Activity feed from events
-- [ ] Activity REST API
-- [ ] Email stub (log only OK)
+- [x] Activity feed from events
+- [x] Activity REST API
+- [x] Email stub (log only OK)
 
 ### Week 12 — realtime-service
 - [ ] WebSocket + rooms
