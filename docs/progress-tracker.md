@@ -14,8 +14,8 @@
 | A Foundation (W1–2) | ✅ | Infra + gateway skeleton |
 | B Java core (W3–8) | ✅ | Auth, platform, task |
 | C Go + events (W9–12) | ✅ | Collab + realtime |
-| D Integrate / portfolio (W13–14) | 🟨 | Week 13 integration done; Week 14 polish |
-| **MVP complete** | ⬜ | Finish Week 14 |
+| D Integrate / portfolio (W13–14) | ✅ | E2E + OpenAPI + portfolio README |
+| **MVP complete** | ✅ | Slim 6-service MVP |
 
 ---
 
@@ -28,7 +28,7 @@
 | auth-service | [x] usable | Week 4 — JWT + Kafka + Redis rate limit |
 | platform-service | [x] org+workspace+project usable | Week 7 — projects |
 | task-service | [x] usable | Week 8 — workflow seed + task CRUD |
-| collab-service | [x] notifications usable | Week 9 — task.assigned → notify |
+| collab-service | [x] usable | Weeks 9–11 — notif, invites, comments, activity |
 | realtime-service | [x] usable | Week 12 — WS + Redis + Kafka |
 
 ---
@@ -130,10 +130,10 @@
 - [x] Basic analytics endpoints
 
 ### Week 14
-- [ ] OpenAPI / API examples
-- [ ] Portfolio write-up in README
-- [ ] MVP marked complete in summary table
-- [ ] Phase 2 pick from future-plan (optional)
+- [x] OpenAPI / API examples
+- [x] Portfolio write-up in README
+- [x] MVP marked complete in summary table
+- [x] Phase 2 pick from future-plan (optional) — document-service next if expanding
 
 ---
 

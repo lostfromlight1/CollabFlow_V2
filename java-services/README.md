@@ -33,21 +33,35 @@ gradlew.bat build        # Windows
 ./gradlew :api-gateway:bootRun
 ```
 
-## Week 4 smoke (gateway + auth)
+## OpenAPI / Swagger
+
+Each business service exposes springdoc (direct port; gateway does not proxy Swagger UI):
+
+| Module | Swagger UI | OpenAPI JSON |
+|--------|------------|--------------|
+| auth-service | http://localhost:8081/swagger-ui.html | `/v3/api-docs` |
+| platform-service | http://localhost:8082/swagger-ui.html | `/v3/api-docs` |
+| task-service | http://localhost:8083/swagger-ui.html | `/v3/api-docs` |
+
+Authorize with `X-API-Key` + Bearer where annotated. Route catalog: [docs/services-mvp.md](../docs/services-mvp.md).
+
+## Smoke (gateway + auth)
 
 1. Start infra (`infrastructure/` — Postgres, Redis, Kafka).
-2. Terminal A: `gradlew.bat :auth-service:bootRun`
-3. Terminal B: `gradlew.bat :api-gateway:bootRun`
-4. Use header `X-API-Key` (see `.env.example`). Prefer `:8080` (gateway).
+2. `gradlew.bat :auth-service:bootRun` then `:api-gateway:bootRun`
+3. Header `X-API-Key` (see `.env.example`). Prefer `:8080`.
 
 ```bash
 curl http://localhost:8080/api/v1/auth/health -H "X-API-Key: $API_KEY"
 # register → login → GET /api/v1/auth/me with Bearer (see auth-service/README.md)
 ```
 
+Full path: [docs/e2e-demo.md](../docs/e2e-demo.md).
+
 ## Conventions
 
 - Packages: `com.collabflow.<service>`
 - REST under `/api/v1/...`
+- Controllers: `@CurrentUserId` + `@ApiId`
 - Actuator: `/actuator/health`
 - See `.cursor/rules/java-spring.mdc`

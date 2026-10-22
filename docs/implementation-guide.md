@@ -170,10 +170,10 @@ Use skill `teach-and-build` every week here.
 
 #### Week 14 — Polish
 
-- [ ] OpenAPI for Java services; short API examples in README
-- [ ] Portfolio case-study paragraph (architecture + what you learned)
-- [ ] Mark MVP complete in [progress-tracker.md](progress-tracker.md)
-- [ ] Decide Phase 2 from [future-plan.md](future-plan.md) (documents, etc.)
+- [x] OpenAPI for Java services; short API examples in README
+- [x] Portfolio case-study paragraph (architecture + what you learned)
+- [x] Mark MVP complete in [progress-tracker.md](progress-tracker.md)
+- [x] Decide Phase 2 from [future-plan.md](future-plan.md) (documents, etc.) — pick: **document-service** when expanding
 
 ---
 

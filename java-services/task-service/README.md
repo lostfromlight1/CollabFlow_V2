@@ -10,7 +10,9 @@
 - System task types: Task, Bug, Story, Epic
 - Task CRUD under a project; list by `projectId`
 - Status changes enforce `workflow_transitions`; `closed_at` set on DONE
-- Assign / unassign (`assignee` must be project member)
+- Assign / unassign (`assignee` must be project member); Kafka `task.assigned` includes `assignerId`
+- Assign / status also dual-publish `task.updated` (realtime WS)
+- Stats: `GET /api/v1/tasks/stats?projectId=` (counts by status + priority)
 - AuthZ via shared DB: `project_members` + `task.*` permissions (Admin all; Member no delete; Viewer read)
 - Kafka after commit: `task.created`, `task.updated`, `task.deleted`, `task.assigned`, `task.status_changed`
 
