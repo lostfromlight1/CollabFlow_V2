@@ -1,15 +1,15 @@
 # CollabFlow Implementation Guide (LEGACY — 16-service plan)
 
 **Version**: 1.0.0  
-**Status:** **Superseded for day-to-day work**
+**Status:** **Archived — do not follow for day-to-day work**
 
 > **Use these instead:**  
-> - Week-by-week MVP: [docs/implementation-guide.md](../docs/implementation-guide.md)  
-> - Progress checkboxes: [docs/progress-tracker.md](../docs/progress-tracker.md)  
-> - Services: [docs/services-mvp.md](../docs/services-mvp.md)  
-> - Versions: [docs/tech-stack.md](../docs/tech-stack.md)  
+> - Week-by-week MVP: [../implementation-guide.md](../implementation-guide.md)  
+> - Progress checkboxes: [../progress-tracker.md](../progress-tracker.md)  
+> - Services: [../services-mvp.md](../services-mvp.md)  
+> - Versions: [../tech-stack.md](../tech-stack.md)  
 >  
-> This file is kept only as historical detail (old 16-service / 20-week breakdown). Do **not** follow it as the build order.
+> Historical detail only (old 16-service / 20-week breakdown). Slim MVP is canonical.
 
 ---
 

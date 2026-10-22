@@ -2,11 +2,11 @@
 
 Multi-tenant collaboration and project management (org → workspace → project → task).
 
-**Status:** Docs finalized for slim MVP — coding not started. Track progress in [docs/progress-tracker.md](docs/progress-tracker.md).
+**Status:** Slim MVP in progress (auth, gateway, platform org). Track progress in [docs/progress-tracker.md](docs/progress-tracker.md).
 
 ## Scope
 
-**6 services** (not 16). Versions: [docs/tech-stack.md](docs/tech-stack.md).
+**6 services** (not 16). Versions: [docs/tech-stack.md](docs/tech-stack.md). Boundaries: [docs/services-mvp.md](docs/services-mvp.md).
 
 | Service | Stack | Responsibility |
 |---------|--------|----------------|
@@ -26,8 +26,7 @@ Infra: Postgres 17, Redis 8, Kafka 3.9 + ZooKeeper (Confluent 7.9).
 | **Setup PC (Windows / Fedora)** | [docs/setup.md](docs/setup.md) |
 | Week-by-week plan | [docs/implementation-guide.md](docs/implementation-guide.md) |
 | Checkbox tracker | [docs/progress-tracker.md](docs/progress-tracker.md) |
-| Doc map | [docs/index.md](docs/index.md) |
-| Cursor AI guide | [AGENTS.md](AGENTS.md) |
+| Cursor AI / agents | [AGENTS.md](AGENTS.md) |
 
 ## Documentation
 
@@ -35,16 +34,19 @@ Infra: Postgres 17, Redis 8, Kafka 3.9 + ZooKeeper (Confluent 7.9).
 |-----|----------|
 | [docs/implementation-guide.md](docs/implementation-guide.md) | **Build order + weeks** |
 | [docs/progress-tracker.md](docs/progress-tracker.md) | **What’s finished** |
-| [docs/services-mvp.md](docs/services-mvp.md) | Service boundaries |
+| [docs/services-mvp.md](docs/services-mvp.md) | Service boundaries + ApiId catalog |
 | [docs/tech-stack.md](docs/tech-stack.md) | Pinned versions |
 | [docs/future-plan.md](docs/future-plan.md) | Deferred services |
+| [docs/features.md](docs/features.md) | Feature catalog |
 | [docs/database.md](docs/database.md) | Schema + ownership |
 | [docs/microservice.md](docs/microservice.md) | Endpoint/event reference |
+| [docs/archive/legacy-16-service-plan.md](docs/archive/legacy-16-service-plan.md) | Old 16-service plan (**do not follow**) |
 
 ## Cursor
 
-- Rules: [`.cursor/rules/`](.cursor/rules/)  
+- Rules: [`.cursor/rules/`](.cursor/rules/) — `collabflow-core` (always) + java/go/db by glob  
 - Skills: [`.cursor/skills/`](.cursor/skills/) — e.g. `teach-and-build`, `plan-mvp-feature`  
+- Agent guide: [AGENTS.md](AGENTS.md)
 
 ## Repo layout
 
@@ -52,7 +54,8 @@ Infra: Postgres 17, Redis 8, Kafka 3.9 + ZooKeeper (Confluent 7.9).
 java-services/     auth, platform, task, api-gateway
 go-services/       collab, realtime
 infrastructure/    docker-compose (Postgres, Redis, ZK, Kafka)
-docs/              guides + schema
+docs/              guides + schema (+ archive/)
+logs/              local dated service logs (gitignored)
 ```
 
 ## Next step
@@ -65,4 +68,4 @@ cd infrastructure
 docker compose --env-file ../.env up -d
 ```
 
-3. Week 2: Gradle service skeletons ([docs/implementation-guide.md](docs/implementation-guide.md)).
+3. Follow [docs/implementation-guide.md](docs/implementation-guide.md) + [docs/progress-tracker.md](docs/progress-tracker.md).

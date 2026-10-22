@@ -1,5 +1,5 @@
 ---
-description: Core CollabFlow architecture, hierarchy, MVP order, and doc discipline
+description: CollabFlow architecture, MVP order, Kaung learning/portfolio mode, doc discipline
 alwaysApply: true
 ---
 
@@ -16,19 +16,20 @@ Organization → Workspace → Project → Task. Do not flatten or skip levels i
 - **Java services:** auth, platform, task, api-gateway (Spring Cloud Gateway)
 - **Go services:** collab, realtime (Gin + GORM + kafka-go + go-redis)
 - Shared Postgres MVP; Redis; Kafka for async side effects
-- [microservice.md](docs/microservice.md) = endpoint/event reference + deferred backlog only
+- `docs/microservice.md` = endpoint/event reference + deferred backlog only
 
 ## MVP first
 
 Build order: `docs/implementation-guide.md` + checkboxes in `docs/progress-tracker.md`.  
 Sequence: infra → gateway → auth → platform → task → collab → realtime.  
 Defer: documents, search, export, dedicated email/analytics (`docs/future-plan.md`).  
-Ignore legacy `project_overview/implementation.md` (16-service plan).
+Ignore archived `docs/archive/legacy-16-service-plan.md` (old 16-service plan).
 
 ## Doc discipline
 
 - Services: `docs/services-mvp.md`; versions: `docs/tech-stack.md`
-- Schema: `docs/database.md`; features: `project_overview/feature.md`
+- Schema: `docs/database.md`; features: `docs/features.md`
+- Java API: `.cursor/rules/java-spring.mdc` + ApiId catalog in `docs/services-mvp.md`
 - Do **not** invent tables/endpoints/topics undocumented; update docs in the same change
 
 ## Communication patterns
@@ -36,3 +37,35 @@ Ignore legacy `project_overview/implementation.md` (16-service plan).
 - Sync: HTTP/REST when the caller needs a response
 - Async: Kafka after successful DB writes (Java produces → Go collab/realtime consume)
 - Routes: `/api/v1/...` via gateway map in `docs/services-mvp.md`
+
+---
+
+# Developer: Kaung — Learning + Portfolio Mode
+
+## Who Kaung is
+
+- Junior Java backend developer; **comfortable with Spring Boot**
+- Has used **Docker** and **large databases**
+- **New to:** Golang, microservices patterns, Redis, Kafka — needs extra teaching here
+- Goal: **learn** unfamiliar tech, **understand** every part he ships, put CollabFlow on a **portfolio**
+- **Anti-goal:** vibe-coding the whole project (blind copy-paste / unexplained dumps)
+
+## How the agent must work
+
+1. **Teach, then code** — For Go, Kafka, Redis, or microservice boundaries: short plain-language why → tiny example → then implement. Never drop large unfamiliar blocks without explanation.
+2. **Prefer Java for core domain first** — Use Spring strengths; introduce Go on supporting services with more scaffolding and comments.
+3. **Small vertical slices** — One service or one flow per session when possible; Kaung should be able to explain it afterward.
+4. **Check understanding** — After non-trivial Go/Kafka/Redis work, offer 2–3 short quiz questions or a “explain this back” prompt (optional for Kaung to answer).
+5. **No silent magic** — Name tradeoffs (shared DB vs DB-per-service, sync HTTP vs Kafka). Prefer documented MVP choices unless Kaung asks to change them.
+
+## Portfolio / quality bar
+
+- Stick to **slim MVP** in `docs/services-mvp.md` (6 services). Do not resurrect the 16-service split unless Kaung explicitly expands scope
+- Prefer **readable, boring patterns** over clever abstractions
+- Every major piece should have a **one-paragraph “what / why”** for README / case study
+- Review for **coherence**: hierarchy, merged boundaries, Kafka flow — call out contradictions vs services-mvp.md
+
+## Planning sessions
+
+Follow `docs/implementation-guide.md` and update `docs/progress-tracker.md`.  
+Before large plans: assess vs learning goals; do not expand past slim MVP unless Kaung asks.

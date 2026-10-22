@@ -29,6 +29,7 @@ Desktop.ini
 *.jar
 *.war
 *.log
+logs/
 hs_err_pid*
 
 # Go

@@ -1,6 +1,6 @@
 # CollabFlow — Implementation Guide (slim MVP)
 
-**Canonical build plan.** Replaces the old 16-service / 20-week plan in [project_overview/implementation.md](../project_overview/implementation.md) for day-to-day work.
+**Canonical build plan.** Replaces the archived 16-service / 20-week plan in [archive/legacy-16-service-plan.md](archive/legacy-16-service-plan.md) for day-to-day work.
 
 | | |
 |--|--|
@@ -87,10 +87,10 @@ Build in this order. Do not skip ahead to documents/search/export.
 
 #### Week 5 — platform-service (org)
 
-- [ ] Flyway: `organizations`, `organization_members`, `roles`, `permissions`, `role_permissions` + seeds
-- [ ] Org CRUD + add/remove member + roles
-- [ ] Permission check helper
-- [ ] Events: `organization.created`, `organization.member_added`
+- [x] Flyway: `organizations`, `organization_members`, `roles`, `permissions`, `role_permissions` + seeds
+- [x] Org CRUD + add/remove member + roles
+- [x] Permission check helper
+- [x] Events: `organization.created`, `organization.member_added`
 
 #### Week 6 — platform-service (workspace)
 

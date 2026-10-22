@@ -73,7 +73,7 @@ Example: “Gin handler ≈ `@RestController`; GORM ≈ Spring Data JPA; Kafka c
 ## Related
 
 - Architecture: `.cursor/rules/collabflow-core.mdc`
-- Profile: `.cursor/rules/kaung-learning-portfolio.mdc`
+- Profile: `.cursor/rules/collabflow-core.mdc` (learning + portfolio section)
 - Weeks / order: `docs/implementation-guide.md`
 - Check off: `docs/progress-tracker.md`
 - Feature planning: skill `plan-mvp-feature`

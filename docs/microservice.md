@@ -5,7 +5,8 @@
 **Technologies**: Java (Spring Boot), Golang, Kafka, Redis, PostgreSQL
 
 > **Scope update:** We build the **slim MVP** in [services-mvp.md](services-mvp.md) (**6 services**: 3 Java business + gateway + 2 Go).  
-> This file remains the **endpoint / Kafka / Redis reference** and describes the older 16-service split as a **future backlog**. When owners conflict, **services-mvp.md wins** (e.g. org+workspace+project → `platform-service`).
+> This file remains the **endpoint / Kafka / Redis reference** and describes the older 16-service split as a **future backlog**. When owners conflict, **services-mvp.md wins** (e.g. org+workspace+project → `platform-service`).  
+> Java controller patterns (`@CurrentUserId`, `@ApiId` / MDC): `.cursor/rules/java-spring.mdc` + catalog in [services-mvp.md](services-mvp.md).
 
 ---
 
@@ -101,13 +102,15 @@
 
 **Endpoints**:
 - POST /api/v1/organizations - Create organization
+- GET /api/v1/organizations - List my organizations (platform-service)
 - GET /api/v1/organizations/{id} - Get organization
 - PUT /api/v1/organizations/{id} - Update organization
-- DELETE /api/v1/organizations/{id} - Delete organization
+- DELETE /api/v1/organizations/{id} - Soft-delete organization
 - GET /api/v1/organizations/{id}/members - Get members
 - POST /api/v1/organizations/{id}/members - Add member
 - PUT /api/v1/organizations/{id}/members/{memberId} - Update member role
 - DELETE /api/v1/organizations/{id}/members/{memberId} - Remove member
+- GET /api/v1/roles?scope=ORGANIZATION - List organization system roles
 
 **Tech Stack**:
 - Spring Boot 4.1.x (see tech-stack.md)

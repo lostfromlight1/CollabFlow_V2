@@ -4,10 +4,10 @@
 **Last Updated**: 2026-10-21
 
 > **Service mapping:** Features below may still name old services (e.g. `organization-service`).  
-> **Deploy into the slim MVP** in [docs/services-mvp.md](../docs/services-mvp.md):  
+> **Deploy into the slim MVP** in [services-mvp.md](services-mvp.md):  
 > org/workspace/project → `platform-service`; task/workflow → `task-service`;  
 > notification/invitation/comment/activity → `collab-service`; realtime → `realtime-service`.  
-> **Build order / tracker:** [docs/implementation-guide.md](../docs/implementation-guide.md), [docs/progress-tracker.md](../docs/progress-tracker.md).
+> **Build order / tracker:** [implementation-guide.md](implementation-guide.md), [progress-tracker.md](progress-tracker.md).
 
 ---
 

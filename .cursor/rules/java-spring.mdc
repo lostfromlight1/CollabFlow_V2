@@ -29,7 +29,7 @@ com.collabflow.<service>/
   security/           # filters when needed
 ```
 
-Resources: `application.yml`, `application-dev.yml`, `db/migration/`.
+Resources: `application.yml`, `application-dev.yml`, `db/migration/`, `logback-spring.xml`.
 
 Scan shared advice:
 
@@ -40,6 +40,8 @@ Scan shared advice:
 })
 ```
 
+Prefer `service/` interface + `service/impl/` (e.g. `OrganizationService` / `OrganizationServiceImpl`).
+
 ## API
 
 - Paths: `/api/v1/...`
@@ -47,12 +49,43 @@ Scan shared advice:
 - Errors: `ErrorResponse` via `GlobalExceptionHandler` (do not invent ad-hoc error JSON)
 - Throw `BusinessException` / `ConflictException` / `UnauthorizedException` / `ResourceNotFoundException`
 
+### Current user — `@CurrentUserId`
+
+JWT filters set the principal to a **`UUID`** (token `sub`). Controllers inject:
+
+```java
+public ApiResponse<...> create(..., @CurrentUserId UUID userId) { ... }
+```
+
+- Annotation: `com.collabflow.common.security.CurrentUserId` (meta-`@AuthenticationPrincipal`, Swagger-hidden)
+- Do **not** cast `authentication.getPrincipal()` in new controllers
+- Org/workspace RBAC stays in `PermissionService`; JWT does not carry org roles
+
+### Endpoint ids — `@ApiId` + MDC
+
+```java
+@ApiId("ORG-001")
+@PostMapping
+public ApiResponse<...> create(...) { ... }
+```
+
+- Annotation: `com.collabflow.common.web.ApiId`
+- `ApiIdMdcInterceptor` sets MDC `apiId` / `userId`
+- Id scheme + catalog: **`docs/services-mvp.md`** (ApiId section)
+- Ids are for logs/support — not HTTP `ErrorCode` values
+
 ### Required on every Java API service
 
-1. **Logger** — SLF4J (`LoggerFactory` / `@Slf4j`) on every controller and service; log request entry (no passwords/tokens) and failures.
-2. **Swagger / OpenAPI** — `springdoc-openapi-starter-webmvc-ui` **3.1.x** (Boot 4.1). UI at `/swagger-ui.html`, spec at `/v3/api-docs`. Annotate controllers; document `X-API-Key` + Bearer JWT security schemes.
-3. **X-API-Key** — Every `/api/**` request must send header `X-API-Key` matching env `API_KEY`. Shared filter: `com.collabflow.common.security.ApiKeyFilter` (from `:common`). JWT (`Authorization: Bearer`) is separate user auth — both apply where endpoints are protected.
-4. **Secrets from env** — `JWT_SECRET`, `API_KEY` (see `.env.example`). Never commit real production secrets.
+1. **Logger** — SLF4J on controllers + `service/impl`; MDC `apiId`/`userId`. File logs via `logback-spring.xml` under repo `logs/<service>/` (dated; `bootRun` working dir = repo root). Override with `LOG_HOME`. No passwords/tokens in messages.
+2. **Swagger / OpenAPI** — `springdoc-openapi-starter-webmvc-ui` **3.1.x**. UI `/swagger-ui.html`, spec `/v3/api-docs`. Document `X-API-Key` + Bearer JWT.
+3. **X-API-Key** — Every `/api/**` sends `X-API-Key` = env `API_KEY` (`ApiKeyFilter` in `:common`). JWT is separate user auth.
+4. **Secrets from env** — `JWT_SECRET`, `API_KEY` (see `.env.example`). Never commit production secrets.
+5. **`@ApiId` + `@CurrentUserId`** on handlers that need them.
+
+### Not in MVP
+
+- `@PreAuthorize` / `@CheckSecurity` meta-suites — path security + `PermissionService`
+- Custom `UserDetails` principal — UUID + `@CurrentUserId` is enough until claims grow
 
 ## Data & events
 

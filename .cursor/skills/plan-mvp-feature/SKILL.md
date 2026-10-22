@@ -2,7 +2,7 @@
 name: plan-mvp-feature
 description: >-
   Plan implementation of a CollabFlow feature by mapping it to services, tables,
-  endpoints, and Kafka events. Use when starting an MVP feature from feature.md,
+  endpoints, and Kafka events. Use when starting an MVP feature from docs/features.md,
   scoping work before coding, or when the user asks for a feature implementation plan.
 ---
 
@@ -11,7 +11,7 @@ description: >-
 ## Before you start
 
 1. Confirm the feature appears in the MVP order in [docs/implementation-guide.md](../../../docs/implementation-guide.md).
-2. Open [project_overview/feature.md](../../../project_overview/feature.md) for detail.
+2. Open [docs/features.md](../../../docs/features.md) for detail.
 3. Map to a **slim** service in [docs/services-mvp.md](../../../docs/services-mvp.md).
 4. Cross-check [docs/microservice.md](../../../docs/microservice.md) + [docs/database.md](../../../docs/database.md).
 5. Remind the user to check off [docs/progress-tracker.md](../../../docs/progress-tracker.md) when done.
@@ -32,7 +32,7 @@ Feature plan:
 
 ## Steps
 
-1. **Identify** — Feature section in feature.md (description, service, complexity, dependencies).
+1. **Identify** — Feature section in docs/features.md (description, service, complexity, dependencies).
 2. **Services** — List Java/Go owners; note cross-service flows (e.g. assign task → notification + activity + realtime).
 3. **Data** — Tables and key columns from database.md; note FKs and permission checks.
 4. **API** — Endpoints from microservice.md; flag gaps to document before inventing.

@@ -64,7 +64,7 @@ Schema for documents already sketched in [database.md](database.md) (marked Phas
 
 | Future capability | Notes |
 |-------------------|--------|
-| **webhook-service** (optional) | Outbound webhooks on Kafka events — was optional in feature.md |
+| **webhook-service** (optional) | Outbound webhooks on Kafka events — was optional in features.md |
 | API productization | Stronger rate limits, API keys, public OpenAPI — still via gateway |
 | Database-per-service | Migrate off shared Postgres when ownership boundaries are stable |
 

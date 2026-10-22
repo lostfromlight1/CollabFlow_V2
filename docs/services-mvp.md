@@ -133,6 +133,44 @@ docs/
 
 ---
 
+## Java `@ApiId` catalog (logs / MDC)
+
+Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spring.mdc`). Assign the next free number in that area. Not the same as HTTP `ErrorCode`.
+
+| Prefix | Area |
+|--------|------|
+| `AUTH-NNN` | auth-service |
+| `PLAT-NNN` | platform health / misc |
+| `ORG-NNN` | organizations + members |
+| `ROLE-NNN` | roles list |
+| `WS-NNN` | workspaces (Week 6+) |
+| `PRJ-NNN` | projects (Week 7+) |
+| `TASK-NNN` | task-service |
+
+| Id | Method | Path |
+|----|--------|------|
+| AUTH-001 | GET | `/api/v1/auth/health` |
+| AUTH-002 | POST | `/api/v1/auth/register` |
+| AUTH-003 | POST | `/api/v1/auth/login` |
+| AUTH-004 | POST | `/api/v1/auth/refresh` |
+| AUTH-005 | POST | `/api/v1/auth/logout` |
+| AUTH-006 | GET | `/api/v1/auth/me` |
+| PLAT-001 | GET | `/api/v1/platform/health` |
+| ROLE-001 | GET | `/api/v1/roles` |
+| ORG-001 | POST | `/api/v1/organizations` |
+| ORG-002 | GET | `/api/v1/organizations` |
+| ORG-003 | GET | `/api/v1/organizations/{id}` |
+| ORG-004 | PUT | `/api/v1/organizations/{id}` |
+| ORG-005 | DELETE | `/api/v1/organizations/{id}` |
+| ORG-006 | GET | `/api/v1/organizations/{id}/members` |
+| ORG-007 | POST | `/api/v1/organizations/{id}/members` |
+| ORG-008 | PUT | `/api/v1/organizations/{id}/members/{memberId}` |
+| ORG-009 | DELETE | `/api/v1/organizations/{id}/members/{memberId}` |
+
+File logs (local `bootRun`): `logs/auth/auth-service.yyyy-MM-dd.log`, `logs/platform/platform-service.yyyy-MM-dd.log` under repo root (`LOG_HOME` override).
+
+---
+
 ## Portfolio narrative (one paragraph)
 
 > CollabFlow is a multi-tenant project tool with a **slim microservice** backend: three Spring Boot (Gradle) services for auth, tenancy/platform, and tasks; two Golang services for collaboration (Kafka consumers) and realtime (WebSocket + Redis); shared Postgres 17; Redis 8; Kafka 3.9 with ZooKeeper (Confluent 7.9). Scope was reduced from 16 services so boundaries stay real and the system stays finishable and explainable.

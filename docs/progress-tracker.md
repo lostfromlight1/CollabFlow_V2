@@ -12,7 +12,7 @@
 | Phase | Status | Notes |
 |-------|--------|-------|
 | A Foundation (W1–2) | 🟨 | Week 1 done; Week 2 skeletons compiled |
-| B Java core (W3–8) | 🟨 | Week 3–4 auth done; Week 5 platform next |
+| B Java core (W3–8) | 🟨 | Week 5 platform org done; next Week 6 workspace |
 | C Go + events (W9–12) | ⬜ | |
 | D Integrate / portfolio (W13–14) | ⬜ | |
 | **MVP complete** | ⬜ | All phases green |
@@ -26,7 +26,7 @@
 | infrastructure (Compose) | [x] | Week 1 — Postgres/Redis healthy; Kafka up |
 | api-gateway | [x] skeleton | Week 2 — routes stubbed |
 | auth-service | [x] usable | Week 4 — JWT + Kafka + Redis rate limit |
-| platform-service | [x] skeleton | Week 5 — org next |
+| platform-service | [x] org usable | Week 5 — orgs + members |
 | task-service | [x] skeleton | Week 8 |
 | collab-service | [ ] | Week 11 |
 | realtime-service | [ ] | Week 12 |
@@ -68,10 +68,11 @@
 - [ ] Manual curl smoke (register → login → me via `:8080`)
 
 ### Week 5 — platform (org)
-- [ ] Flyway: orgs, members, roles, permissions + seed
-- [ ] Org CRUD + members
-- [ ] Permission checks
-- [ ] Kafka org events
+- [x] Flyway: orgs, members, roles, permissions + seed
+- [x] Org CRUD + members
+- [x] Permission checks
+- [x] Kafka org events (`organization.created`, `organization.member_added`)
+- [x] Manual Postman smoke via gateway
 
 ### Week 6 — platform (workspace)
 - [ ] Flyway: workspaces, workspace_members
