@@ -166,6 +166,16 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | ORG-007 | POST | `/api/v1/organizations/{id}/members` |
 | ORG-008 | PUT | `/api/v1/organizations/{id}/members/{memberId}` |
 | ORG-009 | DELETE | `/api/v1/organizations/{id}/members/{memberId}` |
+| WS-001 | POST | `/api/v1/workspaces` |
+| WS-002 | GET | `/api/v1/organizations/{orgId}/workspaces` |
+| WS-003 | GET | `/api/v1/workspaces/{id}` |
+| WS-004 | PUT | `/api/v1/workspaces/{id}` |
+| WS-005 | DELETE | `/api/v1/workspaces/{id}` |
+| WS-006 | GET | `/api/v1/workspaces/{id}/members` |
+| WS-007 | POST | `/api/v1/workspaces/{id}/members` |
+| WS-008 | PUT | `/api/v1/workspaces/{id}/members/{memberId}` |
+| WS-009 | DELETE | `/api/v1/workspaces/{id}/members/{memberId}` |
+| WS-010 | POST | `/api/v1/workspaces/{id}/join` |
 
 File logs (local `bootRun`): `logs/auth/auth-service.yyyy-MM-dd.log`, `logs/platform/platform-service.yyyy-MM-dd.log` under repo root (`LOG_HOME` override).
 

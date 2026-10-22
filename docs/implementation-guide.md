@@ -94,10 +94,10 @@ Build in this order. Do not skip ahead to documents/search/export.
 
 #### Week 6 — platform-service (workspace)
 
-- [ ] Flyway: `workspaces`, `workspace_members`
-- [ ] Workspace CRUD, invite code join
-- [ ] Enforce: user must be org member
-- [ ] Events: `workspace.*`
+- [x] Flyway: `workspaces`, `workspace_members`
+- [x] Workspace CRUD, invite code join
+- [x] Enforce: user must be org member
+- [x] Events: `workspace.*`
 
 #### Week 7 — platform-service (project)
 
