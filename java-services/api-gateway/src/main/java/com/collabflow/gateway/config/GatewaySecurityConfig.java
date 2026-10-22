@@ -58,7 +58,8 @@ public class GatewaySecurityConfig {
                                 "/api/v1/task-types/**",
                                 "/api/v1/notifications/**",
                                 "/api/v1/invitations/**",
-                                "/api/v1/comments/**"
+                                "/api/v1/comments/**",
+                                "/api/v1/activity/**"
                         ).authenticated()
                         .pathMatchers(
                                 "/api/v1/sprints/**"
