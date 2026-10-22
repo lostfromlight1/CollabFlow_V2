@@ -1,0 +1,7 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/collabflow}
+    username: ${SPRING_DATASOURCE_USERNAME:collabflow}
+    password: ${SPRING_DATASOURCE_PASSWORD:collabflow}
+  jpa:
+    show-sql: false
