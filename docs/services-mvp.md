@@ -147,6 +147,9 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | `PRJ-NNN` | projects (Week 7+) |
 | `TASK-NNN` | task-service tasks |
 | `WF-NNN` | workflows / task-types |
+| `NOTIF-NNN` | collab notifications (Go) |
+| `INV-NNN` | collab invitations (Go) |
+| `CMT-NNN` | collab comments (Go) |
 
 | Id | Method | Path |
 |----|--------|------|
@@ -198,8 +201,23 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | WF-002 | GET | `/api/v1/workflows/{id}` |
 | WF-003 | GET | `/api/v1/workflows/{id}/statuses` |
 | WF-004 | GET | `/api/v1/task-types` |
+| NOTIF-000 | GET | `/api/v1/collab/health` |
+| NOTIF-001 | GET | `/api/v1/notifications` |
+| NOTIF-002 | PUT | `/api/v1/notifications/{id}/read` |
+| NOTIF-003 | PUT | `/api/v1/notifications/read-all` |
+| INV-001 | POST | `/api/v1/invitations` |
+| INV-002 | GET | `/api/v1/invitations/token/{token}` |
+| INV-003 | GET | `/api/v1/invitations` |
+| INV-004 | GET | `/api/v1/invitations/org?organizationId=` |
+| INV-005 | POST | `/api/v1/invitations/token/{token}/accept` |
+| INV-006 | DELETE | `/api/v1/invitations/{id}` |
+| CMT-001 | POST | `/api/v1/comments` |
+| CMT-002 | GET | `/api/v1/comments?entityType=&entityId=` |
+| CMT-003 | GET | `/api/v1/comments/{id}` |
+| CMT-004 | PUT | `/api/v1/comments/{id}` |
+| CMT-005 | DELETE | `/api/v1/comments/{id}` |
 
-File logs (local `bootRun`): `logs/auth/`, `logs/platform/`, `logs/task/` under repo root (`LOG_HOME` override).
+File logs (local `bootRun`): `logs/auth/`, `logs/platform/`, `logs/task/` under repo root (`LOG_HOME` override). Collab Go: `go-services/collab-service`.
 
 ---
 

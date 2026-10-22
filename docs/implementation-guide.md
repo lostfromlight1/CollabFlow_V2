@@ -71,7 +71,7 @@ Build in this order. Do not skip ahead to documents/search/export.
 - [x] Register + login + JWT access token
 - [x] Password hashing (bcrypt)
 - [x] Unit tests for auth happy path
-- [ ] You verify with curl (see `auth-service/README.md`)
+- [x] You verify with curl (see `auth-service/README.md`)
 
 **Learning focus:** Spring Security + JWT on Boot 4; unified API envelopes.
 
@@ -83,7 +83,6 @@ Build in this order. Do not skip ahead to documents/search/export.
 - [x] Wire gateway JWT validation for protected routes (`/me`) + edge `X-API-Key`
 
 **Done when:** Register → login → refresh → `/me` through gateway with Bearer token.
-
 
 #### Week 5 — platform-service (org)
 
@@ -124,23 +123,23 @@ Build in this order. Do not skip ahead to documents/search/export.
 
 ### Phase C — Golang + events (Week 9–12)
 
-Use skill **`teach-and-build`** every week here.
+Use skill `teach-and-build` every week here.
 
 #### Week 9 — collab-service setup + notifications
 
-- [ ] Go 1.27 module, Gin, GORM, config via env
-- [ ] Flyway already applied from Java; GORM models for `notifications`
-- [ ] Kafka consumer: `task.assigned` → create notification
-- [ ] REST: list / mark read
+- [x] Go 1.27 module, Gin, GORM, config via env
+- [x] Flyway already applied from Java; GORM models for `notifications`
+- [x] Kafka consumer: `task.assigned` → create notification
+- [x] REST: list / mark read
 
 **Learning focus:** Go packages, GORM, kafka-go consumer, idempotency.
 
 #### Week 10 — invitations + comments
 
-- [ ] Invitations CRUD + accept/decline (token)
-- [ ] Comments CRUD + mentions parsing (basic)
-- [ ] Events: `comment.added`; notify on mention
-- [ ] Gateway routes for collab APIs
+- [x] Invitations CRUD + accept/decline (token)
+- [x] Comments CRUD + mentions parsing (basic)
+- [x] Events: `comment.added`; notify on mention
+- [x] Gateway routes for collab APIs
 
 #### Week 11 — activity feed + email stub
 
@@ -180,10 +179,10 @@ Use skill **`teach-and-build`** every week here.
 
 ## Suggested weekly rhythm (learning)
 
-1. Read the week’s goal + related doc section  
-2. Plan mode / `plan-mvp-feature` if unsure  
-3. Implement small slice  
-4. Verify yourself (curl / Docker logs)  
+1. Read the week’s goal + related doc section
+2. Plan mode / `plan-mvp-feature` if unsure
+3. Implement small slice
+4. Verify yourself (curl / Docker logs)
 5. Check off tracker; write 3 bullets “what I learned”
 
 ---

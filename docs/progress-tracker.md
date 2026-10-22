@@ -13,7 +13,7 @@
 |-------|--------|-------|
 | A Foundation (W1–2) | 🟨 | Week 1 done; Week 2 skeletons compiled |
 | B Java core (W3–8) | 🟨 | Week 8 task-service done; next Phase C Go (Week 9) |
-| C Go + events (W9–12) | ⬜ | |
+| C Go + events (W9–12) | 🟨 | Week 9 collab notifications (consume task.assigned) |
 | D Integrate / portfolio (W13–14) | ⬜ | |
 | **MVP complete** | ⬜ | All phases green |
 
@@ -28,7 +28,7 @@
 | auth-service | [x] usable | Week 4 — JWT + Kafka + Redis rate limit |
 | platform-service | [x] org+workspace+project usable | Week 7 — projects |
 | task-service | [x] usable | Week 8 — workflow seed + task CRUD |
-| collab-service | [ ] | Week 11 |
+| collab-service | [x] notifications usable | Week 9 — task.assigned → notify |
 | realtime-service | [ ] | Week 12 |
 
 ---
@@ -99,15 +99,15 @@
 ## Phase C — Golang
 
 ### Week 9 — collab (notifications)
-- [ ] Go module + Gin + GORM
-- [ ] Consume `task.assigned` → notification
-- [ ] Notification REST API
-- [ ] Gateway collab routes (partial)
+- [x] Go module + Gin + GORM
+- [x] Consume `task.assigned` → notification
+- [x] Notification REST API
+- [x] Gateway collab routes (partial)
 
 ### Week 10 — collab (invitations + comments)
-- [ ] Invitations API
-- [ ] Comments API + mentions
-- [ ] Kafka comment events / mention notifications
+- [x] Invitations API
+- [x] Comments API + mentions
+- [x] Kafka comment events / mention notifications
 
 ### Week 11 — collab (activity + email stub)
 - [ ] Activity feed from events
