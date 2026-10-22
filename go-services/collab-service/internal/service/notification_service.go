@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/collabflow/collab-service/internal/email"
 	"github.com/collabflow/collab-service/internal/kafka"
 	"github.com/collabflow/collab-service/internal/model"
 	"github.com/collabflow/collab-service/internal/repository"
@@ -74,6 +75,11 @@ func (s *NotificationService) HandleTaskAssigned(ctx context.Context, env kafka.
 		return err
 	}
 	log.Printf("notification created eventId=%s recipient=%s task=%s", env.EventID, assigneeID, taskID)
+
+	// Week 11: no SMTP yet — log as if an email were sent.
+	if u, err := s.repo.FindUser(ctx, assigneeID); err == nil && u.Email != "" {
+		email.StubSend(u.Email, n.Title, n.Message)
+	}
 	return nil
 }
 

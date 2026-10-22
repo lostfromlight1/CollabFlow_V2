@@ -30,6 +30,15 @@ func (r *NotificationRepository) FindTask(ctx context.Context, taskID uuid.UUID)
 	return &t, nil
 }
 
+func (r *NotificationRepository) FindUser(ctx context.Context, userID uuid.UUID) (*model.UserActor, error) {
+	var u model.UserActor
+	err := r.db.WithContext(ctx).First(&u, "id = ?", userID).Error
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
 func (r *NotificationRepository) AlreadyProcessed(ctx context.Context, eventID string) (bool, error) {
 	var count int64
 	err := r.db.WithContext(ctx).Model(&model.ProcessedEvent{}).
