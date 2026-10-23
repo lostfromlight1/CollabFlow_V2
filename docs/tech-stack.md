@@ -42,7 +42,7 @@ Canonical services: [services-mvp.md](services-mvp.md). Progress: [progress-trac
 | JWT library | **jjwt 0.12.6** (auth / platform / task) |
 | Tests | JUnit 5, Mockito, Spring Boot Test |
 | Build | Multi-module **Gradle** under `backend/java-services/` + Wrapper |
-| Frontend | **Next.js** App Router under `frontend/` (pin in `frontend/package.json`) |
+| Frontend | **Next.js 16.4.x** App Router + React 19 + Tailwind 4 + shadcn/ui under `frontend/` |
 | DSL | Groovy `build.gradle` |
 
 ### Java conventions
@@ -92,7 +92,7 @@ Optional later: Mailhog, MinIO (Phase 2 — [future-plan.md](future-plan.md)).
 | Client gate | Header `X-API-Key` = env `API_KEY` |
 | User auth | JWT access + refresh tokens (`JWT_SECRET`) |
 | Migrations | Flyway in Java owners; Go uses shared schema |
-| Frontend | Next.js (pin when started — not MVP) |
+| Frontend | Next.js 16.4.x under `frontend/` (see Decision summary) |
 | Containers | Docker + Compose v2 |
 | CI | Deferred |
 

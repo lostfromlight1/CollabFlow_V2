@@ -45,6 +45,21 @@ frontend/components/ui/   shadcn
 - Forms: React Hook Form + Zod
 - Typed envelope: `{ success, message, data, timestamp }`
 
+## Scrollbars & overflow
+
+- **Never leave the browser default scrollbar** (thick grey + arrow buttons) — Windows often ignores webkit thumb styling
+- Prefer `SoftScroll` (`components/ui/soft-scroll.tsx`) for boards / sidebars / wide tables
+  - `orientation`: `horizontal` | `vertical` | `both`
+  - Thumb only renders when that axis overflows
+  - Click track to jump · drag thumb to scroll (pointer events)
+- Or `scroll-hide` to remove native chrome entirely; `scroll-area` is CSS fallback only
+- Hover / popover panels that can clip inside overflow must **portal to `document.body`** with `fixed` placement (flip above/below)
+
+## Role / status / priority color
+
+- Distinct token sets: status, priority, **and org roles** (`--role-owner|admin|member`) — do not reuse the same green/grey for Owner vs Admin vs Member
+- Prefer `StatusChip` / `PriorityChip` / `RoleChip` over ad-hoc Badge colors
+
 ## Guardrails
 
 - Small vertical slices (one flow per PR when possible)
