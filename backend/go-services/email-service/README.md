@@ -42,8 +42,8 @@ Auth/collab publish `email.send` after DB commit. This service dials SMTP and se
 
 ```powershell
 # Infra (includes MailHog)
-cd D:\codes\CollabFlow_V2\infrastructure
-docker compose --env-file ../.env up -d
+cd D:\codes\CollabFlow_V2\backend\infrastructure
+docker compose --env-file ../../.env up -d
 
 cd D:\codes\CollabFlow_V2\backend\go-services\email-service
 go run ./cmd/server

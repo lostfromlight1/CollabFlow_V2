@@ -1,29 +1,42 @@
 package config
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
-// Config holds runtime settings from environment variables.
-// Java analogy: application.yml + @ConfigurationProperties.
-// MinIO fields are placeholders — Wave 7 scaffold does not dial object storage yet.
+// Config is the document-service equivalent of a Spring @ConfigurationProperties class.
+// Files live on local disk (DOCUMENT_STORAGE_DIR). MinIO is not part of the slim
+// Compose stack, so the service stores bytes itself and keeps metadata in Postgres.
 type Config struct {
-	HTTPPort      string
-	MinIOEndpoint string
-	MinIOBucket   string
-	MinIOAccess   string
-	MinIOSecret   string
-	MinIOUseSSL   bool
+	HTTPPort   string
+	DBHost     string
+	DBPort     string
+	DBUser     string
+	DBPass     string
+	DBName     string
+	JWTSecret  string
+	StorageDir string
 }
 
-// Load reads env with local defaults suitable for docker-compose later.
 func Load() Config {
 	return Config{
-		HTTPPort:      getenv("DOCUMENT_HTTP_PORT", "9083"),
-		MinIOEndpoint: getenv("MINIO_ENDPOINT", "localhost:9000"),
-		MinIOBucket:   getenv("MINIO_BUCKET", "collabflow-documents"),
-		MinIOAccess:   getenv("MINIO_ACCESS_KEY", "minioadmin"),
-		MinIOSecret:   getenv("MINIO_SECRET_KEY", "minioadmin"),
-		MinIOUseSSL:   getenv("MINIO_USE_SSL", "false") == "true",
+		HTTPPort:   getenv("DOCUMENT_HTTP_PORT", "9083"),
+		DBHost:     getenv("POSTGRES_HOST", "localhost"),
+		DBPort:     getenv("POSTGRES_PORT", "5432"),
+		DBUser:     getenv("POSTGRES_USER", "postgres"),
+		DBPass:     getenv("POSTGRES_PASSWORD", "root"),
+		DBName:     getenv("POSTGRES_DB", "collabflow"),
+		JWTSecret:  getenv("JWT_SECRET", "ChuPaDupaSecretKeydSQmmDuK70dcClyAHgcdfwedfweftNYqlgPXCTeIpmJ460="),
+		StorageDir: getenv("DOCUMENT_STORAGE_DIR", "data/documents"),
 	}
+}
+
+func (c Config) DSN() string {
+	return fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
+		c.DBHost, c.DBUser, c.DBPass, c.DBName, c.DBPort,
+	)
 }
 
 func getenv(key, fallback string) string {
