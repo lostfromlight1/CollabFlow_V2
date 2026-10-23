@@ -45,6 +45,7 @@ hs_err_pid*
 
 # Docker volumes / local data
 infrastructure/data/
+backend/infrastructure/data/
 *.sql.gz
 
 # Cursor / local

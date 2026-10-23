@@ -94,14 +94,26 @@ Details / wipe volumes: [infrastructure/README.md](../backend/infrastructure/REA
 |------|---------|--------|
 | 8084 | user-service | `backend/java-services/user-service` |
 | 9084 | email-service | `backend/go-services/email-service` |
-| 9083 | document-service | `backend/go-services/document-service` (stubs; optional) |
+| 9083 | document-service | `backend/go-services/document-service` |
 
 Clients should hit the **gateway** (`:8080`) with `X-API-Key` (+ Bearer where needed).  
 Swagger (direct ports): auth `8081`, platform `8082`, task `8083` → `/swagger-ui.html`.
 
 ---
 
-## 4. Start order
+## 4. Start everything (one command)
+
+From the repo root:
+
+```powershell
+scripts\dev-backend.cmd start
+scripts\dev-backend.cmd status
+scripts\dev-backend.cmd stop
+```
+
+`start` brings up Docker infra, then every Java and Go app in the background. Logs and process ids go to `logs/backend/` (gitignored). `stop` kills those app process trees and leaves Postgres/Redis/Kafka running so data stays. The first start is slow because Gradle and `go run` compile.
+
+Each app is still its own process and port. The script only starts them for you. The manual commands below are what it runs.
 
 Suggested order so Flyway / Kafka consumers do not race emptily:
 
@@ -187,12 +199,15 @@ Then: [e2e-demo.md](e2e-demo.md) or Postman folder **Auth → 4. Phase 2 admin t
 ## 7. Stop / clean
 
 ```powershell
-# Apps: Ctrl+C in each terminal
+# Apps started by the script:
+scripts\dev-backend.cmd stop
+
+# Apps started by hand: Ctrl+C in each terminal
 
 cd infrastructure
-docker compose --env-file ../.env stop          # keep data
-docker compose --env-file ../.env down          # remove containers, keep volumes
-docker compose --env-file ../.env down -v       # wipe DB/Redis volumes (fresh Flyway)
+docker compose --env-file ../../.env stop          # keep data
+docker compose --env-file ../../.env down          # remove containers, keep volumes
+docker compose --env-file ../../.env down -v       # wipe DB/Redis volumes (fresh Flyway)
 ```
 
 ---
