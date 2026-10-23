@@ -30,7 +30,12 @@ Ignore archived `docs/archive/legacy-16-service-plan.md` (old 16-service plan).
 - Services: `docs/services-mvp.md`; versions: `docs/tech-stack.md`
 - Schema: `docs/database.md`; features: `docs/features.md`
 - Java API: `.cursor/rules/java-spring.mdc` + ApiId catalog in `docs/services-mvp.md`
+- Frontend: `docs/fe-contract.md` + `.cursor/rules/frontend-next.mdc` (app in `frontend/`)
 - Do **not** invent tables/endpoints/topics undocumented; update docs in the same change
+
+## Monorepo target
+
+Prefer `backend/` (java + go + infra) + `frontend/` (Next.js). Until the move lands, legacy `java-services/` / `go-services/` / `infrastructure/` at repo root are still valid.
 
 ## Communication patterns
 

@@ -61,20 +61,23 @@ Do **not** follow [docs/archive/legacy-16-service-plan.md](docs/archive/legacy-1
 | Skill | When |
 |-------|------|
 | `teach-and-build` | Go, Kafka, Redis, microservice learning |
-| `plan-mvp-feature` | Map a feature before coding |
+| `plan-mvp-feature` | Map a backend feature before coding |
+| `plan-frontend-feature` | Map a Next.js UI to fe-contract / ApiIds before coding |
+| `add-frontend-page` | Scaffold or extend an App Router page + API client |
 | `add-microservice` | Scaffold slim-list service only |
 | `add-kafka-event` | New domain event |
 | `add-flyway-migration` | Schema change |
 
 ## Cursor how-to
 
-- Rules: `collabflow-core` (always), plus `java-spring` / `golang-services` / `database-postgres` by glob  
+- Rules: `collabflow-core` (always), plus `java-spring` / `golang-services` / `database-postgres` / `frontend-next` by glob  
+- Frontend contract: [docs/fe-contract.md](docs/fe-contract.md)  
 - Name a skill in chat when you want that workflow  
 - Plan mode for multi-service design; Agent mode for focused edits  
-- Point at `docs/implementation-guide.md` or `docs/progress-tracker.md` when starting a week
+- Point at `docs/implementation-guide.md` or `docs/progress-tracker.md` when starting a week  
 
 ## Repo status
 
-Slim **6-service MVP complete** (auth, platform, task, collab, realtime, api-gateway).  
-Folders: `java-services/`, `go-services/`, `infrastructure/`, `docs/`, `postman/`.  
+Slim **6-service MVP complete** + Phase 2; FE freeze via `uat` + [docs/fe-contract.md](docs/fe-contract.md).  
+Folders: `java-services/`, `go-services/`, `infrastructure/`, `docs/`, `postman/` (target layout: `backend/` + `frontend/`).  
 Demo: [docs/e2e-demo.md](docs/e2e-demo.md). Secrets: repo-root `.env` only (not `application.yml`).

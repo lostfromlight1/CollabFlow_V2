@@ -1,0 +1,52 @@
+---
+description: Next.js / React frontend conventions for CollabFlow (App Router, Tailwind, gateway API)
+globs: frontend/**/*.{ts,tsx,js,jsx,css,md}
+alwaysApply: false
+---
+
+# Frontend (Next.js)
+
+## Stack
+
+- **Next.js App Router** + **React** + **TypeScript** (strict)
+- **Tailwind** + **shadcn/ui** (prefer primitives over custom one-offs)
+- App lives in repo-root `frontend/` (backend under `backend/` when restructured)
+- Versions: pin in `frontend/package.json` and `docs/tech-stack.md`
+
+## Contract (do not invent APIs)
+
+- Headers / auth flow / ports: [docs/fe-contract.md](../../docs/fe-contract.md)
+- ApiIds / routes: [docs/services-mvp.md](../../docs/services-mvp.md)
+- Hit **gateway** `:8080` only — never call service ports from the browser
+- Every `/api/**` call: `X-API-Key` + `Authorization: Bearer` when authenticated
+- After org picker: send `X-Organization-Id`
+- Profile: prefer `/api/v1/users/me` (not auth `/me`)
+- Documents upload/list: **out of UAT** — do not build UI for stubs
+
+## Auth
+
+- **No NextAuth** — custom session vs CollabFlow JWT (`accessToken` / `refreshToken`)
+- Master admin → `/admin/*`; members → product routes (org picker when required)
+- Persist session in one place (`lib/auth/session`); clear on logout
+- Never commit real `API_KEY` / tokens; use `frontend/.env.local` + `.env.example`
+
+## Layout conventions
+
+```
+frontend/app/
+  (auth)/     login, verify-email, select-org
+  (admin)/    master-admin only
+  (app)/      member product shell
+frontend/lib/api/   client + domain modules (auth, admin, …)
+frontend/components/ui/   shadcn
+```
+
+- Route groups for layouts/guards; keep URLs clean (`/login`, `/admin/users`)
+- Forms: React Hook Form + Zod
+- Typed envelope: `{ success, message, data, timestamp }`
+
+## Guardrails
+
+- Small vertical slices (one flow per PR when possible)
+- Do not expand past agreed FE slice (auth + admin first)
+- Update `docs/fe-contract.md` / `frontend/README.md` in the same change when headers or env change
