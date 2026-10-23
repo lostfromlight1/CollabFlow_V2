@@ -59,6 +59,7 @@ Each business service exposes springdoc (direct port; gateway does not proxy Swa
 | auth-service | http://localhost:8081/swagger-ui.html | `/v3/api-docs` |
 | platform-service | http://localhost:8082/swagger-ui.html | `/v3/api-docs` |
 | task-service | http://localhost:8083/swagger-ui.html | `/v3/api-docs` |
+| user-service | http://localhost:8084/swagger-ui.html | `/v3/api-docs` |
 
 Authorize with `X-API-Key` + Bearer where annotated. Route catalog: [docs/services-mvp.md](../docs/services-mvp.md).
 

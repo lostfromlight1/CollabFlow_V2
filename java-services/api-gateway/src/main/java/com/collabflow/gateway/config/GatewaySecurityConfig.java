@@ -76,6 +76,8 @@ public class GatewaySecurityConfig {
                             .pathMatchers("/api/v1/documents/health").permitAll()
                             // WS auth checked inside realtime-service (?token= or Authorization)
                             .pathMatchers("/api/v1/realtime/ws").permitAll()
+                            // Invite landing page: peek by token (accept still requires JWT)
+                            .pathMatchers(HttpMethod.GET, "/api/v1/invitations/token/**").permitAll()
                             .pathMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
                             .pathMatchers(
                                     "/api/v1/organizations/**",

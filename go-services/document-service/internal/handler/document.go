@@ -9,6 +9,8 @@ import (
 
 // DocumentHandler stubs upload/list until MinIO + document tables land.
 // Schema target: docs/database.md (documents, document_folders, …).
+//
+// TODO(phase-2): MinIO + JWT + org ACL — not UAT demo surface (see docs/fe-contract.md).
 type DocumentHandler struct {
 	cfg config.Config
 }
@@ -20,6 +22,7 @@ func NewDocumentHandler(cfg config.Config) *DocumentHandler {
 // UploadStub accepts multipart metadata and returns a placeholder response.
 // Does not write to MinIO or Postgres yet — proves the route + config wiring.
 // DOC-001 · POST /api/v1/documents/upload
+// TODO(phase-2): MinIO + JWT + org ACL — do not demo on UAT.
 func (h *DocumentHandler) UploadStub(c *gin.Context) {
 	projectID := c.PostForm("projectId")
 	entityType := c.PostForm("entityType")
@@ -52,6 +55,7 @@ func (h *DocumentHandler) UploadStub(c *gin.Context) {
 
 // ListByProject returns an empty list shaped like future document rows.
 // DOC-002 · GET /api/v1/documents?projectId=
+// TODO(phase-2): MinIO + JWT + org ACL — do not demo on UAT.
 func (h *DocumentHandler) ListByProject(c *gin.Context) {
 	projectID := c.Query("projectId")
 	if projectID == "" {

@@ -2,7 +2,7 @@
 
 **Port:** 8080 · Java 21 / Spring Cloud Gateway / Gradle  
 **Role:** Single HTTP edge for `/api/v1/**` — route, `X-API-Key`, JWT on protected paths  
-**MVP:** Complete · **Phase 2:** TODO checklist below
+**MVP:** Complete · **Phase 2:** Waves 0–2 largely shipped (see checklist)
 
 Upstream catalog: [services-mvp.md](../../docs/services-mvp.md).  
 **Ordered waves:** [docs/phase-2.md](../../docs/phase-2.md).
@@ -27,18 +27,15 @@ CollabFlow’s front door. Clients (Postman, future admin portal, future app UI)
 
 | Feature | What it does |
 |---------|----------------|
-| Path routing | `auth→8081`, `platform→8082`, `task→8083`, `collab→9081`, `realtime→9082`, `documents→9083` (Phase 2) |
+| Path routing | `auth→8081`, `platform→8082`, `task→8083`, `user→8084`, `collab→9081`, `realtime→9082`, `documents→9083`, email not HTTP |
 | `X-API-Key` | Required on all `/api/**`; WebSocket may use `?apiKey=` |
-| JWT resource server | HS256; most org/workspace/project/task/collab/realtime paths need Bearer |
-| Public auth | register, login, refresh, logout + service health paths |
-| WebSocket exception | `/api/v1/realtime/ws` permitAll at gateway; token checked inside realtime-service |
-| Actuator | `/actuator/health`, `info`, `gateway` |
-
-### Known MVP gap
-
-| Issue | Detail |
-|-------|--------|
-| `/api/v1/sprints/**` | Routed to task-service but **permitAll** and **no sprint handlers** — treat as placeholder; Phase 2 must require JWT or drop the route |
+| JWT resource server | HS256; product paths need Bearer |
+| Public auth | register/login/refresh/logout + verify/forgot/reset + healths |
+| Invite peek | `GET /api/v1/invitations/token/**` permitAll (accept still JWT) |
+| WebSocket | `/api/v1/realtime/ws` permitAll; token inside realtime-service |
+| Sprints | Routed to task + **JWT required** (handlers in task-service) |
+| CORS | `CORS_ALLOWED_ORIGINS` (e.g. `http://localhost:3000`) |
+| Actuator | health/info public; other actuator locked outside `dev`/`local` |
 
 ### MVP learning notes
 
@@ -60,10 +57,11 @@ Do **not** invent routes in [services-mvp.md](../../docs/services-mvp.md) until 
 
 ### Routing / tenancy / admin portal
 
-- [x] **Route `document-service`** — `/api/v1/documents/**` → `:9083` (Wave 7 scaffold)
+- [x] **Route `document-service`** — `/api/v1/documents/**` → `:9083` (Wave 7 scaffold; **out of UAT** — stubs, JWT/ACL not on document-service yet)
 - [x] **Route `user-service`** — `/api/v1/users/**` + `/api/v1/admin/users/**` → user-service:8084
 - [x] **Org context at the edge** — forward `X-Organization-Id`; services validate membership
 - [x] **Admin portal CORS** — env `CORS_ALLOWED_ORIGINS`
+- [x] **Invite token peek** — `GET /invitations/token/**` permitAll for landing pages
 - [ ] **Admin route protection** — master-admin claim at edge (services check `is_master_admin` today)
 
 ### Hardening

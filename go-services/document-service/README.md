@@ -2,6 +2,7 @@
 
 **Port:** 9083 · Go **1.27** / Gin  
 **Phase:** Wave 7 scaffold (Phase 2)  
+**UAT:** **Out of scope** — stubs only; do not demo upload/list ([fe-contract.md](../../docs/fe-contract.md)).  
 **Owns (planned):** `documents`, `document_folders`, `document_permissions`, `document_tags` — [database.md](../../docs/database.md)  
 **Storage (planned):** MinIO/S3 via `MINIO_*` env  
 

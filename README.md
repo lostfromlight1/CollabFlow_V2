@@ -3,8 +3,9 @@
 Multi-tenant collaboration and project management  
 **Hierarchy:** Organization → Workspace → Project → Task.
 
-**Status:** Slim **MVP complete** (Weeks 1–14). Tracker: [docs/progress-tracker.md](docs/progress-tracker.md).  
-Run guide: [docs/running.md](docs/running.md) · Demo: [docs/e2e-demo.md](docs/e2e-demo.md) · Postman: [postman/](postman/).
+**Status:** Slim **MVP complete** (Weeks 1–14) + Phase 2 on `development` / FE freeze on **`uat`**.  
+**Frontend / UAT:** [docs/fe-contract.md](docs/fe-contract.md) (headers, org flow, ports, smoke).  
+Run: [docs/running.md](docs/running.md) · Demo: [docs/e2e-demo.md](docs/e2e-demo.md) · Postman: [postman/](postman/) · MVP history: [docs/progress-tracker.md](docs/progress-tracker.md).
 
 ## Portfolio — what / why
 
@@ -42,6 +43,7 @@ Springdoc Swagger UI (direct ports; still send `X-API-Key`):
 | auth | http://localhost:8081/swagger-ui.html |
 | platform | http://localhost:8082/swagger-ui.html |
 | task | http://localhost:8083/swagger-ui.html |
+| user | http://localhost:8084/swagger-ui.html |
 
 OpenAPI JSON: `/v3/api-docs` on each service. Full route catalog: [docs/services-mvp.md](docs/services-mvp.md).
 
@@ -78,6 +80,7 @@ Realtime WS: `ws://localhost:9082/api/v1/realtime/ws?token=$TOKEN` then
 | [docs/setup.md](docs/setup.md) | Install tools (Windows / Fedora) |
 | [docs/running.md](docs/running.md) | Run infra + every service |
 | [docs/e2e-demo.md](docs/e2e-demo.md) | E2E / testing narrative |
+| [docs/fe-contract.md](docs/fe-contract.md) | **FE / UAT contract** |
 | [docs/services-mvp.md](docs/services-mvp.md) | Ports + ApiId catalog |
 | [docs/phase-2.md](docs/phase-2.md) | Phase 2 waves |
 | [docs/future-plan.md](docs/future-plan.md) | Deferred backlog |

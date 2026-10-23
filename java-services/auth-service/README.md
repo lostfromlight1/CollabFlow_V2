@@ -1,8 +1,8 @@
 # auth-service
 
 **Port:** 8081 · Java 21 / Boot 4.1 / Gradle  
-**Owns:** `users`, `refresh_tokens`  
-**MVP:** Complete · **Phase 2:** TODO checklist below
+**Owns:** credentials, sessions, tokens (profiles/admin user CRUD → **user-service**)  
+**MVP:** Complete · **Phase 2 Waves 1–3:** largely shipped (see checklist)
 
 Shared: `:common` → envelopes, `ApiKeyFilter`, `DomainEvent`, `@CurrentUserId`, `@ApiId`  
 (see `.cursor/rules/java-spring.mdc` + [services-mvp.md](../../docs/services-mvp.md) ApiId catalog).
@@ -22,8 +22,14 @@ Identity and tokens for CollabFlow. Today (MVP): open register/login with email 
 | Login | Email + password; Redis rate-limit by client IP | AUTH-003 |
 | Refresh | Rotate refresh token, issue new access JWT | AUTH-004 |
 | Logout | Revoke **one** refresh token | AUTH-005 |
-| Me | Current user profile (`emailVerified` exposed; **not** gated on verify yet) | AUTH-006 |
-| Redis rate limit | `INCR` + TTL on login/register; **fail-open** if Redis is down (dev-friendly) | — |
+| Me | Current user profile | AUTH-006 |
+| Update profile | `PUT /me` (legacy for FE — prefer **`/api/v1/users/me`**) | AUTH-007 |
+| Verify / resend email | Public; required before full login | AUTH-008 / AUTH-009 |
+| Forgot / reset / change password | Public reset + authenticated change | AUTH-010–012 |
+| Sessions | List + revoke-all | AUTH-013 / AUTH-014 |
+| Soft-deactivate | Current account | AUTH-015 |
+| Org picker | `select-organization` + list orgs | AUTH-016 / AUTH-017 |
+| Redis rate limit | Login/register (+ fail-closed outside `dev` where configured) | — |
 | OpenAPI | springdoc Swagger UI | — |
 
 ### MVP learning notes
@@ -34,64 +40,32 @@ Identity and tokens for CollabFlow. Today (MVP): open register/login with email 
 | **Redis rate limit** | Shared across auth instances; fail-open today so local work without Redis still logs in. |
 | **Gateway JWT** | Prefer `:8080`; gateway verifies Bearer before proxying `/me`. |
 
-## Phase 2 — TODO
+## Phase 2 — status (shipped vs leftover)
 
-Track enrichments here. Do **not** invent ApiIds in [services-mvp.md](../../docs/services-mvp.md) until implemented. Real SMTP is **not** owned by auth alone — use email stub / Kafka `email.send` / future email-service.
+Ordered waves: [docs/phase-2.md](../../docs/phase-2.md). FE contract: [docs/fe-contract.md](../../docs/fe-contract.md).
 
-### Identity / email
+### Shipped on auth
 
-- [ ] **Email verification** — token + verify endpoint; **require verified email before full login** (or after first login step); use `users.is_email_verified`
-- [ ] **Resend verification** — rate-limited
-- [ ] **Forgot / reset password** — for users who forgot the admin-issued password
-- [ ] **Change password** — authenticated; current + new (admin-set password can be changed later)
+- [x] Email verification + resend (AUTH-008/009); login requires verified email
+- [x] Forgot / reset / change password (AUTH-010–012)
+- [x] Sessions list + revoke-all (AUTH-013/014)
+- [x] Soft-deactivate (AUTH-015)
+- [x] Update profile on auth `PUT /me` (AUTH-007) — **FE should use user-service `/users/me`**
+- [x] Org picker: list orgs + select-organization (AUTH-016/017)
+- [x] Gate public self-register (config)
+- [x] Master admin seed (`MASTER_ADMIN_*` env)
+- [x] Produce Kafka `email.send` (email-service / MailHog delivers)
+- [x] **user-service** split (:8084) + gateway routes + `USER-NNN` catalog
 
-### Profile / account
+### Leftover TODO (not UAT blockers)
 
-- [ ] **Update profile** — `PUT /api/v1/auth/me` (name, `avatar_url` at minimum)
-- [ ] **Soft-deactivate account** — user or admin sets `is_active=false`
-- [ ] **Publish `user.updated`** — after profile / password / verify / deactivate (Kafka after commit)
+- [ ] Rate-limit **refresh** (same Redis pattern as login)
+- [ ] Harden fail-closed rate limit messaging for all non-dev profiles
+- [ ] MFA / OAuth (Phase 3+)
 
-### Sessions / rate limits
+### Frontend / admin portal (out of this service)
 
-- [ ] **List sessions** — active refresh tokens (id, created, expires; **never** return raw token)
-- [ ] **Revoke all sessions** / logout-all — revoke every refresh token for the user (optional revoke-one by id)
-- [ ] **Rate-limit refresh** — same Redis pattern as login
-- [ ] **Fail-closed rate limit outside `dev`** — if Redis is down in `prod`/`staging`, reject; keep fail-open only for `dev`
-
-### Admin-provisioned users + org-scoped login
-
-- [ ] **Disable or gate public self-register** for normal app users (MVP `POST /register` becomes admin-only or removed from public UX)
-- [ ] **Admin creates user** — email + temporary password (or invite email with set-password link); user must belong to ≥1 org
-- [ ] **Org-scoped login** — after credentials (+ email verified):
-  - Load memberships; **reject** if user has **0 orgs**
-  - **1 org** → auto-select (or still show picker for consistency)
-  - **N orgs** → user **chooses** which org to enter
-  - Login response includes selected `organizationId` (+ `organizations[]` for picker)
-  - JWT may stay user-scoped with org in response/header later; platform still enforces membership
-
-### Split: auth-service vs user-service
-
-Today one deployable owns both credentials and profile. Phase 2 goal: **split into two Java services**.
-
-| Service | Owns (intended) | Examples |
-|---------|-----------------|----------|
-| **auth-service** | Credentials, sessions, tokens | login, refresh, logout, email verify, password reset/change, rate limits, JWT issue |
-| **user-service** (new) | User profile / lifecycle | admin create user, `GET/PUT` profile, soft-deactivate, list users for admin portal; table `users` (or profile projection) |
-
-- [x] **Extract `user-service`** — `java-services/user-service` (:8084); shared `users` table (auth Flyway); profile + admin create on user-service — [database.md](../../docs/database.md)
-- [x] **Gateway routes** — `/api/v1/auth/**` → auth; `/api/v1/users/**` + `/admin/users/**` → user-service
-- [x] **Admin create user** goes through **user-service** (full row + temp password hash; password *changes* stay on auth)
-- [x] **Kafka** — `user.created` / `user.updated` from **user-service** (auth still may publish `user.created` on public register)
-- [ ] **ApiId catalog** — new `USER-NNN` prefix in services-mvp when implemented
-
-### Depends on platform + admin portal (not auth alone)
-
-- [ ] **Master admin account** — bootstrap / seed for the admin portal (auth or platform; decide when implementing)
-- [ ] **Admin portal (frontend)** — create **organization**, create **user**, attach user to org (membership + role)
-- [ ] **Platform APIs for admin** — create org + create/link user as member (calls **user-service** + membership)
-- [ ] **Only org members use the app** — no org ⇒ no product access (align gateway/platform checks)
-
-**Later (not Phase 2 priority):** MFA, OAuth / social login.
+- [ ] Admin portal UI + app UI — see [fe-contract.md](../../docs/fe-contract.md)
 
 ## Target flow (Phase 2 design)
 

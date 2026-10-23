@@ -4,7 +4,8 @@
 **Canonical plan:** [implementation-guide.md](implementation-guide.md).  
 **What shipped:** [services-mvp.md](services-mvp.md) · [features.md](features.md)
 
-Use this file as a historical checklist. New work after MVP → [future-plan.md](future-plan.md).
+**MVP history only** — Phase 2 waves / UAT frontend contract → [phase-2.md](phase-2.md) · [fe-contract.md](fe-contract.md).  
+Use this file as a historical checklist. Deferred product → [future-plan.md](future-plan.md).
 
 ---
 
@@ -93,7 +94,7 @@ Use this file as a historical checklist. New work after MVP → [future-plan.md]
 - [x] Task CRUD + status transitions
 - [x] Task assign
 - [x] Kafka task events
-- [ ] Sprints API — **deferred** (Phase 3 / optional; gateway path reserved only)
+- [x] Sprints API — shipped in Phase 2 (task-service; see [services-mvp.md](services-mvp.md))
 
 ---
 
@@ -154,8 +155,8 @@ Use this file as a historical checklist. New work after MVP → [future-plan.md]
 | Activity feed | collab | [x] |
 | Realtime | realtime | [x] |
 | Basic analytics | task | [x] |
-| Sprints | task | [ ] deferred |
-| Documents | — | [ ] Phase 2 |
+| Sprints | task | [x] Phase 2 |
+| Documents | document | [ ] stub only — out of UAT |
 
 ---
 
