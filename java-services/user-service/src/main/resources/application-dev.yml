@@ -1,7 +1,12 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/collabflow}
-    username: ${SPRING_DATASOURCE_USERNAME:collabflow}
-    password: ${SPRING_DATASOURCE_PASSWORD:collabflow}
+    # Same POSTGRES_* as auth/platform/task (.env via bootRun) — not SPRING_DATASOURCE_* defaults.
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:collabflow}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:root}
   jpa:
     show-sql: false
+
+logging:
+  level:
+    com.collabflow.user: DEBUG
