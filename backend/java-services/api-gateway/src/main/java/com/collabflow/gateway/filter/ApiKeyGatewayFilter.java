@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import reactor.core.publisher.Mono;
 /**
  * Edge check: every {@code /api/**} call through the gateway needs {@code X-API-Key}.
  * Downstream services still validate too (defense in depth).
+ * CORS preflight ({@code OPTIONS}) is skipped — browsers do not send custom headers on preflight.
  */
 @Component
 public class ApiKeyGatewayFilter implements WebFilter, Ordered {
@@ -41,6 +43,10 @@ public class ApiKeyGatewayFilter implements WebFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
         if (path == null || !path.startsWith("/api/")) {
+            return chain.filter(exchange);
+        }
+        // Let CorsWebFilter answer preflight; real GET/POST still require X-API-Key.
+        if (HttpMethod.OPTIONS.equals(exchange.getRequest().getMethod())) {
             return chain.filter(exchange);
         }
 

@@ -56,6 +56,8 @@ public class GatewaySecurityConfig {
                     } else {
                         ex.pathMatchers("/actuator/**").authenticated();
                     }
+                    // Browser CORS preflight (no JWT / API key on OPTIONS)
+                    ex.pathMatchers(HttpMethod.OPTIONS, "/**").permitAll();
                     ex.pathMatchers(
                                     "/api/v1/auth/health",
                                     "/api/v1/auth/register",
