@@ -32,8 +32,11 @@ import com.collabflow.platform.repository.WorkspaceRepository;
 import com.collabflow.platform.security.SystemRoles;
 import com.collabflow.platform.service.PermissionService;
 import com.collabflow.platform.service.ProjectService;
+import com.collabflow.platform.service.UserDisplayLookup;
+import com.collabflow.platform.service.UserDisplayLookup.UserDisplay;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -57,6 +60,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectMemberRepository memberRepository;
     private final WorkspaceRepository workspaceRepository;
     private final RoleRepository roleRepository;
+    private final UserDisplayLookup userDisplayLookup;
     private final PermissionService permissionService;
     private final ApplicationEventPublisher events;
 
@@ -65,6 +69,7 @@ public class ProjectServiceImpl implements ProjectService {
             ProjectMemberRepository memberRepository,
             WorkspaceRepository workspaceRepository,
             RoleRepository roleRepository,
+            UserDisplayLookup userDisplayLookup,
             PermissionService permissionService,
             ApplicationEventPublisher events
     ) {
@@ -72,6 +77,7 @@ public class ProjectServiceImpl implements ProjectService {
         this.memberRepository = memberRepository;
         this.workspaceRepository = workspaceRepository;
         this.roleRepository = roleRepository;
+        this.userDisplayLookup = userDisplayLookup;
         this.permissionService = permissionService;
         this.events = events;
     }
@@ -210,9 +216,11 @@ public class ProjectServiceImpl implements ProjectService {
     public List<ProjectMemberResponse> listMembers(UUID projectId, UUID userId) {
         log.debug("Listing members projectId={} userId={}", projectId, userId);
         permissionService.requireProjectPermission(projectId, userId, SystemRoles.PROJECT_READ);
-        return memberRepository.findByProjectIdOrderByJoinedAtAsc(projectId).stream()
-                .map(ProjectMemberResponse::from)
-                .toList();
+        List<ProjectMember> members = memberRepository.findByProjectIdOrderByJoinedAtAsc(projectId);
+        Map<UUID, UserDisplay> profiles = userDisplayLookup.findByIds(
+                members.stream().map(ProjectMember::getUserId).toList()
+        );
+        return members.stream().map(m -> view(m, profiles.get(m.getUserId()))).toList();
     }
 
     @Override
@@ -247,7 +255,7 @@ public class ProjectServiceImpl implements ProjectService {
                 projectId, project.getWorkspaceId(), request.userId(), role.getId(), member.getId()
         )));
         log.info("Added project member id={} project={}", member.getId(), projectId);
-        return ProjectMemberResponse.from(member);
+        return view(member);
     }
 
     @Override
@@ -272,7 +280,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .orElseThrow(() -> new ResourceNotFoundException("Project role not found"));
         member.setRole(role);
         log.info("Updated project member role memberId={} roleId={}", memberId, role.getId());
-        return ProjectMemberResponse.from(member);
+        return view(member);
     }
 
     @Override
@@ -309,6 +317,17 @@ public class ProjectServiceImpl implements ProjectService {
     private Project requireActiveProject(UUID projectId) {
         return projectRepository.findByIdAndStatusNot(projectId, Project.STATUS_ARCHIVED)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+    }
+
+    private ProjectMemberResponse view(ProjectMember member) {
+        return view(member, userDisplayLookup.find(member.getUserId()));
+    }
+
+    private ProjectMemberResponse view(ProjectMember member, UserDisplay profile) {
+        if (profile == null) {
+            return ProjectMemberResponse.from(member);
+        }
+        return ProjectMemberResponse.from(member, profile.name(), profile.email());
     }
 
     private static String normalizeType(String projectType) {

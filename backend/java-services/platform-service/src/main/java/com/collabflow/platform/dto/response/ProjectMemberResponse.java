@@ -10,16 +10,24 @@ public record ProjectMemberResponse(
         UUID userId,
         UUID roleId,
         String roleName,
-        Instant joinedAt
+        Instant joinedAt,
+        String name,
+        String email
 ) {
     public static ProjectMemberResponse from(ProjectMember m) {
+        return from(m, null, null);
+    }
+
+    public static ProjectMemberResponse from(ProjectMember m, String name, String email) {
         return new ProjectMemberResponse(
                 m.getId(),
                 m.getProjectId(),
                 m.getUserId(),
                 m.getRole().getId(),
                 m.getRole().getName(),
-                m.getJoinedAt()
+                m.getJoinedAt(),
+                name,
+                email
         );
     }
 }

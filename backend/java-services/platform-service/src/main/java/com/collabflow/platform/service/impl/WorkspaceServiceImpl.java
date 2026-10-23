@@ -31,10 +31,13 @@ import com.collabflow.platform.repository.WorkspaceMemberRepository;
 import com.collabflow.platform.repository.WorkspaceRepository;
 import com.collabflow.platform.security.SystemRoles;
 import com.collabflow.platform.service.PermissionService;
+import com.collabflow.platform.service.UserDisplayLookup;
+import com.collabflow.platform.service.UserDisplayLookup.UserDisplay;
 import com.collabflow.platform.service.WorkspaceService;
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +57,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     private final WorkspaceMemberRepository memberRepository;
     private final OrganizationRepository organizationRepository;
     private final RoleRepository roleRepository;
+    private final UserDisplayLookup userDisplayLookup;
     private final PermissionService permissionService;
     private final ApplicationEventPublisher events;
 
@@ -62,6 +66,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
             WorkspaceMemberRepository memberRepository,
             OrganizationRepository organizationRepository,
             RoleRepository roleRepository,
+            UserDisplayLookup userDisplayLookup,
             PermissionService permissionService,
             ApplicationEventPublisher events
     ) {
@@ -69,6 +74,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         this.memberRepository = memberRepository;
         this.organizationRepository = organizationRepository;
         this.roleRepository = roleRepository;
+        this.userDisplayLookup = userDisplayLookup;
         this.permissionService = permissionService;
         this.events = events;
     }
@@ -223,9 +229,11 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     public List<WorkspaceMemberResponse> listMembers(UUID workspaceId, UUID userId) {
         log.debug("Listing members workspaceId={} userId={}", workspaceId, userId);
         permissionService.requireWorkspacePermission(workspaceId, userId, SystemRoles.WORKSPACE_READ);
-        return memberRepository.findByWorkspaceIdOrderByJoinedAtAsc(workspaceId).stream()
-                .map(WorkspaceMemberResponse::from)
-                .toList();
+        List<WorkspaceMember> members = memberRepository.findByWorkspaceIdOrderByJoinedAtAsc(workspaceId);
+        Map<UUID, UserDisplay> profiles = userDisplayLookup.findByIds(
+                members.stream().map(WorkspaceMember::getUserId).toList()
+        );
+        return members.stream().map(m -> view(m, profiles.get(m.getUserId()))).toList();
     }
 
     @Override
@@ -260,7 +268,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
                 workspaceId, workspace.getOrganizationId(), request.userId(), role.getId(), member.getId()
         )));
         log.info("Added workspace member id={} ws={}", member.getId(), workspaceId);
-        return WorkspaceMemberResponse.from(member);
+        return view(member);
     }
 
     @Override
@@ -285,7 +293,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace role not found"));
         member.setRole(role);
         log.info("Updated workspace member role memberId={} roleId={}", memberId, role.getId());
-        return WorkspaceMemberResponse.from(member);
+        return view(member);
     }
 
     @Override
@@ -334,7 +342,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
                 workspaceId, workspace.getOrganizationId(), userId, memberRole.getId(), member.getId()
         )));
         log.info("User {} joined workspace {}", userId, workspaceId);
-        return WorkspaceMemberResponse.from(member);
+        return view(member);
     }
 
     @Override
@@ -358,6 +366,17 @@ public class WorkspaceServiceImpl implements WorkspaceService {
             }
         }
         throw new IllegalStateException("Could not generate unique invite code");
+    }
+
+    private WorkspaceMemberResponse view(WorkspaceMember member) {
+        return view(member, userDisplayLookup.find(member.getUserId()));
+    }
+
+    private WorkspaceMemberResponse view(WorkspaceMember member, UserDisplay profile) {
+        if (profile == null) {
+            return WorkspaceMemberResponse.from(member);
+        }
+        return WorkspaceMemberResponse.from(member, profile.name(), profile.email());
     }
 
     private static String randomInviteCode() {
