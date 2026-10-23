@@ -1,6 +1,8 @@
 package com.collabflow.auth.service;
 
+import com.collabflow.auth.dto.request.AdminResetPasswordRequest;
 import com.collabflow.auth.dto.request.ChangePasswordRequest;
+import com.collabflow.auth.dto.request.ImpersonateRequest;
 import com.collabflow.auth.dto.request.ForgotPasswordRequest;
 import com.collabflow.auth.dto.request.LoginRequest;
 import com.collabflow.auth.dto.request.RefreshRequest;
@@ -11,6 +13,7 @@ import com.collabflow.auth.dto.request.SelectOrganizationRequest;
 import com.collabflow.auth.dto.request.UpdateProfileRequest;
 import com.collabflow.auth.dto.request.VerifyEmailRequest;
 import com.collabflow.auth.dto.response.AuthResponse;
+import com.collabflow.auth.dto.response.ImpersonationResponse;
 import com.collabflow.auth.dto.response.OrganizationSummary;
 import com.collabflow.auth.dto.response.SessionResponse;
 import com.collabflow.auth.dto.response.UserResponse;
@@ -52,4 +55,18 @@ public interface AuthService {
     void deactivate(UUID userId);
 
     boolean isMasterAdmin(UUID userId);
+
+    void adminDeactivate(UUID adminId, UUID userId);
+
+    void adminActivate(UUID adminId, UUID userId);
+
+    void adminRevokeSessions(UUID adminId, UUID userId);
+
+    void adminResetPassword(UUID adminId, UUID userId, AdminResetPasswordRequest request);
+
+    String adminResendVerification(UUID adminId, UUID userId);
+
+    ImpersonationResponse impersonate(UUID adminId, ImpersonateRequest request);
+
+    void endImpersonation(UUID actorId, UUID targetId);
 }

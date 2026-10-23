@@ -33,8 +33,11 @@ import com.collabflow.platform.repository.OrganizationRepository;
 import com.collabflow.platform.repository.RoleRepository;
 import com.collabflow.platform.repository.UserRefRepository;
 import com.collabflow.platform.security.SystemRoles;
+import com.collabflow.platform.service.AdminAuditWriter;
 import com.collabflow.platform.service.OrganizationService;
 import com.collabflow.platform.service.PermissionService;
+import com.collabflow.platform.service.UserDisplayLookup;
+import com.collabflow.platform.service.UserDisplayLookup.UserDisplay;
 import com.collabflow.platform.service.WorkspaceService;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,29 +60,35 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final OrganizationMemberRepository memberRepository;
     private final RoleRepository roleRepository;
     private final UserRefRepository userRefRepository;
+    private final UserDisplayLookup userDisplayLookup;
     private final PermissionService permissionService;
     private final WorkspaceService workspaceService;
     private final PlatformProperties platformProperties;
     private final ApplicationEventPublisher events;
+    private final AdminAuditWriter auditWriter;
 
     public OrganizationServiceImpl(
             OrganizationRepository organizationRepository,
             OrganizationMemberRepository memberRepository,
             RoleRepository roleRepository,
             UserRefRepository userRefRepository,
+            UserDisplayLookup userDisplayLookup,
             PermissionService permissionService,
             WorkspaceService workspaceService,
             PlatformProperties platformProperties,
-            ApplicationEventPublisher events
+            ApplicationEventPublisher events,
+            AdminAuditWriter auditWriter
     ) {
         this.organizationRepository = organizationRepository;
         this.memberRepository = memberRepository;
         this.roleRepository = roleRepository;
         this.userRefRepository = userRefRepository;
+        this.userDisplayLookup = userDisplayLookup;
         this.permissionService = permissionService;
         this.workspaceService = workspaceService;
         this.platformProperties = platformProperties;
         this.events = events;
+        this.auditWriter = auditWriter;
     }
 
     @Override
@@ -96,13 +105,15 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (!userRefRepository.existsByIdAndActiveTrue(request.ownerUserId())) {
             throw new ResourceNotFoundException("Owner user not found");
         }
-        return createInternal(
+        OrganizationResponse created = createInternal(
                 adminId,
                 request.name(),
                 request.description(),
                 request.slug(),
                 request.ownerUserId()
         );
+        auditWriter.write(adminId, "ORG_CREATED", "ORGANIZATION", created.id(), null);
+        return created;
     }
 
     private OrganizationResponse createInternal(
@@ -224,9 +235,12 @@ public class OrganizationServiceImpl implements OrganizationService {
     public List<MemberResponse> listMembers(UUID organizationId, UUID userId) {
         log.debug("Listing members orgId={} userId={}", organizationId, userId);
         permissionService.requireOrgPermission(organizationId, userId, SystemRoles.ORG_READ);
-        return memberRepository.findByOrganizationIdOrderByJoinedAtAsc(organizationId).stream()
-                .map(MemberResponse::from)
-                .toList();
+        List<OrganizationMember> members =
+                memberRepository.findByOrganizationIdOrderByJoinedAtAsc(organizationId);
+        Map<UUID, UserDisplay> profiles = userDisplayLookup.findByIds(
+                members.stream().map(OrganizationMember::getUserId).toList()
+        );
+        return members.stream().map(m -> view(m, profiles.get(m.getUserId()))).toList();
     }
 
     @Override
@@ -251,7 +265,10 @@ public class OrganizationServiceImpl implements OrganizationService {
         log.info("Admin attach member orgId={} admin={} newUser={} roleId={}",
                 organizationId, adminId, request.userId(), request.roleId());
         requireMasterAdmin(adminId);
-        return addMemberInternal(organizationId, request);
+        MemberResponse member = addMemberInternal(organizationId, request);
+        auditWriter.write(adminId, "ORG_MEMBER_ATTACHED", "ORGANIZATION", organizationId,
+                "{\"userId\":\"" + request.userId() + "\"}");
+        return member;
     }
 
     private MemberResponse addMemberInternal(UUID organizationId, AddMemberRequest request) {
@@ -283,7 +300,7 @@ public class OrganizationServiceImpl implements OrganizationService {
                 new MemberAddedPayload(organizationId, request.userId(), role.getId(), member.getId())
         ));
         log.info("Added member id={} orgId={} userId={}", member.getId(), organizationId, request.userId());
-        return MemberResponse.from(member);
+        return view(member);
     }
 
     @Override
@@ -311,7 +328,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         member.setRole(role);
         log.info("Updated member role memberId={} roleId={}", memberId, role.getId());
-        return MemberResponse.from(member);
+        return view(member);
     }
 
     @Override
@@ -355,7 +372,10 @@ public class OrganizationServiceImpl implements OrganizationService {
     ) {
         requireMasterAdmin(adminId);
         Organization org = requireActiveOrg(organizationId);
-        return transferOwnershipInternal(org, adminId, request.newOwnerUserId());
+        OrganizationResponse updated = transferOwnershipInternal(org, adminId, request.newOwnerUserId());
+        auditWriter.write(adminId, "ORG_OWNERSHIP_TRANSFERRED", "ORGANIZATION", organizationId,
+                "{\"newOwnerUserId\":\"" + request.newOwnerUserId() + "\"}");
+        return updated;
     }
 
     private OrganizationResponse transferOwnershipInternal(
@@ -419,5 +439,16 @@ public class OrganizationServiceImpl implements OrganizationService {
     private Organization requireActiveOrg(UUID organizationId) {
         return organizationRepository.findByIdAndActiveTrue(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+    }
+
+    private MemberResponse view(OrganizationMember member) {
+        return view(member, userDisplayLookup.find(member.getUserId()));
+    }
+
+    private MemberResponse view(OrganizationMember member, UserDisplay profile) {
+        if (profile == null) {
+            return MemberResponse.from(member);
+        }
+        return MemberResponse.from(member, profile.name(), profile.email());
     }
 }

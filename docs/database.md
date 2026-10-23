@@ -23,7 +23,7 @@ All services connect to the same `collabflow` database. “Owns” = which servi
 |--------------|-----|--------|
 | `auth-service` | Flyway | `users` (schema + credentials/sessions columns), `refresh_tokens`, `email_tokens` |
 | `user-service` | Shared table (no Flyway) | **Writes** profile fields + admin create on `users`; does not own migrations |
-| `platform-service` | Flyway | `roles`, `permissions`, `role_permissions`, `organizations`, `organization_members`, `workspaces`, `workspace_members`, `projects`, `project_members` |
+| `platform-service` | Flyway | `roles`, `permissions`, `role_permissions`, `organizations`, `organization_members`, `workspaces`, `workspace_members`, `projects`, `project_members`, `admin_audit_events`, `announcements`, `feature_flags` |
 | `task-service` | Flyway | `status_workflows`, `workflow_statuses`, `workflow_transitions`, `task_types`, `tasks`, `sprints` (`tasks.sprint_id` FK) |
 | `collab-service` | GORM AutoMigrate | `notifications`, `invitations`, `comments`, `comment_mentions`, `activity_feed`, `processed_events` (consumer idempotency) |
 | `realtime-service` | — | **none** (Redis + Kafka; read-only ACL on `project_members` / `organization_members` / `projects` / `workspaces` / `tasks`) |
@@ -95,6 +95,8 @@ Kept in this doc for later; **do not** add Flyway/GORM until Phase 2+ ([future-p
 | is_active | BOOLEAN | DEFAULT true | Account status (active/inactive) |
 | is_email_verified | BOOLEAN | DEFAULT false | Email verification status |
 | is_master_admin | BOOLEAN | DEFAULT false | Phase 2: admin portal master admin |
+| deleted_at | TIMESTAMPTZ | NULL | Soft delete. Email stays unique until restore |
+| last_login_at | TIMESTAMPTZ | NULL | Stamped on successful login. Dashboard “active” = within 7 days |
 | created_at | TIMESTAMPTZ | DEFAULT CURRENT_TIMESTAMP | Account creation timestamp |
 | updated_at | TIMESTAMPTZ | DEFAULT CURRENT_TIMESTAMP | Last update timestamp |
 
@@ -102,12 +104,68 @@ Kept in this doc for later; **do not** add Flyway/GORM until Phase 2+ ([future-p
 - `idx_users_email` on email (for login queries)
 - `idx_users_is_active` on is_active (for filtering active users)
 - partial `idx_users_is_master_admin` where `is_master_admin = true`
+- partial `idx_users_deleted_at` where `deleted_at IS NOT NULL`
+- `idx_users_last_login_at` on last_login_at
+- `idx_users_created_at` on created_at
 
 **Notes**:
 - Password should be hashed using bcrypt with minimum 10 rounds
 - Email should be case-insensitive for uniqueness checks
 - Avatar URL can be relative path or absolute URL
 - Master admin is seeded by auth-service on boot (`MASTER_ADMIN_EMAIL` / `MASTER_ADMIN_PASSWORD`)
+- A deleted user cannot register the same email again until an admin restores the row
+- Auth Flyway owns these columns. user-service maps them and validates on boot, so auth must migrate before user-service starts
+
+---
+
+### 1c. admin_audit_events (platform)
+
+**Purpose**: Who did what in the master-admin console. Auth and user-service insert rows; platform reads them.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Event id |
+| actor_user_id | UUID | FK users.id, NOT NULL | Master admin who acted |
+| action | VARCHAR(64) | NOT NULL | `USER_CREATED`, `ORG_DEACTIVATED`, `IMPERSONATION_STARTED`, … |
+| target_type | VARCHAR(32) | NOT NULL | `USER`, `ORGANIZATION`, `ANNOUNCEMENT`, `FEATURE_FLAG` |
+| target_id | UUID | NULL | Target row. Null when the target key is not a UUID (flag key lives in metadata) |
+| metadata | JSONB | NULL | Extra fields. Never a password |
+| ip_address | VARCHAR(64) | NULL | Caller address when a request is present |
+| created_at | TIMESTAMPTZ | NOT NULL | When it happened |
+
+**Indexes**: `created_at DESC`, `actor_user_id`, `(target_type, target_id)`.
+
+---
+
+### 1d. announcements (platform)
+
+**Purpose**: One banner on the signed-in shell.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | |
+| title | VARCHAR(200) | NOT NULL | |
+| body | TEXT | NOT NULL | |
+| is_active | BOOLEAN | NOT NULL DEFAULT true | |
+| starts_at | TIMESTAMPTZ | NULL | Null means already started |
+| ends_at | TIMESTAMPTZ | NULL | Null means no end |
+| created_by | UUID | FK users.id, NOT NULL | |
+| created_at | TIMESTAMPTZ | NOT NULL | |
+
+Active banner: `is_active` and `now` between `starts_at` (or unbounded) and `ends_at` (or unbounded). Newest `created_at` wins.
+
+---
+
+### 1e. feature_flags (platform)
+
+**Purpose**: Kill switches. A key the client has never seen is treated as enabled.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| key | VARCHAR(100) | PRIMARY KEY | Stable flag name |
+| enabled | BOOLEAN | NOT NULL DEFAULT false | |
+| description | VARCHAR(500) | NULL | |
+| updated_at | TIMESTAMPTZ | NOT NULL | |
 
 ---
 

@@ -3,8 +3,10 @@ package com.collabflow.auth.service.impl;
 import com.collabflow.auth.config.AuthPhase2Properties;
 import com.collabflow.auth.config.JwtProperties;
 import com.collabflow.auth.config.JwtService;
+import com.collabflow.auth.dto.request.AdminResetPasswordRequest;
 import com.collabflow.auth.dto.request.ChangePasswordRequest;
 import com.collabflow.auth.dto.request.ForgotPasswordRequest;
+import com.collabflow.auth.dto.request.ImpersonateRequest;
 import com.collabflow.auth.dto.request.LoginRequest;
 import com.collabflow.auth.dto.request.RefreshRequest;
 import com.collabflow.auth.dto.request.RegisterRequest;
@@ -14,6 +16,7 @@ import com.collabflow.auth.dto.request.SelectOrganizationRequest;
 import com.collabflow.auth.dto.request.UpdateProfileRequest;
 import com.collabflow.auth.dto.request.VerifyEmailRequest;
 import com.collabflow.auth.dto.response.AuthResponse;
+import com.collabflow.auth.dto.response.ImpersonationResponse;
 import com.collabflow.auth.dto.response.OrganizationSummary;
 import com.collabflow.auth.dto.response.SessionResponse;
 import com.collabflow.auth.dto.response.UserResponse;
@@ -31,10 +34,12 @@ import com.collabflow.auth.repository.OrganizationMemberRefRepository;
 import com.collabflow.auth.repository.OrganizationRefRepository;
 import com.collabflow.auth.repository.RefreshTokenRepository;
 import com.collabflow.auth.repository.UserRepository;
+import com.collabflow.auth.service.AdminAuditWriter;
 import com.collabflow.auth.service.AuthService;
 import com.collabflow.common.exception.BusinessException;
 import com.collabflow.common.exception.ConflictException;
 import com.collabflow.common.exception.ErrorCode;
+import com.collabflow.common.exception.ForbiddenException;
 import com.collabflow.common.exception.ResourceNotFoundException;
 import com.collabflow.common.exception.UnauthorizedException;
 import java.time.Instant;
@@ -63,6 +68,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtProperties jwtProperties;
     private final AuthPhase2Properties authProperties;
     private final ApplicationEventPublisher eventPublisher;
+    private final AdminAuditWriter auditWriter;
 
     public AuthServiceImpl(
             UserRepository userRepository,
@@ -74,7 +80,8 @@ public class AuthServiceImpl implements AuthService {
             JwtService jwtService,
             JwtProperties jwtProperties,
             AuthPhase2Properties authProperties,
-            ApplicationEventPublisher eventPublisher
+            ApplicationEventPublisher eventPublisher,
+            AdminAuditWriter auditWriter
     ) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -86,6 +93,7 @@ public class AuthServiceImpl implements AuthService {
         this.jwtProperties = jwtProperties;
         this.authProperties = authProperties;
         this.eventPublisher = eventPublisher;
+        this.auditWriter = auditWriter;
     }
 
     @Override
@@ -115,9 +123,15 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
-        if (!user.isActive() || !passwordEncoder.matches(request.password(), user.getPassword())) {
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             log.warn("Login failed for email={}", email);
             throw new UnauthorizedException("Invalid email or password");
+        }
+        if (user.getDeletedAt() != null) {
+            throw new UnauthorizedException("This account has been deleted");
+        }
+        if (!user.isActive()) {
+            throw new UnauthorizedException("This account has been deactivated");
         }
 
         if (!user.isEmailVerified() && !user.isMasterAdmin()) {
@@ -127,6 +141,8 @@ public class AuthServiceImpl implements AuthService {
             );
         }
 
+        user.setLastLoginAt(Instant.now());
+        userRepository.save(user);
         log.info("Login ok userId={}", user.getId());
         return issueTokensWithOrgContext(user, request.organizationId(), true);
     }
@@ -145,8 +161,16 @@ public class AuthServiceImpl implements AuthService {
         stored.setRevokedAt(Instant.now());
         refreshTokenRepository.save(stored);
 
+        User user = stored.getUser();
+        if (user.getDeletedAt() != null) {
+            throw new UnauthorizedException("This account has been deleted");
+        }
+        if (!user.isActive()) {
+            throw new UnauthorizedException("This account has been deactivated");
+        }
+
         // Refresh keeps session even if orgs were removed; product APIs still require membership.
-        return issueTokensWithOrgContext(stored.getUser(), null, false);
+        return issueTokensWithOrgContext(user, null, false);
     }
 
     @Override
@@ -301,6 +325,114 @@ public class AuthServiceImpl implements AuthService {
     @Transactional(readOnly = true)
     public boolean isMasterAdmin(UUID userId) {
         return userRepository.findById(userId).map(User::isMasterAdmin).orElse(false);
+    }
+
+    @Override
+    @Transactional
+    public void adminDeactivate(UUID adminId, UUID userId) {
+        requireActiveMaster(adminId);
+        if (adminId.equals(userId)) {
+            throw new ForbiddenException("You cannot deactivate your own account");
+        }
+        User user = requireUser(userId);
+        if (user.getDeletedAt() != null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Restore the user before changing status");
+        }
+        user.setActive(false);
+        userRepository.save(user);
+        refreshTokenRepository.revokeAllActiveForUser(userId);
+        auditWriter.write(adminId, "USER_DEACTIVATED", "USER", userId, null);
+        log.info("Admin deactivated userId={} by={}", userId, adminId);
+    }
+
+    @Override
+    @Transactional
+    public void adminActivate(UUID adminId, UUID userId) {
+        requireActiveMaster(adminId);
+        User user = requireUser(userId);
+        if (user.getDeletedAt() != null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Restore the user before activating");
+        }
+        user.setActive(true);
+        userRepository.save(user);
+        auditWriter.write(adminId, "USER_ACTIVATED", "USER", userId, null);
+        log.info("Admin activated userId={} by={}", userId, adminId);
+    }
+
+    @Override
+    @Transactional
+    public void adminRevokeSessions(UUID adminId, UUID userId) {
+        requireActiveMaster(adminId);
+        requireUser(userId);
+        refreshTokenRepository.revokeAllActiveForUser(userId);
+        auditWriter.write(adminId, "USER_SESSIONS_REVOKED", "USER", userId, null);
+        log.info("Admin revoked sessions userId={} by={}", userId, adminId);
+    }
+
+    @Override
+    @Transactional
+    public void adminResetPassword(UUID adminId, UUID userId, AdminResetPasswordRequest request) {
+        requireActiveMaster(adminId);
+        User user = requireUser(userId);
+        user.setPassword(passwordEncoder.encode(request.temporaryPassword()));
+        userRepository.save(user);
+        refreshTokenRepository.revokeAllActiveForUser(userId);
+        auditWriter.write(adminId, "USER_PASSWORD_RESET", "USER", userId, null);
+        log.info("Admin reset password userId={} by={}", userId, adminId);
+    }
+
+    @Override
+    @Transactional
+    public String adminResendVerification(UUID adminId, UUID userId) {
+        requireActiveMaster(adminId);
+        User user = requireUser(userId);
+        if (user.isEmailVerified()) {
+            return "Already verified";
+        }
+        issueVerifyEmail(user);
+        auditWriter.write(adminId, "USER_VERIFICATION_RESENT", "USER", userId, null);
+        log.info("Admin resent verification userId={} by={}", userId, adminId);
+        return "Verification email sent";
+    }
+
+    @Override
+    @Transactional
+    public ImpersonationResponse impersonate(UUID adminId, ImpersonateRequest request) {
+        requireActiveMaster(adminId);
+        if (adminId.equals(request.userId())) {
+            throw new ForbiddenException("Cannot impersonate yourself");
+        }
+        User target = requireUser(request.userId());
+        if (target.isMasterAdmin()) {
+            throw new ForbiddenException("Cannot impersonate another master admin");
+        }
+        if (target.getDeletedAt() != null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "User is deleted");
+        }
+        if (!target.isActive()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "User is deactivated");
+        }
+        Instant expiresAt = Instant.now().plus(15, ChronoUnit.MINUTES);
+        String token = jwtService.createImpersonationToken(target.getId(), target.getEmail(), adminId);
+        auditWriter.write(adminId, "IMPERSONATION_STARTED", "USER", target.getId(), null);
+        log.info("Impersonation started admin={} target={}", adminId, target.getId());
+        return new ImpersonationResponse(token, expiresAt, target.getId(), target.getEmail(), target.getName());
+    }
+
+    @Override
+    @Transactional
+    public void endImpersonation(UUID actorId, UUID targetId) {
+        requireActiveMaster(actorId);
+        auditWriter.write(actorId, "IMPERSONATION_ENDED", "USER", targetId, null);
+        log.info("Impersonation ended actor={} target={}", actorId, targetId);
+    }
+
+    private User requireActiveMaster(UUID adminId) {
+        User admin = requireUser(adminId);
+        if (!admin.isMasterAdmin() || !admin.isActive() || admin.getDeletedAt() != null) {
+            throw new ForbiddenException("Master admin required");
+        }
+        return admin;
     }
 
     private User createUser(String emailRaw, String rawPassword, String name, boolean masterAdmin) {

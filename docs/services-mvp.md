@@ -49,7 +49,7 @@ Older 16-service layout: historical notes live in [microservice.md](microservice
 | # | Service | Lang | Port | Owns / role | Wave |
 |---|---------|------|------|-------------|------|
 | — | `user-service` | Java | 8084 | Profiles + admin user CRUD on shared `users` table | Wave 3 |
-| 7 | `document-service` | Go | 9083 | Documents stubs; MinIO env placeholders; schema in [database.md](database.md) | Wave 7 |
+| 7 | `document-service` | Go | 9083 | Upload/list/download; files on disk; metadata in Postgres | Wave 7 |
 | 8 | `email-service` | Go | 9084 | Consume `email.send` → real SMTP (MailHog locally) | Wave 8 |
 
 Details: [phase-2.md](phase-2.md), [document-service/README](../backend/go-services/document-service/README.md), [email-service/README](../backend/go-services/email-service/README.md).
@@ -73,9 +73,14 @@ Details: [phase-2.md](phase-2.md), [document-service/README](../backend/go-servi
 
 ```
 /api/v1/auth/**                                              → auth-service:8081
+/api/v1/admin/users/*/deactivate|activate|sessions/revoke|reset-password|resend-verification
+  /api/v1/admin/sessions/**                                  → auth-service:8081 (before the user wildcard)
 /api/v1/users/** , /admin/users/**                           → user-service:8084
 /api/v1/organizations/** , /roles/** , /workspaces/** ,
-  /projects/** , /platform/** , /admin/organizations/**      → platform-service:8082
+  /projects/** , /platform/** , /admin/organizations/** ,
+  /admin/announcements/** , /admin/feature-flags/** ,
+  /admin/audit/** , /admin/stats , /announcements/** ,
+  /feature-flags/**                                          → platform-service:8082
 /api/v1/tasks/** , /workflows/** , /task-types/** ,
   /sprints/**                                                → task-service:8083
 /api/v1/notifications/** , /collab/** , /invitations/** ,
@@ -157,6 +162,12 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | `PLAT-NNN` | platform health |
 | `ORG-NNN` | organizations + members |
 | `ADMIN-ORG-NNN` | master-admin org APIs (platform; reads `users.is_master_admin` from auth) |
+| `ADMIN-STATS-NNN` | platform dashboard counts |
+| `ADMIN-AUDIT-NNN` | platform audit log read |
+| `ADMIN-ANN-NNN` | platform announcement admin |
+| `ANN-NNN` | active announcement for any signed-in user |
+| `ADMIN-FLAG-NNN` | platform feature-flag admin |
+| `FLAG-NNN` | feature-flag read for any signed-in user |
 | `ROLE-NNN` | roles list |
 | `WS-NNN` | workspaces |
 | `PRJ-NNN` | projects |
@@ -191,10 +202,22 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | AUTH-016 | POST | `/api/v1/auth/select-organization` |
 | AUTH-017 | GET | `/api/v1/auth/organizations` |
 | AUTH-020 | POST | `/api/v1/admin/users` | **deprecated** — moved to user-service `USER-020` |
+| AUTH-021 | POST | `/api/v1/admin/users/{id}/deactivate` |
+| AUTH-022 | POST | `/api/v1/admin/users/{id}/activate` |
+| AUTH-023 | POST | `/api/v1/admin/users/{id}/sessions/revoke` |
+| AUTH-024 | POST | `/api/v1/admin/users/{id}/reset-password` |
+| AUTH-025 | POST | `/api/v1/admin/users/{id}/resend-verification` |
+| AUTH-026 | POST | `/api/v1/admin/sessions/impersonate` |
+| AUTH-027 | POST | `/api/v1/admin/sessions/impersonate/end` |
 | USER-000 | GET | `/api/v1/users/health` |
 | USER-001 | GET | `/api/v1/users/me` |
 | USER-002 | PUT | `/api/v1/users/me` |
 | USER-020 | POST | `/api/v1/admin/users` |
+| USER-021 | GET | `/api/v1/admin/users` |
+| USER-022 | GET | `/api/v1/admin/users/{id}` |
+| USER-023 | PUT | `/api/v1/admin/users/{id}/master-admin` |
+| USER-024 | POST | `/api/v1/admin/users/{id}/delete` and `/restore` |
+| USER-025 | GET | `/api/v1/admin/users/export` |
 | PLAT-001 | GET | `/api/v1/platform/health` |
 | ROLE-001 | GET | `/api/v1/roles` |
 | ORG-001 | POST | `/api/v1/organizations` (gated when `collabflow.platform.self-serve-org-create=false`; master admin only) |
@@ -210,6 +233,24 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | ADMIN-ORG-001 | POST | `/api/v1/admin/organizations` |
 | ADMIN-ORG-002 | POST | `/api/v1/admin/organizations/{id}/members` |
 | ADMIN-ORG-003 | POST | `/api/v1/admin/organizations/{id}/transfer-ownership` |
+| ADMIN-ORG-004 | GET | `/api/v1/admin/organizations` |
+| ADMIN-ORG-005 | GET | `/api/v1/admin/organizations/{id}` |
+| ADMIN-ORG-006 | POST | `/api/v1/admin/organizations/{id}/deactivate` |
+| ADMIN-ORG-007 | POST | `/api/v1/admin/organizations/{id}/activate` |
+| ADMIN-ORG-008 | GET | `/api/v1/admin/organizations/export` |
+| ADMIN-ORG-009 | GET | `/api/v1/admin/organizations/by-user/{userId}` |
+| ADMIN-ORG-010 | GET | `/api/v1/admin/organizations/{id}/members` |
+| ADMIN-STATS-001 | GET | `/api/v1/admin/stats` |
+| ADMIN-AUDIT-001 | GET | `/api/v1/admin/audit` |
+| ADMIN-ANN-001 | POST | `/api/v1/admin/announcements` |
+| ADMIN-ANN-002 | GET | `/api/v1/admin/announcements` |
+| ADMIN-ANN-003 | PUT | `/api/v1/admin/announcements/{id}` |
+| ADMIN-ANN-004 | DELETE | `/api/v1/admin/announcements/{id}` |
+| ANN-001 | GET | `/api/v1/announcements/active` (any signed-in user) |
+| ADMIN-FLAG-001 | GET | `/api/v1/admin/feature-flags` |
+| ADMIN-FLAG-002 | PUT | `/api/v1/admin/feature-flags/{key}` |
+| ADMIN-FLAG-003 | DELETE | `/api/v1/admin/feature-flags/{key}` |
+| FLAG-001 | GET | `/api/v1/feature-flags` (any signed-in user; missing key means enabled) |
 | WS-001 | POST | `/api/v1/workspaces` |
 | WS-002 | GET | `/api/v1/organizations/{orgId}/workspaces` |
 | WS-003 | GET | `/api/v1/workspaces/{id}` |
@@ -277,8 +318,9 @@ Controllers tag handlers with `@ApiId("AREA-NNN")` (see `.cursor/rules/java-spri
 | RT-001 | GET (WS) | `/api/v1/realtime/ws` |
 | RT-002 | POST | `/api/v1/realtime/broadcast` |
 | DOC-000 | GET | `/api/v1/documents/health` |
-| DOC-001 | POST | `/api/v1/documents/upload` (Wave 7 stub) |
-| DOC-002 | GET | `/api/v1/documents?projectId=` (Wave 7 stub) |
+| DOC-001 | POST | `/api/v1/documents/upload` (multipart; project member) |
+| DOC-002 | GET | `/api/v1/documents?projectId=` (latest files) |
+| DOC-003 | GET | `/api/v1/documents/{id}/content` (download) |
 | EMAIL-000 | GET | `/api/v1/email/health` (direct `:9084`) |
 
 **OpenAPI (Java):** Swagger UI on direct ports — auth `:8081`, platform `:8082`, task `:8083` → `/swagger-ui.html` (send `X-API-Key`). Gateway does not proxy Swagger.

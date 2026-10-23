@@ -50,6 +50,12 @@ public class User {
     @Column(name = "is_master_admin", nullable = false)
     private boolean masterAdmin = false;
 
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
+    @Column(name = "last_login_at")
+    private Instant lastLoginAt;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -146,6 +152,22 @@ public class User {
 
     public void setMasterAdmin(boolean masterAdmin) {
         this.masterAdmin = masterAdmin;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Instant deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public Instant getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(Instant lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
     }
 
     public Instant getCreatedAt() {
