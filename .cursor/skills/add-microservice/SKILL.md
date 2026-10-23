@@ -2,7 +2,7 @@
 name: add-microservice
 description: >-
   Scaffold a new CollabFlow microservice (Java Spring Boot or Golang Gin).
-  Use when creating a new service under java-services/ or go-services/, adding
+  Use when creating a new service under backend/java-services/ or backend/go-services/, adding
   a service from docs/microservice.md, or when the user asks to add/scaffold a microservice.
 ---
 
@@ -21,7 +21,7 @@ Copy and track:
 
 ```
 Service scaffold:
-- [ ] Language and folder chosen (java-services/{name} or go-services/{name})
+- [ ] Language and folder chosen (backend/java-services/{name} or backend/go-services/{name})
 - [ ] Port matches microservice.md gateway routes
 - [ ] README with responsibility, endpoints, deps
 - [ ] Config via env (DB, Redis, Kafka)
@@ -33,7 +33,7 @@ Service scaffold:
 
 ## Java (Spring Boot)
 
-1. Create `java-services/{service-name}/` with standard layout from `.cursor/rules/java-spring.mdc`.
+1. Create `backend/java-services/{service-name}/` with standard layout from `.cursor/rules/java-spring.mdc`.
 2. Dependencies: Web, Security (if auth-facing), Data JPA, Redis, Kafka as required by microservice.md.
 3. `application.yml` placeholders for Postgres, Redis, Kafka.
 4. Flyway folder: `src/main/resources/db/migration/` (empty or first migration if this service owns new tables).
@@ -41,7 +41,7 @@ Service scaffold:
 
 ## Golang (Gin)
 
-1. Create `go-services/{service-name}/` with layout from `.cursor/rules/golang-services.mdc`.
+1. Create `backend/go-services/{service-name}/` with layout from `.cursor/rules/golang-services.mdc`.
 2. Module name consistent with repo (e.g. `github.com/.../go-services/{name}` — match existing when present).
 3. Gin router, GORM dialector for Postgres, go-redis / Kafka clients as needed.
 4. Handlers stubbed to documented paths only.

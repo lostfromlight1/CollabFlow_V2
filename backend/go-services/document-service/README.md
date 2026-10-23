@@ -2,11 +2,11 @@
 
 **Port:** 9083 · Go **1.27** / Gin  
 **Phase:** Wave 7 scaffold (Phase 2)  
-**UAT:** **Out of scope** — stubs only; do not demo upload/list ([fe-contract.md](../../docs/fe-contract.md)).  
-**Owns (planned):** `documents`, `document_folders`, `document_permissions`, `document_tags` — [database.md](../../docs/database.md)  
+**UAT:** **Out of scope** — stubs only; do not demo upload/list ([fe-contract.md](../../../docs/fe-contract.md)).  
+**Owns (planned):** `documents`, `document_folders`, `document_permissions`, `document_tags` — [database.md](../../../docs/database.md)  
 **Storage (planned):** MinIO/S3 via `MINIO_*` env  
 
-Catalog: [services-mvp.md](../../docs/services-mvp.md) · Waves: [phase-2.md](../../docs/phase-2.md) · Deferred story: [future-plan.md](../../docs/future-plan.md)
+Catalog: [services-mvp.md](../../../docs/services-mvp.md) · Waves: [phase-2.md](../../../docs/phase-2.md) · Deferred story: [future-plan.md](../../../docs/future-plan.md)
 
 ### See also / Depends on
 
@@ -14,7 +14,7 @@ Catalog: [services-mvp.md](../../docs/services-mvp.md) · Waves: [phase-2.md](..
 |-------|--------|
 | Org/project membership for ACL | [platform-service](../../java-services/platform-service/README.md) |
 | Gateway `/api/v1/documents/**` | [api-gateway](../../java-services/api-gateway/README.md) → `:9083` |
-| Schema sketch | [database.md](../../docs/database.md) Document Management Tables |
+| Schema sketch | [database.md](../../../docs/database.md) Document Management Tables |
 
 ## What / why
 
@@ -46,7 +46,7 @@ Gateway: `/api/v1/documents/**` → `http://localhost:9083`.
 ## Run / verify
 
 ```bash
-cd go-services/document-service
+cd backend/go-services/document-service
 go run ./cmd/server
 curl http://localhost:9083/api/v1/documents/health
 curl "http://localhost:9083/api/v1/documents?projectId=00000000-0000-0000-0000-000000000001"

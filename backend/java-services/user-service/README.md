@@ -2,7 +2,7 @@
 
 **Port:** 8084 · Java 21 / Boot 4.1 / Gradle  
 **Phase 2 Wave 3:** Split from auth — profiles + admin user CRUD  
-**Ordered waves:** [docs/phase-2.md](../../docs/phase-2.md)
+**Ordered waves:** [docs/phase-2.md](../../../docs/phase-2.md)
 
 ## Ownership
 

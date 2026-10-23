@@ -5,7 +5,7 @@
 **MVP:** Complete · **Phase 2 Waves 1–3:** largely shipped (see checklist)
 
 Shared: `:common` → envelopes, `ApiKeyFilter`, `DomainEvent`, `@CurrentUserId`, `@ApiId`  
-(see `.cursor/rules/java-spring.mdc` + [services-mvp.md](../../docs/services-mvp.md) ApiId catalog).
+(see `.cursor/rules/java-spring.mdc` + [services-mvp.md](../../../docs/services-mvp.md) ApiId catalog).
 
 ## What it does
 
@@ -42,7 +42,7 @@ Identity and tokens for CollabFlow. Today (MVP): open register/login with email 
 
 ## Phase 2 — status (shipped vs leftover)
 
-Ordered waves: [docs/phase-2.md](../../docs/phase-2.md). FE contract: [docs/fe-contract.md](../../docs/fe-contract.md).
+Ordered waves: [docs/phase-2.md](../../../docs/phase-2.md). FE contract: [docs/fe-contract.md](../../../docs/fe-contract.md).
 
 ### Shipped on auth
 
@@ -65,7 +65,7 @@ Ordered waves: [docs/phase-2.md](../../docs/phase-2.md). FE contract: [docs/fe-c
 
 ### Frontend / admin portal (out of this service)
 
-- [ ] Admin portal UI + app UI — see [fe-contract.md](../../docs/fe-contract.md)
+- [ ] Admin portal UI + app UI — see [fe-contract.md](../../../docs/fe-contract.md)
 
 ## Target flow (Phase 2 design)
 
@@ -91,7 +91,7 @@ User
 | Email verify | Required in the login/onboarding path |
 | Org on login | User **selects** which org to work in |
 
-**Ordered waves:** [docs/phase-2.md](../../docs/phase-2.md). Deferred catalog: [future-plan.md](../../docs/future-plan.md).
+**Ordered waves:** [docs/phase-2.md](../../../docs/phase-2.md). Deferred catalog: [future-plan.md](../../../docs/future-plan.md).
 
 ### See also / Depends on
 
@@ -126,7 +126,7 @@ Console + dated files: repo `logs/auth/auth-service.yyyy-MM-dd.log` (`logback-sp
 Needs Docker: Postgres, Redis, Kafka (`infrastructure/`). Secrets from repo-root `.env` (`bootRun` loads them).
 
 ```powershell
-cd D:\codes\CollabFlow_V2\java-services
+cd D:\codes\CollabFlow_V2\backend\java-services
 .\gradlew.bat :auth-service:bootRun
 ```
 

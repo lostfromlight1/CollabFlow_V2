@@ -4,8 +4,8 @@
 **Role:** Single HTTP edge for `/api/v1/**` — route, `X-API-Key`, JWT on protected paths  
 **MVP:** Complete · **Phase 2:** Waves 0–2 largely shipped (see checklist)
 
-Upstream catalog: [services-mvp.md](../../docs/services-mvp.md).  
-**Ordered waves:** [docs/phase-2.md](../../docs/phase-2.md).
+Upstream catalog: [services-mvp.md](../../../docs/services-mvp.md).  
+**Ordered waves:** [docs/phase-2.md](../../../docs/phase-2.md).
 
 ### See also / Depends on
 
@@ -47,7 +47,7 @@ CollabFlow’s front door. Clients (Postman, future admin portal, future app UI)
 
 ## Phase 2 — TODO
 
-Do **not** invent routes in [services-mvp.md](../../docs/services-mvp.md) until implemented. Coordinate with auth / user-service / platform Phase 2.
+Do **not** invent routes in [services-mvp.md](../../../docs/services-mvp.md) until implemented. Coordinate with auth / user-service / platform Phase 2.
 
 ### Security fixes / auth alignment
 
@@ -93,7 +93,7 @@ Do **not** invent routes in [services-mvp.md](../../docs/services-mvp.md) until 
 Needs Docker infra if calling real services. Secrets from repo-root `.env` (`bootRun` loads them).
 
 ```powershell
-cd D:\codes\CollabFlow_V2\java-services
+cd D:\codes\CollabFlow_V2\backend\java-services
 # Typical: start auth (and others) then gateway
 .\gradlew.bat :auth-service:bootRun
 .\gradlew.bat :api-gateway:bootRun
@@ -109,4 +109,4 @@ curl http://localhost:8080/api/v1/auth/health -H "X-API-Key: $k"
 curl http://localhost:8080/api/v1/auth/me -H "X-API-Key: $k" -H "Authorization: Bearer <accessToken>"
 ```
 
-Full happy path: [e2e-demo.md](../../docs/e2e-demo.md) · Postman under `postman/`.
+Full happy path: [e2e-demo.md](../../../docs/e2e-demo.md) · Postman under `postman/`.

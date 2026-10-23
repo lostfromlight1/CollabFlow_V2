@@ -79,5 +79,5 @@ Do **not** follow [docs/archive/legacy-16-service-plan.md](docs/archive/legacy-1
 ## Repo status
 
 Slim **6-service MVP complete** + Phase 2; FE freeze via `uat` + [docs/fe-contract.md](docs/fe-contract.md).  
-Folders: `java-services/`, `go-services/`, `infrastructure/`, `docs/`, `postman/` (target layout: `backend/` + `frontend/`).  
+Folders: `backend/` (java + go + infra), `frontend/`, `docs/`, `postman/`.  
 Demo: [docs/e2e-demo.md](docs/e2e-demo.md). Secrets: repo-root `.env` only (not `application.yml`).

@@ -4,7 +4,7 @@
 **Phase:** Wave 8 — **real SMTP** (local MailHog or provider)  
 **Role:** Consume Kafka `email.send` and deliver email  
 
-Waves: [phase-2.md](../../docs/phase-2.md) · Envelope: [microservice.md](../../docs/microservice.md)
+Waves: [phase-2.md](../../../docs/phase-2.md) · Envelope: [microservice.md](../../../docs/microservice.md)
 
 ### See also / Depends on
 
@@ -45,7 +45,7 @@ Auth/collab publish `email.send` after DB commit. This service dials SMTP and se
 cd D:\codes\CollabFlow_V2\infrastructure
 docker compose --env-file ../.env up -d
 
-cd D:\codes\CollabFlow_V2\go-services\email-service
+cd D:\codes\CollabFlow_V2\backend\go-services\email-service
 go run ./cmd/server
 
 # Trigger verify/reset/invite → open http://localhost:8025

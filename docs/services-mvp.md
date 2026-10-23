@@ -52,7 +52,7 @@ Older 16-service layout: historical notes live in [microservice.md](microservice
 | 7 | `document-service` | Go | 9083 | Documents stubs; MinIO env placeholders; schema in [database.md](database.md) | Wave 7 |
 | 8 | `email-service` | Go | 9084 | Consume `email.send` → real SMTP (MailHog locally) | Wave 8 |
 
-Details: [phase-2.md](phase-2.md), [document-service/README](../go-services/document-service/README.md), [email-service/README](../go-services/email-service/README.md).
+Details: [phase-2.md](phase-2.md), [document-service/README](../backend/go-services/document-service/README.md), [email-service/README](../backend/go-services/email-service/README.md).
 
 ---
 
@@ -125,19 +125,21 @@ Platform org/workspace/project topics are produced for portfolio/event story; Go
 ## Repo layout
 
 ```
-java-services/
-  common/            # ApiResponse, ErrorResponse, ApiKeyFilter, GlobalExceptionHandler
-  auth-service/
-  user-service/      # Phase 2 Wave 3 — profiles + admin users (:8084)
-  platform-service/
-  task-service/
-  api-gateway/
-go-services/
-  collab-service/
-  realtime-service/
-  document-service/  # Phase 2 Wave 7 scaffold (:9083)
-  email-service/     # Phase 2 Wave 8 scaffold (:9084)
-infrastructure/      # docker-compose: postgres, redis, zookeeper, kafka
+backend/
+  java-services/
+    common/            # ApiResponse, ErrorResponse, ApiKeyFilter, GlobalExceptionHandler
+    auth-service/
+    user-service/      # Phase 2 Wave 3 — profiles + admin users (:8084)
+    platform-service/
+    task-service/
+    api-gateway/
+  go-services/
+    collab-service/
+    realtime-service/
+    document-service/  # Phase 2 Wave 7 scaffold (:9083)
+    email-service/     # Phase 2 Wave 8 scaffold (:9084)
+  infrastructure/      # docker-compose: postgres, redis, zookeeper, kafka
+frontend/              # Next.js App Router
 docs/
 postman/
 ```

@@ -1,8 +1,8 @@
 # CollabFlow local infra — pins from docs/tech-stack.md
 # Usage (from this directory):
-#   docker compose --env-file ../.env up -d
-#   docker compose --env-file ../.env ps
-#   docker compose --env-file ../.env down
+#   docker compose --env-file ../../.env up -d
+#   docker compose --env-file ../../.env ps
+#   docker compose --env-file ../../.env down
 
 name: collabflow
 

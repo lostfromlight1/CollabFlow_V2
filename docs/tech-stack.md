@@ -41,7 +41,8 @@ Canonical services: [services-mvp.md](services-mvp.md). Progress: [progress-trac
 | API docs | **springdoc-openapi-starter-webmvc-ui 3.1.1** |
 | JWT library | **jjwt 0.12.6** (auth / platform / task) |
 | Tests | JUnit 5, Mockito, Spring Boot Test |
-| Build | Multi-module **Gradle** under `java-services/` + Wrapper |
+| Build | Multi-module **Gradle** under `backend/java-services/` + Wrapper |
+| Frontend | **Next.js** App Router under `frontend/` (pin in `frontend/package.json`) |
 | DSL | Groovy `build.gradle` |
 
 ### Java conventions

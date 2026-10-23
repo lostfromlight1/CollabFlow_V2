@@ -13,7 +13,7 @@ Smoke / Postman path: **[e2e-demo.md](e2e-demo.md)**.
 | [setup.md](setup.md) | First-time machine: Git, JDK 21, Go 1.27, Docker |
 | **This file** | `.env`, Compose, start every service, health checks |
 | [e2e-demo.md](e2e-demo.md) | Admin tenancy demo + curl / Postman narrative |
-| [infrastructure/README.md](../infrastructure/README.md) | Compose flags, wipe volumes, Kafka smoke |
+| [infrastructure/README.md](../backend/infrastructure/README.md) | Compose flags, wipe volumes, Kafka smoke |
 | [services-mvp.md](services-mvp.md) | Ports, gateway routes, ApiIds |
 
 ---
@@ -47,9 +47,9 @@ Never put secrets in `application.yml`.
 ## 2. Infrastructure (Docker)
 
 ```powershell
-cd infrastructure
-docker compose --env-file ../.env up -d
-docker compose --env-file ../.env ps
+cd backend\infrastructure
+docker compose --env-file ..\..\.env up -d
+docker compose --env-file ..\..\.env ps
 ```
 
 Expect healthy / running:
@@ -71,7 +71,7 @@ docker exec -it collabflow-postgres pg_isready -U postgres
 docker exec -it collabflow-redis redis-cli ping
 ```
 
-Details / wipe volumes: [infrastructure/README.md](../infrastructure/README.md).
+Details / wipe volumes: [infrastructure/README.md](../backend/infrastructure/README.md).
 
 ---
 
@@ -81,20 +81,20 @@ Details / wipe volumes: [infrastructure/README.md](../infrastructure/README.md).
 
 | Port | Service | Folder |
 |------|---------|--------|
-| 8080 | api-gateway | `java-services/api-gateway` |
-| 8081 | auth-service | `java-services/auth-service` |
-| 8082 | platform-service | `java-services/platform-service` |
-| 8083 | task-service | `java-services/task-service` |
-| 9081 | collab-service | `go-services/collab-service` |
-| 9082 | realtime-service | `go-services/realtime-service` |
+| 8080 | api-gateway | `backend/java-services/api-gateway` |
+| 8081 | auth-service | `backend/java-services/auth-service` |
+| 8082 | platform-service | `backend/java-services/platform-service` |
+| 8083 | task-service | `backend/java-services/task-service` |
+| 9081 | collab-service | `backend/go-services/collab-service` |
+| 9082 | realtime-service | `backend/go-services/realtime-service` |
 
 ### Phase 2 (add when demoing admin / email)
 
 | Port | Service | Folder |
 |------|---------|--------|
-| 8084 | user-service | `java-services/user-service` |
-| 9084 | email-service | `go-services/email-service` |
-| 9083 | document-service | `go-services/document-service` (stubs; optional) |
+| 8084 | user-service | `backend/java-services/user-service` |
+| 9084 | email-service | `backend/go-services/email-service` |
+| 9083 | document-service | `backend/go-services/document-service` (stubs; optional) |
 
 Clients should hit the **gateway** (`:8080`) with `X-API-Key` (+ Bearer where needed).  
 Swagger (direct ports): auth `8081`, platform `8082`, task `8083` → `/swagger-ui.html`.
@@ -112,10 +112,10 @@ Suggested order so Flyway / Kafka consumers do not race emptily:
 
 You can open one terminal per service (or IDE run configs).
 
-### Java (from `java-services/`)
+### Java (from `backend/java-services/`)
 
 ```powershell
-cd java-services
+cd backend\java-services
 
 .\gradlew.bat :auth-service:bootRun
 .\gradlew.bat :platform-service:bootRun
@@ -137,17 +137,17 @@ Get-Content .env | Where-Object { $_ -match '^\s*[^#][^=]+=' } | ForEach-Object 
   Set-Item -Path "Env:$($k.Trim())" -Value $v.Trim()
 }
 
-cd go-services\collab-service;   go run ./cmd/server
+cd backend\go-services\collab-service;   go run ./cmd/server
 # new window + reload .env:
-cd go-services\realtime-service; go run ./cmd/server
-cd go-services\email-service;    go run ./cmd/server
+cd backend\go-services\realtime-service; go run ./cmd/server
+cd backend\go-services\email-service;    go run ./cmd/server
 ```
 
 **Bash:**
 
 ```bash
 set -a && source .env && set +a
-cd go-services/collab-service && go run ./cmd/server
+cd backend/go-services/collab-service && go run ./cmd/server
 ```
 
 With `EMAIL_SERVICE_ENABLED=true`, collab **skips** its email stub — run **email-service** or mail never leaves Kafka.

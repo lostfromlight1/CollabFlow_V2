@@ -1,6 +1,6 @@
 ---
 description: Golang Gin/GORM conventions for CollabFlow supporting services
-globs: go-services/**/*.{go,mod,yml,yaml}
+globs: backend/go-services/**/*.{go,mod,yml,yaml}
 alwaysApply: false
 ---
 
@@ -16,7 +16,7 @@ alwaysApply: false
 - WebSockets: gorilla/websocket (`realtime-service`)
 - Tests: testify
 
-## Layout (per service under `go-services/{name}/`)
+## Layout (per service under `backend/go-services/{name}/`)
 
 ```
 cmd/server/main.go

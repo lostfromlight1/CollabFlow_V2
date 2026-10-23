@@ -1,6 +1,6 @@
 ---
 description: Java Spring Boot conventions for CollabFlow core services
-globs: java-services/**/*.{java,xml,yml,yaml,gradle,kts}
+globs: backend/java-services/**/*.{java,xml,yml,yaml,gradle,kts}
 alwaysApply: false
 ---
 
@@ -10,7 +10,7 @@ alwaysApply: false
 
 - **JDK 21 LTS**, **Spring Boot 4.1.x** (start 4.1.1)
 - **Spring Cloud 2025.1.x** for Gateway (`api-gateway`)
-- Build: **Gradle** multi-module under `java-services/`
+- Build: **Gradle** multi-module under `backend/java-services/`
 - Shared API envelopes: project `:common` (`ApiResponse`, `ErrorResponse`, `GlobalExceptionHandler`)
 - Migrations: **Flyway** in `src/main/resources/db/migration/`
 

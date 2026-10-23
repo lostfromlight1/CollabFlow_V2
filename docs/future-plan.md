@@ -61,15 +61,15 @@ Schema for documents already sketched in [database.md](database.md) (marked Phas
 
 | Area | README Phase 2 TODO |
 |------|---------------------|
-| Auth / admin seed / verify | [auth-service/README.md](../java-services/auth-service/README.md) |
-| Gateway / CORS / org header / sprints JWT | [api-gateway/README.md](../java-services/api-gateway/README.md) |
-| Platform admin org/member | [platform-service/README.md](../java-services/platform-service/README.md) |
-| Common DTOs / org header / request-id | [common/README.md](../java-services/common/README.md) |
-| Task sprints / filters | [task-service/README.md](../java-services/task-service/README.md) |
-| Collab invite + email stub | [collab-service/README.md](../go-services/collab-service/README.md) |
-| Realtime ACL | [realtime-service/README.md](../go-services/realtime-service/README.md) |
-| Documents (Wave 7) | [document-service/README.md](../go-services/document-service/README.md) |
-| Email extract (Wave 8) | [email-service/README.md](../go-services/email-service/README.md) |
+| Auth / admin seed / verify | [auth-service/README.md](../backend/java-services/auth-service/README.md) |
+| Gateway / CORS / org header / sprints JWT | [api-gateway/README.md](../backend/java-services/api-gateway/README.md) |
+| Platform admin org/member | [platform-service/README.md](../backend/java-services/platform-service/README.md) |
+| Common DTOs / org header / request-id | [common/README.md](../backend/java-services/common/README.md) |
+| Task sprints / filters | [task-service/README.md](../backend/java-services/task-service/README.md) |
+| Collab invite + email stub | [collab-service/README.md](../backend/go-services/collab-service/README.md) |
+| Realtime ACL | [realtime-service/README.md](../backend/go-services/realtime-service/README.md) |
+| Documents (Wave 7) | [document-service/README.md](../backend/go-services/document-service/README.md) |
+| Email extract (Wave 8) | [email-service/README.md](../backend/go-services/email-service/README.md) |
 
 ### Phase 3 — Insights & data out
 

@@ -4,8 +4,8 @@
 **Owns:** `notifications`, `invitations`, `comments`, `comment_mentions`, `activity_feed`, `processed_events`  
 **MVP:** Complete · **Phase 2:** TODO checklist below  
 
-Async side effects + collaboration HTTP for CollabFlow. Catalog: [services-mvp.md](../../docs/services-mvp.md).  
-**Ordered waves:** [docs/phase-2.md](../../docs/phase-2.md).
+Async side effects + collaboration HTTP for CollabFlow. Catalog: [services-mvp.md](../../../docs/services-mvp.md).  
+**Ordered waves:** [docs/phase-2.md](../../../docs/phase-2.md).
 
 ### See also / Depends on
 
@@ -81,7 +81,7 @@ Coordinate with auth (admin users), platform (membership on accept), gateway (or
 ### Stretch / later
 
 - Split into notification/comment microservices — **not** Phase 2  
-- Standalone **email-service** ([future-plan.md](../../docs/future-plan.md))  
+- Standalone **email-service** ([future-plan.md](../../../docs/future-plan.md))  
 
 ## Security
 
@@ -129,7 +129,7 @@ Conventions: `.cursor/rules/golang-services.mdc`. Learning: skill `teach-and-bui
 Postgres + Kafka + platform up. Same DB `collabflow` as Java. Load `API_KEY` from repo-root `.env`.
 
 ```powershell
-cd D:\codes\CollabFlow_V2\go-services\collab-service
+cd D:\codes\CollabFlow_V2\backend\go-services\collab-service
 $env:API_KEY = (Get-Content ..\..\.env | Where-Object { $_ -match '^API_KEY=' }) -replace '^API_KEY=',''
 go run ./cmd/server
 ```
@@ -142,4 +142,4 @@ go run ./cmd/server
 4. Create invitation → Kafka `email.send` → `EMAIL_STUB` with `template=invitation`  
 5. Accept invite → platform adds org member (no collab write to `organization_members`)  
 
-Full path: [e2e-demo.md](../../docs/e2e-demo.md).
+Full path: [e2e-demo.md](../../../docs/e2e-demo.md).

@@ -4,9 +4,9 @@
 **Owns:** no Postgres tables (Kafka + Redis; **reads** shared `project_members` / `organization_members` for subscribe ACL)  
 **MVP:** Complete · **Phase 2:** Wave 6 ACL checklist below  
 
-Live updates for open boards/pages. Catalog: [services-mvp.md](../../docs/services-mvp.md).  
+Live updates for open boards/pages. Catalog: [services-mvp.md](../../../docs/services-mvp.md).  
 Durable inbox is **collab-service**, not this service.  
-**Ordered waves:** [docs/phase-2.md](../../docs/phase-2.md).
+**Ordered waves:** [docs/phase-2.md](../../../docs/phase-2.md).
 
 ### See also / Depends on
 
@@ -110,7 +110,7 @@ Coordinate with gateway (WS JWT / API key), platform (membership ACL), collab (n
 Redis + Kafka + Postgres up.
 
 ```powershell
-cd D:\codes\CollabFlow_V2\go-services\realtime-service
+cd D:\codes\CollabFlow_V2\backend\go-services\realtime-service
 go run ./cmd/server
 ```
 
@@ -122,6 +122,6 @@ go run ./cmd/server
 4. Subscribe as a non-member → expect `type:error` / `FORBIDDEN`  
 5. `POST /broadcast` with `GIN_MODE=release` and `APP_ENV` unset → `403`  
 
-Full path: [e2e-demo.md](../../docs/e2e-demo.md).
+Full path: [e2e-demo.md](../../../docs/e2e-demo.md).
 
 Conventions: `.cursor/rules/golang-services.mdc`. Learning: skill `teach-and-build`.

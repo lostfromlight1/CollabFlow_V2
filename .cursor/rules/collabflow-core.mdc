@@ -33,9 +33,9 @@ Ignore archived `docs/archive/legacy-16-service-plan.md` (old 16-service plan).
 - Frontend: `docs/fe-contract.md` + `.cursor/rules/frontend-next.mdc` (app in `frontend/`)
 - Do **not** invent tables/endpoints/topics undocumented; update docs in the same change
 
-## Monorepo target
+## Monorepo layout
 
-Prefer `backend/` (java + go + infra) + `frontend/` (Next.js). Until the move lands, legacy `java-services/` / `go-services/` / `infrastructure/` at repo root are still valid.
+`backend/` (java-services, go-services, infrastructure) + `frontend/` (Next.js). Shared contracts stay in root `docs/`.
 
 ## Communication patterns
 

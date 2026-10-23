@@ -5,8 +5,8 @@
 **MVP:** Complete · **Phase 2:** Wave 5 sprints / sub-tasks / filters shipped (checklist below)  
 
 Hierarchy: Organization → Workspace → Project → **Task** (this service).  
-ApiIds: [services-mvp.md](../../docs/services-mvp.md).  
-**Ordered waves:** [docs/phase-2.md](../../docs/phase-2.md).
+ApiIds: [services-mvp.md](../../../docs/services-mvp.md).  
+**Ordered waves:** [docs/phase-2.md](../../../docs/phase-2.md).
 
 ### See also / Depends on
 
@@ -77,7 +77,7 @@ Coordinate with gateway (sprints JWT), platform/org header, and common paginatio
 - [x] **Richer list filters** — status, assignee, priority, sprint (Postgres)
 - [x] **Pagination** — common `PageResponse` on list tasks
 - [x] **Sub-tasks API** — create/list children via `parent_task_id`
-- [ ] **Task dependencies** — blocks/relates tables from [database.md](../../docs/database.md) (not migrated) + APIs
+- [ ] **Task dependencies** — blocks/relates tables from [database.md](../../../docs/database.md) (not migrated) + APIs
 - [ ] **Custom fields** — admin + values on tasks (design-only tables today)
 - [ ] **Text search** on task list (Postgres `ILIKE` / later ES)
 
@@ -120,7 +120,7 @@ Conventions: `@CurrentUserId` + `@ApiId` — `.cursor/rules/java-spring.mdc`.
 Needs Postgres (auth + platform first, including projects) + Kafka. Secrets from repo-root `.env`.
 
 ```powershell
-cd D:\codes\CollabFlow_V2\java-services
+cd D:\codes\CollabFlow_V2\backend\java-services
 .\gradlew.bat :task-service:bootRun
 ```
 
@@ -141,4 +141,4 @@ curl "$base/api/v1/sprints?projectId=<projectId>" -H "X-API-Key: $k" -H "Authori
 curl "$base/api/v1/tasks/stats?projectId=<projectId>" -H "X-API-Key: $k" -H "Authorization: Bearer <accessToken>"
 ```
 
-Full path: [e2e-demo.md](../../docs/e2e-demo.md).
+Full path: [e2e-demo.md](../../../docs/e2e-demo.md).

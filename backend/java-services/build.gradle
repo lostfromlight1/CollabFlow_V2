@@ -64,7 +64,8 @@ subprojects {
         if (bootRunTask == null) {
             return
         }
-        def envFile = rootProject.projectDir.parentFile.toPath().resolve('.env').toFile()
+        // repo-root .env: backend/java-services → backend → CollabFlow_V2
+        def envFile = rootProject.projectDir.parentFile.parentFile.toPath().resolve('.env').toFile()
         def fromFile = rootProject.ext.loadRepoDotEnv(envFile)
 
         fromFile.each { key, value ->

@@ -5,8 +5,8 @@
 **MVP:** Complete · **Phase 2:** TODO checklist below
 
 Hierarchy: **Organization → Workspace → Project** (tasks live in `task-service`).  
-ApiIds: [services-mvp.md](../../docs/services-mvp.md).  
-**Ordered waves:** [docs/phase-2.md](../../docs/phase-2.md).
+ApiIds: [services-mvp.md](../../../docs/services-mvp.md).  
+**Ordered waves:** [docs/phase-2.md](../../../docs/phase-2.md).
 
 ### See also / Depends on
 
@@ -88,7 +88,7 @@ Coordinate with auth (admin users), gateway (org header / CORS), and future **us
 - [ ] **Member lists with display fields** — name/email via `UserRef` / user-service (admin UX)
 - [ ] **Org soft-delete cascade policy** — document + enforce workspace/project behavior when org is deactivated
 - [x] **Missing org Kafka events** — `organization.updated`, `organization.deleted`, `organization.member_removed`
-- [ ] **Tags** — workspace tags from [database.md](../../docs/database.md) (design-only today); only if needed before documents
+- [ ] **Tags** — workspace tags from [database.md](../../../docs/database.md) (design-only today); only if needed before documents
 
 ### Hardening
 
@@ -123,7 +123,7 @@ Conventions: `@CurrentUserId` + `@ApiId` — `.cursor/rules/java-spring.mdc`.
 Needs Postgres (`users` from auth Flyway first) + Kafka. Migrations: `flyway_platform_history` (V1 roles → V4 projects). Secrets from repo-root `.env`.
 
 ```powershell
-cd D:\codes\CollabFlow_V2\java-services
+cd D:\codes\CollabFlow_V2\backend\java-services
 .\gradlew.bat :platform-service:bootRun
 ```
 
@@ -139,4 +139,4 @@ curl -X POST "$base/api/v1/organizations" -H "Content-Type: application/json" -H
 curl "$base/api/v1/organizations" -H "X-API-Key: $k" -H "Authorization: Bearer <accessToken>"
 ```
 
-Full path: [e2e-demo.md](../../docs/e2e-demo.md) · Postman: `postman/CollabFlow-Platform.postman_collection.json`.
+Full path: [e2e-demo.md](../../../docs/e2e-demo.md) · Postman: `postman/CollabFlow-Platform.postman_collection.json`.

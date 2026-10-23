@@ -6,7 +6,7 @@
 
 Consumed by servlet MVC services: **auth**, **platform**, **task** (and future **user-service**).  
 **api-gateway** is WebFlux and keeps its own API-key / JWT filters; it does not rely on this module’s servlet stack.  
-**Ordered waves:** [docs/phase-2.md](../../docs/phase-2.md).
+**Ordered waves:** [docs/phase-2.md](../../../docs/phase-2.md).
 
 ### See also / Depends on
 
@@ -82,7 +82,7 @@ Library improvements used by all Java services. Implement here first, then adopt
 })
 ```
 
-3. Controllers: `@CurrentUserId` + `@ApiId("AREA-NNN")` — see `.cursor/rules/java-spring.mdc` and [services-mvp.md](../../docs/services-mvp.md).
+3. Controllers: `@CurrentUserId` + `@ApiId("AREA-NNN")` — see `.cursor/rules/java-spring.mdc` and [services-mvp.md](../../../docs/services-mvp.md).
 
 ## Config
 

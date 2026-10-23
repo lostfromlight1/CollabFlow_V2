@@ -77,21 +77,22 @@ Realtime WS: `ws://localhost:9082/api/v1/realtime/ws?token=$TOKEN` then
 
 | Doc | Contents |
 |-----|----------|
-| [docs/setup.md](docs/setup.md) | Install tools (Windows / Fedora) |
-| [docs/running.md](docs/running.md) | Run infra + every service |
-| [docs/e2e-demo.md](docs/e2e-demo.md) | E2E / testing narrative |
-| [docs/fe-contract.md](docs/fe-contract.md) | **FE / UAT contract** |
+| [docs/](docs/) | **Shared contracts** (ApiIds, schema, fe-contract, running) |
+| [backend/README.md](backend/README.md) | How to run Java/Go + infra |
+| [frontend/README.md](frontend/README.md) | Next.js app (when scaffolded) |
+| [docs/fe-contract.md](docs/fe-contract.md) | **FE ↔ BE contract** |
 | [docs/services-mvp.md](docs/services-mvp.md) | Ports + ApiId catalog |
-| [docs/phase-2.md](docs/phase-2.md) | Phase 2 waves |
-| [docs/future-plan.md](docs/future-plan.md) | Deferred backlog |
+| [docs/running.md](docs/running.md) | Infra + every service |
 | [AGENTS.md](AGENTS.md) | Cursor agent guide |
 
 ## Repo layout
 
 ```
-java-services/     auth, platform, task, user, api-gateway, common
-go-services/       collab, realtime, email, document
-infrastructure/    docker-compose (Postgres, Redis, Kafka, MailHog)
-docs/              setup, running, schema, plans
+backend/
+  java-services/   auth, platform, task, user, api-gateway, common
+  go-services/     collab, realtime, email, document
+  infrastructure/  docker-compose (Postgres, Redis, Kafka, MailHog)
+frontend/          Next.js (App Router)
+docs/              shared contracts + plans
 postman/           Auth + Platform collections
 ```
