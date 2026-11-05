@@ -95,6 +95,7 @@
 
 - Create invitation, list, org list
 - Create and the org list require `manage_members`. An admin cancel sets `DECLINED`
+- Workspace admins can email a `WORKSPACE` invite. Project admins can email a `PROJECT` invite
 - Accept by token; delete
 - Gateway routes under `/api/v1/invitations/**`
 
@@ -102,7 +103,8 @@
 
 ### 9. Comments — `collab-service`
 
-- CRUD comments on entities  
+- CRUD comments on entities
+- Task page and project overview both use the comment thread (`TASK` and `PROJECT`)  
 - Basic @mention parsing → notify  
 - Kafka: `comment.added`
 

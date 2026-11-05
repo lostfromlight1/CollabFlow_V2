@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { MemberManager } from "@/components/product/member-manager";
+import { EmailInviteForm } from "@/components/product/email-invite-form";
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import {
   addWorkspaceMember,
@@ -15,7 +16,7 @@ import {
   type Member,
   type RoleOption,
 } from "@/lib/api/platform";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { getSession } from "@/lib/auth/session";
 import { canManageWorkspace } from "@/lib/auth/permissions";
 import { Icons } from "@/lib/icons";
@@ -36,7 +37,7 @@ export default function WorkspaceMembersPage() {
   }, [params.id]);
 
   useEffect(() => {
-    load().catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+    load().catch((e) => setError(errorText(e, "Load failed")));
   }, [load]);
 
   return (
@@ -44,6 +45,13 @@ export default function WorkspaceMembersPage() {
       <PageHeader title="Workspace members" description="People in this workspace." icon={Icons.users} />
       <Link href={`/workspaces/${params.id}`} className="interactive-hover-link text-sm text-muted-foreground">Back to workspace</Link>
       {error ? <InlineAlert>{error}</InlineAlert> : null}
+      <EmailInviteForm
+        canSend={canManage}
+        organizationId={getSession()?.organizationId ?? ""}
+        invitationType="WORKSPACE"
+        workspaceId={params.id}
+        hint="Invite someone into this workspace by email. They also join the organization as a member."
+      />
       <MemberManager
         members={members}
         roles={roles}

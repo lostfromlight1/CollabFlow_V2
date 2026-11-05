@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { DataTable, type DataColumn } from "@/components/data/data-table";
 import { Dialog } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import {
   type FeatureFlag,
 } from "@/lib/api/admin";
 import { clearFeatureFlagCache, useFeatureFlag } from "@/lib/flags";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { Icons } from "@/lib/icons";
 
 export default function AdminFeatureFlagsPage() {
@@ -26,6 +27,7 @@ export default function AdminFeatureFlagsPage() {
   const [keyName, setKeyName] = useState("");
   const [description, setDescription] = useState("");
   const [enabled, setEnabled] = useState(false);
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
   const preview = useFeatureFlag(keyName || "documents");
 
   function load() {
@@ -34,7 +36,7 @@ export default function AdminFeatureFlagsPage() {
   }
 
   useEffect(() => {
-    load().catch((e) => setError(e instanceof ApiError ? e.message : "Could not load flags"));
+    load().catch((e) => setError(errorText(e, "Could not load flags")));
   }, []);
 
   async function save() {
@@ -62,7 +64,7 @@ export default function AdminFeatureFlagsPage() {
           type="button"
           size="sm"
           variant="destructive"
-          onClick={() => deleteFeatureFlag(row.key).then(load).catch((e) => setError(e instanceof ApiError ? e.message : "Delete failed"))}
+          onClick={() => setPendingKey(row.key)}
         >
           Delete
         </Button>
@@ -102,8 +104,21 @@ export default function AdminFeatureFlagsPage() {
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
           Enabled
         </label>
-        <Button type="button" onClick={() => save().catch((e) => setError(e instanceof ApiError ? e.message : "Save failed"))}>Save</Button>
+        <Button type="button" onClick={() => save().catch((e) => setError(errorText(e, "Save failed")))}>Save</Button>
       </Dialog>
+      <ConfirmDialog
+        open={pendingKey !== null}
+        title="Delete feature flag"
+        message={pendingKey ? `Delete the “${pendingKey}” flag. A missing key is treated as enabled.` : ""}
+        confirmLabel="Delete"
+        onClose={() => setPendingKey(null)}
+        onConfirm={() => {
+          const key = pendingKey;
+          setPendingKey(null);
+          if (!key) return;
+          void deleteFeatureFlag(key).then(load).catch((e) => setError(errorText(e, "Delete failed")));
+        }}
+      />
     </div>
   );
 }

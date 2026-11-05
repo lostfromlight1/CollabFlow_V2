@@ -152,7 +152,7 @@ Kept in this doc for later; **do not** add Flyway/GORM until Phase 2+ ([future-p
 | created_by | UUID | FK users.id, NOT NULL | |
 | created_at | TIMESTAMPTZ | NOT NULL | |
 
-Active banner: `is_active` and `now` between `starts_at` (or unbounded) and `ends_at` (or unbounded). Newest `created_at` wins.
+Active banner: `is_active`, a non-blank title or body, and `now` between `starts_at` (or unbounded) and `ends_at` (or unbounded). Newest `created_at` wins. When `ends_at` is in the past, the next banner or admin list read sets `is_active` to false.
 
 ---
 

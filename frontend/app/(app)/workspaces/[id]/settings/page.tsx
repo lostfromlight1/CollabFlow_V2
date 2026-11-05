@@ -18,7 +18,8 @@ import {
   updateWorkspace,
   type Workspace,
 } from "@/lib/api/platform";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { getSession } from "@/lib/auth/session";
 import { canManageWorkspace } from "@/lib/auth/permissions";
 import { Icons } from "@/lib/icons";
@@ -35,6 +36,7 @@ export default function WorkspaceSettingsPage() {
   const [canManage, setCanManage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const { register, handleSubmit, reset, formState } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { name: "", description: "" },
@@ -49,7 +51,7 @@ export default function WorkspaceSettingsPage() {
         setCanManage(canManageWorkspace(mine?.roleId));
         reset({ name: workspace.name, description: workspace.description ?? "" });
       })
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+      .catch((e) => setError(errorText(e, "Load failed")));
   }, [params.id, reset]);
 
   const onSave = handleSubmit(async (values) => {
@@ -58,7 +60,7 @@ export default function WorkspaceSettingsPage() {
       setWs(await updateWorkspace(params.id, values));
       setInfo("Workspace saved.");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Save failed");
+      setError(errorText(e, "Save failed"));
     }
   });
 
@@ -82,12 +84,7 @@ export default function WorkspaceSettingsPage() {
             <Button
               type="button"
               variant="destructive"
-              onClick={() => {
-                if (!window.confirm("Delete this workspace?")) return;
-                void deleteWorkspace(params.id)
-                  .then(() => router.push("/workspaces"))
-                  .catch((e) => setError(e instanceof ApiError ? e.message : "Delete failed"));
-              }}
+              onClick={() => setDeleteOpen(true)}
             >
               Delete
             </Button>
@@ -96,6 +93,19 @@ export default function WorkspaceSettingsPage() {
           <p className="text-sm text-muted-foreground">Workspace admins can edit.</p>
         )}
       </form>
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Delete workspace"
+        message="This workspace and its projects are removed."
+        confirmLabel="Delete"
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          setDeleteOpen(false);
+          void deleteWorkspace(params.id)
+            .then(() => router.push("/workspaces"))
+            .catch((e) => setError(errorText(e, "Delete failed")));
+        }}
+      />
     </div>
   );
 }

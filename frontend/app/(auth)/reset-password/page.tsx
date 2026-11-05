@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { resetPassword } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 
 const schema = z.object({
   token: z.string().min(1, "Token is required"),
@@ -36,7 +36,7 @@ function ResetForm() {
       await resetPassword(values.token, values.newPassword);
       setDone(true);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Reset failed");
+      setError(errorText(e, "Reset failed"));
     }
   });
 

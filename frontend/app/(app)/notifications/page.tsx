@@ -11,7 +11,7 @@ import {
   markNotificationRead,
   type NotificationItem,
 } from "@/lib/api/collab";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { Icons } from "@/lib/icons";
 
 export default function NotificationsPage() {
@@ -28,7 +28,7 @@ export default function NotificationsPage() {
   }
 
   useEffect(() => {
-    load(page).catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+    load(page).catch((e) => setError(errorText(e, "Load failed")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
@@ -50,7 +50,7 @@ export default function NotificationsPage() {
             onClick={() => {
               void markNotificationRead(r.id)
                 .then(() => load())
-                .catch((e) => setError(e instanceof ApiError ? e.message : "Update failed"));
+                .catch((e) => setError(errorText(e, "Update failed")));
             }}
           >
             Mark read
@@ -72,7 +72,7 @@ export default function NotificationsPage() {
             onClick={() => {
               void markAllNotificationsRead()
                 .then(() => load())
-                .catch((e) => setError(e instanceof ApiError ? e.message : "Update failed"));
+                .catch((e) => setError(errorText(e, "Update failed")));
             }}
           >
             Mark all read

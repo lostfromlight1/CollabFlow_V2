@@ -10,7 +10,7 @@ import { InlineAlert } from "@/components/feedback/inline-alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getMyProfile, updateMyProfile } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { getSession, setSession } from "@/lib/auth/session";
 import { Icons } from "@/lib/icons";
 
@@ -30,7 +30,7 @@ export default function ProfilePage() {
   useEffect(() => {
     getMyProfile()
       .then((p) => reset({ name: p.name, avatarUrl: p.avatarUrl ?? "" }))
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Could not load profile"));
+      .catch((e) => setError(errorText(e, "Could not load profile")));
   }, [reset]);
 
   const onSubmit = handleSubmit(async (values) => {
@@ -47,7 +47,7 @@ export default function ProfilePage() {
       }
       setSaved(true);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Save failed");
+      setError(errorText(e, "Save failed"));
     }
   });
 

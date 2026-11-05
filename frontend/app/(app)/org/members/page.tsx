@@ -16,7 +16,7 @@ import {
   type Organization,
   type RoleOption,
 } from "@/lib/api/platform";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { requireOrgSession } from "@/lib/auth/require-org";
 import { ROLES, canManageOrg } from "@/lib/auth/permissions";
 import { Icons } from "@/lib/icons";
@@ -45,7 +45,7 @@ export default function OrgMembersPage() {
       router.replace("/select-org");
       return;
     }
-    load(s.organizationId).catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+    load(s.organizationId).catch((e) => setError(errorText(e, "Load failed")));
   }, [load, router]);
 
   if (!org) return error ? <InlineAlert>{error}</InlineAlert> : null;

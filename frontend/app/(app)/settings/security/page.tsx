@@ -19,7 +19,8 @@ import {
   revokeAllSessions,
   type AuthSessionRow,
 } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { clearSession, getSession } from "@/lib/auth/session";
 import { Icons } from "@/lib/icons";
 
@@ -34,6 +35,7 @@ export default function SecurityPage() {
   const [info, setInfo] = useState<string | null>(null);
   const [sessions, setSessions] = useState<AuthSessionRow[]>([]);
   const [page, setPage] = useState(0);
+  const [confirm, setConfirm] = useState<"revoke" | "deactivate" | null>(null);
   const { register, handleSubmit, reset, formState } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { currentPassword: "", newPassword: "" },
@@ -43,7 +45,7 @@ export default function SecurityPage() {
     try {
       setSessions(await listSessions());
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not load sessions");
+      setError(errorText(e, "Could not load sessions"));
     }
   }
 
@@ -59,7 +61,7 @@ export default function SecurityPage() {
       reset();
       setInfo("Password changed.");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not change password");
+      setError(errorText(e, "Could not change password"));
     }
   });
 
@@ -86,20 +88,7 @@ export default function SecurityPage() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium">Active sessions</h2>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              void revokeAllSessions()
-                .then(async () => {
-                  const s = getSession();
-                  if (s?.refreshToken) await logout(s.refreshToken);
-                  clearSession();
-                  router.replace("/login");
-                })
-                .catch((e) => setError(e instanceof ApiError ? e.message : "Revoke failed"));
-            }}
-          >
+          <Button type="button" variant="destructive" onClick={() => setConfirm("revoke")}>
             Revoke all and sign out
           </Button>
         </div>
@@ -115,21 +104,41 @@ export default function SecurityPage() {
           emptyIcon={Icons.settings}
         />
       </div>
-      <Button
-        type="button"
-        variant="destructive"
-        onClick={() => {
-          if (!window.confirm("Deactivate this account?")) return;
-          void deactivateAccount()
-            .then(() => {
-              clearSession();
-              router.replace("/");
-            })
-            .catch((e) => setError(e instanceof ApiError ? e.message : "Deactivate failed"));
-        }}
-      >
+      <Button type="button" variant="destructive" onClick={() => setConfirm("deactivate")}>
         Deactivate account
       </Button>
+      <ConfirmDialog
+        open={confirm !== null}
+        title={confirm === "deactivate" ? "Deactivate account" : "Revoke sessions"}
+        message={
+          confirm === "deactivate"
+            ? "This account stops working and you are signed out."
+            : "Every session ends, including this one, and you are signed out."
+        }
+        confirmLabel={confirm === "deactivate" ? "Deactivate" : "Revoke and sign out"}
+        onClose={() => setConfirm(null)}
+        onConfirm={() => {
+          const kind = confirm;
+          setConfirm(null);
+          if (kind === "deactivate") {
+            void deactivateAccount()
+              .then(() => {
+                clearSession();
+                router.replace("/");
+              })
+              .catch((e) => setError(errorText(e, "Deactivate failed")));
+            return;
+          }
+          void revokeAllSessions()
+            .then(async () => {
+              const s = getSession();
+              if (s?.refreshToken) await logout(s.refreshToken);
+              clearSession();
+              router.replace("/login");
+            })
+            .catch((e) => setError(errorText(e, "Revoke failed")));
+        }}
+      />
     </div>
   );
 }

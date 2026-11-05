@@ -11,9 +11,10 @@ import { InlineAlert } from "@/components/feedback/inline-alert";
 import { DataTable, type DataColumn } from "@/components/data/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { cancelInvitation, createInvitation, listOrgInvitations, type Invitation } from "@/lib/api/collab";
 import { getOrganization } from "@/lib/api/platform";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { requireOrgSession } from "@/lib/auth/require-org";
 import { canManageOrg } from "@/lib/auth/permissions";
 import { Icons } from "@/lib/icons";
@@ -27,6 +28,7 @@ export default function OrgInvitationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [allowed, setAllowed] = useState(false);
   const [page, setPage] = useState(0);
+  const [canceling, setCanceling] = useState<Invitation | null>(null);
   const { register, handleSubmit, reset, formState } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { email: "" },
@@ -47,7 +49,7 @@ export default function OrgInvitationsPage() {
     getOrganization(s.organizationId)
       .then((o) => setAllowed(canManageOrg(o.roleId)))
       .catch(() => setAllowed(false));
-    load(s.organizationId).catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+    load(s.organizationId).catch((e) => setError(errorText(e, "Load failed")));
   }, [router]);
 
   const onSubmit = handleSubmit(async (values) => {
@@ -58,7 +60,7 @@ export default function OrgInvitationsPage() {
       reset();
       await load(orgId);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Invite failed");
+      setError(errorText(e, "Invite failed"));
     }
   });
 
@@ -75,13 +77,7 @@ export default function OrgInvitationsPage() {
             type="button"
             size="sm"
             variant="destructive"
-            onClick={() => {
-              void cancelInvitation(r.id)
-                .then(() => {
-                  if (orgId) return load(orgId);
-                })
-                .catch((e) => setError(e instanceof ApiError ? e.message : "Cancel failed"));
-            }}
+            onClick={() => setCanceling(r)}
           >
             Cancel
           </Button>
@@ -113,6 +109,23 @@ export default function OrgInvitationsPage() {
         getRowKey={(r) => r.id}
         emptyTitle="No invitations"
         emptyIcon={Icons.mail}
+      />
+      <ConfirmDialog
+        open={canceling !== null}
+        title="Cancel invitation"
+        message={canceling ? `Cancel the invite to ${canceling.email}.` : ""}
+        confirmLabel="Cancel invite"
+        onClose={() => setCanceling(null)}
+        onConfirm={() => {
+          const invite = canceling;
+          setCanceling(null);
+          if (!invite) return;
+          void cancelInvitation(invite.id)
+            .then(() => {
+              if (orgId) return load(orgId);
+            })
+            .catch((e) => setError(errorText(e, "Cancel failed")));
+        }}
       />
     </div>
   );

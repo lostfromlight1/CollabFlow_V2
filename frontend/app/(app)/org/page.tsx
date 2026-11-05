@@ -9,7 +9,7 @@ import { DelayedSkeletonGate, ListSkeleton } from "@/components/feedback/skeleto
 import { RoleChip, roleTone } from "@/components/ui/role-chip";
 import { buttonVariants } from "@/components/ui/button";
 import { getOrganization, type Organization } from "@/lib/api/platform";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { requireOrgSession } from "@/lib/auth/require-org";
 import { canManageOrg, isOrgOwner } from "@/lib/auth/permissions";
 import { Icons } from "@/lib/icons";
@@ -29,7 +29,7 @@ export default function OrgPage() {
     }
     getOrganization(s.organizationId)
       .then(setOrg)
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Could not load organization"))
+      .catch((e) => setError(errorText(e, "Could not load organization")))
       .finally(() => setLoading(false));
   }, [router]);
 

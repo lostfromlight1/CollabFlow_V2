@@ -36,20 +36,12 @@ func (r *ActivityRepository) FindUser(ctx context.Context, userID uuid.UUID) (*m
 }
 
 func (r *ActivityRepository) OrgIDForProject(ctx context.Context, projectID uuid.UUID) (uuid.UUID, error) {
-	var orgID uuid.UUID
-	err := r.db.WithContext(ctx).Raw(`
+	return scanOrganizationID(r.db.WithContext(ctx), `
 		SELECT w.organization_id
 		FROM projects p
 		JOIN workspaces w ON w.id = p.workspace_id
 		WHERE p.id = ?
-	`, projectID).Scan(&orgID).Error
-	if err != nil {
-		return uuid.Nil, err
-	}
-	if orgID == uuid.Nil {
-		return uuid.Nil, gorm.ErrRecordNotFound
-	}
-	return orgID, nil
+	`, projectID)
 }
 
 func (r *ActivityRepository) AlreadyProcessed(ctx context.Context, eventID string) (bool, error) {

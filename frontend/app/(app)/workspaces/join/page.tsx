@@ -11,7 +11,7 @@ import { InlineAlert } from "@/components/feedback/inline-alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { joinWorkspace } from "@/lib/api/platform";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { Icons } from "@/lib/icons";
 
 const schema = z.object({
@@ -33,7 +33,7 @@ export default function JoinWorkspacePage() {
       await joinWorkspace(values.workspaceId, values.inviteCode);
       router.push(`/workspaces/${values.workspaceId}`);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Join failed");
+      setError(errorText(e, "Join failed"));
     }
   });
 

@@ -45,14 +45,16 @@ CORS: set `CORS_ALLOWED_ORIGINS=http://localhost:3000` in `.env` (see `.env.exam
 
 Admin-provisioned tenancy (not “register then documents”):
 
-1. Master admin logs in → opens **Users** and **Organizations** (paged directories). Create user, create organization, attach member, and transfer ownership are dialogs, not page sections.
-2. User detail can suspend, restore, reset a password, or open a read-only impersonation session. Org detail shows owner, members, and workspace counts.
+1. Master admin logs in → opens **Users** and **Organizations** (paged directories). Create user, create organization, attach member, and transfer ownership are dialogs, not page sections. Create organization asks for the owner's email; the client looks that address up with USER-021 and sends the user id to ADMIN-ORG-001.
+2. User detail can suspend, restore, or reset a password. Org detail shows owner, members, and workspace counts.
 3. User **login** → if email unverified, verify via link / AUTH-008 (MailHog). A deleted account is rejected with a distinct message from a suspended account.
 4. **Org picker** — `GET` orgs / `POST select-organization` (AUTH-016/017) when N > 1.
 5. Store `accessToken` + selected `organizationId`; send `X-Organization-Id` on subsequent calls.
 6. Then workspace → project → task / collab / realtime.
 
-Admin routes (master admin only, except the two product reads): directories USER-021/022 and ADMIN-ORG-004/005/009/010, lifecycle AUTH-021–025 and USER-023/024 and ADMIN-ORG-006/007, CSV USER-025 and ADMIN-ORG-008, dashboard ADMIN-STATS-001, audit ADMIN-AUDIT-001, announcements ADMIN-ANN-001–004 plus `GET /api/v1/announcements/active`, feature flags ADMIN-FLAG-001–003 plus `GET /api/v1/feature-flags` (a missing key means enabled), impersonation AUTH-026/027 (15-minute read-only token, no refresh).
+The UI shows the API error message. Delete, suspend, revoke, transfer, archive, and remove ask in a confirm dialog before they run.
+
+Admin routes (master admin only, except the two product reads): directories USER-021/022 and ADMIN-ORG-004/005/009/010, lifecycle AUTH-021–025 and USER-023/024 and ADMIN-ORG-006/007, CSV USER-025 and ADMIN-ORG-008, dashboard ADMIN-STATS-001, audit ADMIN-AUDIT-001, announcements ADMIN-ANN-001–004 plus `GET /api/v1/announcements/active`, feature flags ADMIN-FLAG-001–003 plus `GET /api/v1/feature-flags` (a missing key means enabled). A session that is already impersonating exits with AUTH-027.
 
 Public (no JWT): register (if enabled), login, refresh, logout, verify/resend, forgot/reset password, healths, **`GET /api/v1/invitations/token/{token}`** (invite peek). Accept invite still needs JWT.
 

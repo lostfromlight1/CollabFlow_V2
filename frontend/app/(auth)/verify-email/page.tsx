@@ -14,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { apiFetch, ApiError } from "@/lib/api/client";
+import { apiFetch, errorText } from "@/lib/api/client";
 
 function VerifyInner() {
   const params = useSearchParams();
@@ -38,7 +38,7 @@ function VerifyInner() {
       });
       setMessage("Email verified. You can sign in.");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Verify failed");
+      setError(errorText(e, "Verify failed"));
     } finally {
       setBusy(false);
     }

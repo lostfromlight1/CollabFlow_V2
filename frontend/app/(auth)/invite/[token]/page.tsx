@@ -8,7 +8,7 @@ import { InlineAlert } from "@/components/feedback/inline-alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { acceptInvitation, peekInvitation, type Invitation } from "@/lib/api/collab";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { getSession } from "@/lib/auth/session";
 
 export default function InvitePage() {
@@ -21,7 +21,7 @@ export default function InvitePage() {
   useEffect(() => {
     peekInvitation(params.token)
       .then(setInvite)
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Invite not found"));
+      .catch((e) => setError(errorText(e, "Invite not found")));
   }, [params.token]);
 
   const returnTo = `/invite/${params.token}`;
@@ -55,7 +55,7 @@ export default function InvitePage() {
                     setInfo("Accepted. Pick your organization if needed.");
                     router.push("/select-org");
                   })
-                  .catch((e) => setError(e instanceof ApiError ? e.message : "Accept failed"));
+                  .catch((e) => setError(errorText(e, "Accept failed")));
               }}
             >
               Accept invitation

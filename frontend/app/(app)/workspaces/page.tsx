@@ -25,7 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import {
   createWorkspace,
   listWorkspaces,
@@ -67,7 +67,7 @@ export default function WorkspacesPage() {
       const list = await listWorkspaces(organizationId);
       setRows(list);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Failed to load workspaces");
+      setError(errorText(e, "Failed to load workspaces"));
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,7 @@ export default function WorkspacesPage() {
         setShowForm(false);
         router.push(`/workspaces/${ws.id}`);
       } catch (e) {
-        setError(e instanceof ApiError ? e.message : "Create failed");
+        setError(errorText(e, "Create failed"));
       }
     },
     () => setError("Check the form fields")

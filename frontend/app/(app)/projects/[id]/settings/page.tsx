@@ -18,7 +18,8 @@ import {
   updateProject,
   type Project,
 } from "@/lib/api/platform";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { getSession } from "@/lib/auth/session";
 import { canManageProject } from "@/lib/auth/permissions";
 import { Icons } from "@/lib/icons";
@@ -35,6 +36,7 @@ export default function ProjectSettingsPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [canManage, setCanManage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const { register, handleSubmit, reset, formState } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { name: "", description: "", status: "ACTIVE" },
@@ -48,7 +50,7 @@ export default function ProjectSettingsPage() {
         setCanManage(canManageProject(members.find((m) => m.userId === me)?.roleId));
         reset({ name: p.name, description: p.description ?? "", status: p.status });
       })
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+      .catch((e) => setError(errorText(e, "Load failed")));
   }, [params.id, reset]);
 
   const onSave = handleSubmit(async (values) => {
@@ -56,7 +58,7 @@ export default function ProjectSettingsPage() {
     try {
       setProject(await updateProject(params.id, values));
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Save failed");
+      setError(errorText(e, "Save failed"));
     }
   });
 
@@ -84,12 +86,7 @@ export default function ProjectSettingsPage() {
             <Button
               type="button"
               variant="destructive"
-              onClick={() => {
-                if (!window.confirm("Archive this project?")) return;
-                void archiveProject(params.id)
-                  .then(() => router.push(`/workspaces/${project?.workspaceId ?? ""}`))
-                  .catch((e) => setError(e instanceof ApiError ? e.message : "Archive failed"));
-              }}
+              onClick={() => setArchiveOpen(true)}
             >
               Archive
             </Button>
@@ -98,6 +95,19 @@ export default function ProjectSettingsPage() {
           <p className="text-sm text-muted-foreground">Project admins can edit.</p>
         )}
       </form>
+      <ConfirmDialog
+        open={archiveOpen}
+        title="Archive project"
+        message="This project leaves the active list. You can still open it from the workspace if the server keeps it."
+        confirmLabel="Archive"
+        onClose={() => setArchiveOpen(false)}
+        onConfirm={() => {
+          setArchiveOpen(false);
+          void archiveProject(params.id)
+            .then(() => router.push(`/workspaces/${project?.workspaceId ?? ""}`))
+            .catch((e) => setError(errorText(e, "Archive failed")));
+        }}
+      />
     </div>
   );
 }

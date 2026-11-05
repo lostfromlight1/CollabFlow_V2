@@ -8,10 +8,11 @@ import { Users } from "lucide-react";
 import { DataTable, type DataColumn } from "@/components/data/data-table";
 import { FormField } from "@/components/forms/form-field";
 import { InlineAlert } from "@/components/feedback/inline-alert";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RoleChip, roleTone } from "@/components/ui/role-chip";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import type { Member, RoleOption } from "@/lib/api/platform";
 
 const schema = z.object({
@@ -40,6 +41,7 @@ export function MemberManager({
   onRemove: (memberId: string) => Promise<void>;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<Member | null>(null);
   const [page, setPage] = useState(0);
   const pageSize = 8;
   const {
@@ -86,7 +88,7 @@ export function MemberManager({
               aria-label={`Role for ${row.name || row.userId}`}
               onChange={(e) => {
                 void onRole(row.id, e.target.value).catch((err) =>
-                  setError(err instanceof ApiError ? err.message : "Role update failed")
+                  setError(errorText(err, "Role update failed"))
                 );
               }}
             >
@@ -102,12 +104,7 @@ export function MemberManager({
               type="button"
               variant="destructive"
               size="sm"
-              onClick={() => {
-                if (!window.confirm("Remove this member?")) return;
-                void onRemove(row.id).catch((err) =>
-                  setError(err instanceof ApiError ? err.message : "Remove failed")
-                );
-              }}
+              onClick={() => setRemoving(row)}
             >
               Remove
             </Button>
@@ -124,7 +121,7 @@ export function MemberManager({
         await onAdd(values);
         reset();
       } catch (e) {
-        setError(e instanceof ApiError ? e.message : "Could not add member");
+        setError(errorText(e, "Could not add member"));
       }
     },
     () => setError("Check the user id and role")
@@ -175,6 +172,19 @@ export function MemberManager({
         emptyTitle="No members"
         emptyDescription="Members appear after they are added or accept an invite."
         emptyIcon={Users}
+      />
+      <ConfirmDialog
+        open={removing !== null}
+        title="Remove member"
+        message={removing ? `Remove ${removing.name || removing.email || "this member"} from this list.` : ""}
+        confirmLabel="Remove"
+        onClose={() => setRemoving(null)}
+        onConfirm={() => {
+          const member = removing;
+          setRemoving(null);
+          if (!member) return;
+          void onRemove(member.id).catch((err) => setError(errorText(err, "Remove failed")));
+        }}
       />
     </div>
   );

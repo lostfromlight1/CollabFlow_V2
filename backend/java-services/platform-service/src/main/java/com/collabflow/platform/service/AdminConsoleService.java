@@ -374,9 +374,10 @@ public class AdminConsoleService {
         return toAnnouncement(row);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<AnnouncementResponse> listAnnouncements(UUID adminId) {
         requireMaster(adminId);
+        expireFinished(Instant.now());
         return announcementRepository.findAllByOrderByCreatedAtDesc().stream().map(this::toAnnouncement).toList();
     }
 
@@ -400,11 +401,13 @@ public class AdminConsoleService {
         auditWriter.write(adminId, "ANNOUNCEMENT_DELETED", "ANNOUNCEMENT", id, null);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AnnouncementResponse activeAnnouncement() {
         Instant now = Instant.now();
+        expireFinished(now);
         return announcementRepository.findAllByOrderByCreatedAtDesc().stream()
                 .filter(Announcement::isActive)
+                .filter(row -> hasText(row.getTitle()) || hasText(row.getBody()))
                 .filter(row -> row.getStartsAt() == null || !row.getStartsAt().isAfter(now))
                 .filter(row -> row.getEndsAt() == null || row.getEndsAt().isAfter(now))
                 .findFirst()
@@ -519,6 +522,19 @@ public class AdminConsoleService {
                 rs.getString("ip_address"),
                 created == null ? null : created.toInstant()
         );
+    }
+
+    /** A passed ends_at is the window closing. Turn the row off so the banner stops. */
+    private void expireFinished(Instant now) {
+        for (Announcement row : announcementRepository.findAllByOrderByCreatedAtDesc()) {
+            if (row.isActive() && row.getEndsAt() != null && !row.getEndsAt().isAfter(now)) {
+                row.setActive(false);
+            }
+        }
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private static void apply(Announcement row, AnnouncementRequest request) {

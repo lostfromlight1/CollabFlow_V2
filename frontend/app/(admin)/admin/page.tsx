@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAdminStats, type AdminStats } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { Icons } from "@/lib/icons";
 
 const tiles: { key: keyof AdminStats; label: string }[] = [
@@ -29,7 +29,7 @@ export default function AdminHomePage() {
   useEffect(() => {
     getAdminStats()
       .then(setStats)
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Could not load stats"));
+      .catch((e) => setError(errorText(e, "Could not load stats")));
   }, []);
 
   return (

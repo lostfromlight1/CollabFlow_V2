@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getMyProfile, login, resendVerification } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { persistAuth, postAuthPath, inviteReturnPath } from "@/lib/auth/routing";
 
 const schema = z.object({
@@ -66,7 +66,7 @@ export default function LoginPage() {
         const next = inviteReturnPath(new URLSearchParams(window.location.search).get("next"));
         router.replace(next ?? postAuthPath(session.user, auth));
       } catch (e) {
-        setError(e instanceof ApiError ? e.message : "Login failed");
+        setError(errorText(e, "Login failed"));
       }
     },
     () => setError("Check email and password")
@@ -123,7 +123,7 @@ export default function LoginPage() {
                 }
                 resendVerification(email)
                   .then(() => setInfo("If the account is unverified, a message was sent"))
-                  .catch((e) => setError(e instanceof ApiError ? e.message : "Resend failed"));
+                  .catch((e) => setError(errorText(e, "Resend failed")));
               }}
             >
               Resend verification email

@@ -25,7 +25,8 @@ import {
   type Sprint,
   type Task,
 } from "@/lib/api/tasks";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { getSession } from "@/lib/auth/session";
 import { canManageProject, canWriteTasks } from "@/lib/auth/permissions";
 import { Icons } from "@/lib/icons";
@@ -44,6 +45,7 @@ export default function SprintDetailPage() {
   const [canWrite, setCanWrite] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const { register, handleSubmit, reset, getValues, formState } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { name: "", goal: "", taskId: "" },
@@ -68,7 +70,7 @@ export default function SprintDetailPage() {
         setCanDelete(canManageProject(role));
       })
       .catch(() => undefined);
-    load().catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+    load().catch((e) => setError(errorText(e, "Load failed")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id, params.sprintId]);
 
@@ -77,7 +79,7 @@ export default function SprintDetailPage() {
     try {
       setSprint(await updateSprint(params.sprintId, { name: values.name, goal: values.goal }));
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Save failed");
+      setError(errorText(e, "Save failed"));
     }
   });
 
@@ -103,20 +105,15 @@ export default function SprintDetailPage() {
       <div className="flex flex-wrap gap-2">
         {canWrite ? (
           <>
-            <Button type="button" variant="outline" onClick={() => void startSprint(params.sprintId).then(setSprint).catch((e) => setError(e instanceof ApiError ? e.message : "Start failed"))}>Start</Button>
-            <Button type="button" variant="outline" onClick={() => void completeSprint(params.sprintId).then(setSprint).catch((e) => setError(e instanceof ApiError ? e.message : "Complete failed"))}>Complete</Button>
+            <Button type="button" variant="outline" onClick={() => void startSprint(params.sprintId).then(setSprint).catch((e) => setError(errorText(e, "Start failed")))}>Start</Button>
+            <Button type="button" variant="outline" onClick={() => void completeSprint(params.sprintId).then(setSprint).catch((e) => setError(errorText(e, "Complete failed")))}>Complete</Button>
           </>
         ) : null}
         {canDelete ? (
           <Button
             type="button"
             variant="destructive"
-            onClick={() => {
-              if (!window.confirm("Delete this sprint?")) return;
-              void deleteSprint(params.sprintId)
-                .then(() => router.push(`/projects/${params.id}/sprints`))
-                .catch((e) => setError(e instanceof ApiError ? e.message : "Delete failed"));
-            }}
+            onClick={() => setDeleteOpen(true)}
           >
             Delete
           </Button>
@@ -147,7 +144,7 @@ export default function SprintDetailPage() {
                 if (!taskId) return;
                 void attachSprintTask(params.sprintId, taskId)
                   .then(load)
-                  .catch((e) => setError(e instanceof ApiError ? e.message : "Attach failed"));
+                  .catch((e) => setError(errorText(e, "Attach failed")));
               }}
             >
               Attach
@@ -155,6 +152,19 @@ export default function SprintDetailPage() {
           </div>
         ) : null}
       </section>
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Delete sprint"
+        message="This sprint is deleted. Tasks in it stay in the project."
+        confirmLabel="Delete"
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          setDeleteOpen(false);
+          void deleteSprint(params.sprintId)
+            .then(() => router.push(`/projects/${params.id}/sprints`))
+            .catch((e) => setError(errorText(e, "Delete failed")));
+        }}
+      />
     </div>
   );
 }

@@ -211,9 +211,8 @@ public class TaskServiceImpl implements TaskService {
         if (request.startDate() != null) {
             task.setStartDate(request.startDate());
         }
-        if (request.dueDate() != null) {
-            task.setDueDate(request.dueDate());
-        }
+        // Null clears the date. The task form always sends this field.
+        task.setDueDate(request.dueDate());
         if (request.estimatedHours() != null) {
             task.setEstimatedHours(request.estimatedHours());
         }

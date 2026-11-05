@@ -23,7 +23,8 @@ class AdminUserSqlTest {
                 "email,asc"
         );
 
-        assertThat(built.where()).contains("u.deleted_at IS NULL");
+        assertThat(built.where()).contains(" AND EXISTS (");
+        assertThat(built.where()).doesNotContain("NULLAND");
         assertThat(built.where()).contains("organization_members");
         assertThat(built.where()).contains("u.is_active = :active");
         assertThat(built.params()).containsEntry("organizationId", orgId);

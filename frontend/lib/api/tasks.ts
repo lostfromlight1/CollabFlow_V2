@@ -43,6 +43,7 @@ export type Task = {
   sprintId: string | null;
   createdAt: string;
   updatedAt: string;
+  closedAt: string | null;
 };
 
 export type TaskStats = {
@@ -96,6 +97,22 @@ export function listTasks(query: TaskQuery) {
   params.set("page", String(query.page ?? 0));
   params.set("size", String(query.size ?? 20));
   return apiFetch<PageResult<Task>>(`/api/v1/tasks?${params}`, { orgHeader: true });
+}
+
+/** Local calendar day from a date input, as an ISO instant. Empty stays unset. */
+export function dueDateFromInput(value: string): string | undefined {
+  if (!value.trim()) return undefined;
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toISOString();
+}
+
+export function dueDateToInput(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 /** TASK-001 */

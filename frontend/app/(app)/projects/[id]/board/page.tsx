@@ -18,7 +18,7 @@ import {
   type Task,
   type WorkflowStatus,
 } from "@/lib/api/tasks";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { getSession } from "@/lib/auth/session";
 import { canWriteTasks } from "@/lib/auth/permissions";
 import { priorityTone, statusTone } from "@/lib/task-meta";
@@ -48,7 +48,7 @@ export default function BoardPage() {
         setTasks(page.content);
         setCanMove(canWriteTasks(members.find((m) => m.userId === me)?.roleId));
       })
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+      .catch((e) => setError(errorText(e, "Load failed")));
   }, [params.id, tick]);
 
   return (
@@ -85,7 +85,7 @@ export default function BoardPage() {
                             onChange={(e) => {
                               void changeTaskStatus(task.id, e.target.value)
                                 .then(reload)
-                                .catch((err) => setError(err instanceof ApiError ? err.message : "Move failed"));
+                                .catch((err) => setError(errorText(err, "Move failed")));
                             }}
                           >
                             {statuses.map((s) => (

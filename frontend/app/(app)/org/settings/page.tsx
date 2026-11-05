@@ -17,7 +17,8 @@ import {
   updateOrganization,
   type Organization,
 } from "@/lib/api/platform";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { requireOrgSession } from "@/lib/auth/require-org";
 import { clearSession } from "@/lib/auth/session";
 import { canManageOrg, isOrgOwner } from "@/lib/auth/permissions";
@@ -34,6 +35,7 @@ export default function OrgSettingsPage() {
   const [org, setOrg] = useState<Organization | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const { register, handleSubmit, reset, getValues, formState } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { name: "", description: "", newOwnerUserId: "" },
@@ -50,7 +52,7 @@ export default function OrgSettingsPage() {
         setOrg(o);
         reset({ name: o.name, description: o.description ?? "", newOwnerUserId: "" });
       })
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Could not load organization"));
+      .catch((e) => setError(errorText(e, "Could not load organization")));
   }, [reset, router]);
 
   const manage = canManageOrg(org?.roleId);
@@ -64,7 +66,7 @@ export default function OrgSettingsPage() {
       setOrg(next);
       setInfo("Organization updated.");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Update failed");
+      setError(errorText(e, "Update failed"));
     }
   });
 
@@ -89,7 +91,7 @@ export default function OrgSettingsPage() {
           </FormField>
           <Button
             type="button"
-            variant="outline"
+            variant="destructive"
             onClick={() => {
               const id = getValues("newOwnerUserId");
               if (!id) return setError("Enter the new owner's user id");
@@ -98,28 +100,33 @@ export default function OrgSettingsPage() {
                   setOrg(next);
                   setInfo("Ownership transferred.");
                 })
-                .catch((e) => setError(e instanceof ApiError ? e.message : "Transfer failed"));
+                .catch((e) => setError(errorText(e, "Transfer failed")));
             }}
           >
             Transfer ownership
           </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={() => {
-              if (!window.confirm("Delete this organization?")) return;
-              void deleteOrganization(org.id)
-                .then(() => {
-                  clearSession();
-                  router.replace("/login");
-                })
-                .catch((e) => setError(e instanceof ApiError ? e.message : "Delete failed"));
-            }}
-          >
+          <Button type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
             Delete organization
           </Button>
         </div>
       ) : null}
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Delete organization"
+        message="This organization is deleted and you are signed out."
+        confirmLabel="Delete"
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          if (!org) return;
+          setDeleteOpen(false);
+          void deleteOrganization(org.id)
+            .then(() => {
+              clearSession();
+              router.replace("/login");
+            })
+            .catch((e) => setError(errorText(e, "Delete failed")));
+        }}
+      />
     </div>
   );
 }

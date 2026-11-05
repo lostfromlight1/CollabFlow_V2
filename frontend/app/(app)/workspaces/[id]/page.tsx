@@ -26,7 +26,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import {
   createProject,
   getWorkspace,
@@ -80,7 +80,7 @@ export default function WorkspaceDetailPage() {
       setWorkspace(ws);
       setProjects(prjs);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Failed to load workspace");
+      setError(errorText(e, "Failed to load workspace"));
     } finally {
       setLoading(false);
     }
@@ -104,7 +104,7 @@ export default function WorkspaceDetailPage() {
         setShowForm(false);
         setProjects((prev) => [p, ...prev]);
       } catch (e) {
-        setError(e instanceof ApiError ? e.message : "Create project failed");
+        setError(errorText(e, "Create project failed"));
       }
     },
     () => setError("Check the form fields")

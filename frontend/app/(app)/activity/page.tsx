@@ -5,7 +5,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { DataTable, type DataColumn } from "@/components/data/data-table";
 import { listOrgActivity, type ActivityItem } from "@/lib/api/collab";
-import { ApiError } from "@/lib/api/client";
+import { activitySentence } from "@/lib/activity-label";
+import { errorText } from "@/lib/api/client";
 import { Icons } from "@/lib/icons";
 
 export default function ActivityPage() {
@@ -20,13 +21,13 @@ export default function ActivityPage() {
         setRows(result.content ?? []);
         setTotal(result.totalElements ?? 0);
       })
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+      .catch((e) => setError(errorText(e, "Load failed")));
   }, [page]);
 
   const columns: DataColumn<ActivityItem>[] = [
     { id: "when", header: "When", cell: (r) => r.createdAt },
     { id: "actor", header: "Who", cell: (r) => r.actorName || r.actorEmail },
-    { id: "action", header: "Action", cell: (r) => r.actionType },
+    { id: "action", header: "Action", cell: (r) => activitySentence(r) },
     { id: "entity", header: "Entity", cell: (r) => `${r.entityType}` },
   ];
 

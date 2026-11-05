@@ -15,9 +15,10 @@ import {
   adminCreateOrganization,
   downloadAdminCsv,
   listAdminOrganizations,
+  listAdminUsers,
   type AdminOrganization,
 } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { Icons } from "@/lib/icons";
 
 const fieldClass = "h-8 w-full rounded-lg border border-input bg-background px-2 text-sm";
@@ -43,7 +44,7 @@ export default function AdminOrganizationsPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
-  const [ownerUserId, setOwnerUserId] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
 
   const query = {
     q,
@@ -67,7 +68,7 @@ export default function AdminOrganizationsPage() {
         setError(null);
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof ApiError ? e.message : "Could not load organizations");
+        if (!cancelled) setError(errorText(e, "Could not load organizations"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -103,12 +104,29 @@ export default function AdminOrganizationsPage() {
   ];
 
   async function createOrg() {
-    await adminCreateOrganization({ name, slug, description: description || undefined, ownerUserId });
+    const email = ownerEmail.trim().toLowerCase();
+    if (!email) {
+      throw new Error("Enter the owner's email");
+    }
+    const found = await listAdminUsers({ q: email, page: 0, size: 20 });
+    const owner = (found.content ?? []).find((user) => user.email.toLowerCase() === email);
+    if (!owner) {
+      throw new Error("No user with that email");
+    }
+    if (!owner.active) {
+      throw new Error("That user is not active");
+    }
+    await adminCreateOrganization({
+      name,
+      slug,
+      description: description || undefined,
+      ownerUserId: owner.id,
+    });
     setOpen(false);
     setName("");
     setSlug("");
     setDescription("");
-    setOwnerUserId("");
+    setOwnerEmail("");
     const result = await listAdminOrganizations({ ...query, page: 0 });
     setPage(0);
     setRows(result.content ?? []);
@@ -128,7 +146,7 @@ export default function AdminOrganizationsPage() {
               variant="outline"
               onClick={() =>
                 downloadAdminCsv(`/api/v1/admin/organizations/export${exportQuery(query)}`, "organizations.csv").catch((e) =>
-                  setError(e instanceof Error ? e.message : "Export failed")
+                  setError(errorText(e, "Export failed"))
                 )
               }
             >
@@ -167,8 +185,18 @@ export default function AdminOrganizationsPage() {
         <FormField label="Name" htmlFor="org-name"><Input id="org-name" value={name} onChange={(e) => setName(e.target.value)} /></FormField>
         <FormField label="Slug" htmlFor="org-slug"><Input id="org-slug" value={slug} onChange={(e) => setSlug(e.target.value)} /></FormField>
         <FormField label="Description" htmlFor="org-description"><Input id="org-description" value={description} onChange={(e) => setDescription(e.target.value)} /></FormField>
-        <FormField label="Owner user id" htmlFor="org-owner"><Input id="org-owner" value={ownerUserId} onChange={(e) => setOwnerUserId(e.target.value)} /></FormField>
-        <Button type="button" onClick={() => createOrg().catch((e) => setError(e instanceof ApiError ? e.message : "Create failed"))}>
+        <FormField label="Owner email" htmlFor="org-owner">
+          <Input
+            id="org-owner"
+            name="organization-owner-email"
+            type="email"
+            autoComplete="off"
+            placeholder="owner@example.com"
+            value={ownerEmail}
+            onChange={(e) => setOwnerEmail(e.target.value)}
+          />
+        </FormField>
+        <Button type="button" onClick={() => createOrg().catch((e) => setError(errorText(e, "Create failed")))}>
           Create
         </Button>
       </Dialog>

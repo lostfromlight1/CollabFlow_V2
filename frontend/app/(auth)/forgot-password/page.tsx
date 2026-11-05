@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { forgotPassword } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 
 const schema = z.object({ email: z.string().email("Enter a valid email") });
 
@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
       await forgotPassword(values.email);
       setDone(true);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Request failed");
+      setError(errorText(e, "Request failed"));
     }
   });
 

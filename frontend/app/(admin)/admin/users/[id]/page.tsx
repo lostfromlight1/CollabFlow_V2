@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { DataTable, type DataColumn } from "@/components/data/data-table";
 import { Dialog } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -22,13 +23,12 @@ import {
   restoreAdminUser,
   revokeAdminUserSessions,
   setMasterAdmin,
-  startImpersonation,
   type AdminMembership,
   type AdminUser,
 } from "@/lib/api/admin";
 import { listUserActivity, type ActivityItem } from "@/lib/api/collab";
-import { beginImpersonation } from "@/lib/auth/session";
-import { ApiError } from "@/lib/api/client";
+import { activitySentence } from "@/lib/activity-label";
+import { errorText } from "@/lib/api/client";
 import { Icons } from "@/lib/icons";
 
 function when(value: string | null | undefined) {
@@ -58,7 +58,7 @@ export default function AdminUserDetailPage() {
   }
 
   useEffect(() => {
-    load().catch((e) => setError(e instanceof ApiError ? e.message : "Could not load user"));
+    load().catch((e) => setError(errorText(e, "Could not load user")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -69,16 +69,6 @@ export default function AdminUserDetailPage() {
     setNotice(message);
     setConfirm(null);
     await load();
-  }
-
-  async function impersonate() {
-    if (!user) return;
-    const result = await startImpersonation(user.id);
-    beginImpersonation({
-      accessToken: result.accessToken,
-      user: { id: result.targetUserId, email: result.targetEmail, name: result.targetName, masterAdmin: false },
-    });
-    window.location.assign("/home");
   }
 
   const membershipColumns: DataColumn<AdminMembership>[] = [
@@ -98,7 +88,7 @@ export default function AdminUserDetailPage() {
 
   const activityColumns: DataColumn<ActivityItem>[] = [
     { id: "when", header: "When", cell: (row) => when(row.createdAt) },
-    { id: "action", header: "Action", cell: (row) => row.actionType },
+    { id: "action", header: "Action", cell: (row) => activitySentence(row) },
     { id: "entity", header: "Entity", cell: (row) => `${row.entityType}` },
   ];
 
@@ -139,22 +129,19 @@ export default function AdminUserDetailPage() {
         ) : (
           <>
             {user.active ? (
-              <Button type="button" variant="outline" onClick={() => setConfirm("deactivate")}>Suspend</Button>
+              <Button type="button" variant="destructive" onClick={() => setConfirm("deactivate")}>Suspend</Button>
             ) : (
               <Button type="button" onClick={() => run(() => activateAdminUser(id), "User activated")}>Activate</Button>
             )}
-            <Button type="button" variant="outline" onClick={() => run(() => revokeAdminUserSessions(id), "Sessions revoked")}>
+            <Button type="button" variant="destructive" onClick={() => setConfirm("revoke")}>
               Revoke sessions
             </Button>
             <Button type="button" variant="outline" onClick={() => setPasswordOpen(true)}>Reset password</Button>
             <Button type="button" variant="outline" onClick={() => run(() => resendAdminVerification(id), "Verification checked")}>
               Resend verification
             </Button>
-            <Button type="button" variant="outline" onClick={() => setConfirm("master")}>
+            <Button type="button" variant="destructive" onClick={() => setConfirm("master")}>
               {user.masterAdmin ? "Remove master admin" : "Grant master admin"}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => impersonate().catch((e) => setError(e instanceof ApiError ? e.message : "Impersonation failed"))}>
-              View as user
             </Button>
             <Button type="button" variant="destructive" onClick={() => setConfirm("delete")}>Delete</Button>
           </>
@@ -204,26 +191,31 @@ export default function AdminUserDetailPage() {
           Save
         </Button>
       </Dialog>
-      <Dialog open={confirm !== null} title="Confirm" onClose={() => setConfirm(null)}>
-        <p className="text-sm text-muted-foreground">
-          {confirm === "delete"
+      <ConfirmDialog
+        open={confirm !== null}
+        title="Confirm"
+        message={
+          confirm === "delete"
             ? "Soft-delete this user and revoke their sessions."
             : confirm === "deactivate"
               ? "Suspend this user and revoke their sessions."
-              : "Change this user's master admin flag."}
-        </p>
-        <Button
-          type="button"
-          variant={confirm === "delete" ? "destructive" : "default"}
-          onClick={() => {
-            if (confirm === "delete") return run(() => deleteAdminUser(id), "User deleted");
-            if (confirm === "deactivate") return run(() => deactivateAdminUser(id), "User suspended");
-            return run(() => setMasterAdmin(id, !user.masterAdmin), "Master admin updated");
-          }}
-        >
-          Confirm
-        </Button>
-      </Dialog>
+              : confirm === "revoke"
+                ? "Sign this user out of every session."
+                : user.masterAdmin
+                  ? "Remove master admin from this user."
+                  : "Grant master admin to this user."
+        }
+        confirmLabel={
+          confirm === "delete" ? "Delete" : confirm === "deactivate" ? "Suspend" : confirm === "revoke" ? "Revoke" : "Confirm"
+        }
+        onClose={() => setConfirm(null)}
+        onConfirm={() => {
+          if (confirm === "delete") return run(() => deleteAdminUser(id), "User deleted");
+          if (confirm === "deactivate") return run(() => deactivateAdminUser(id), "User suspended");
+          if (confirm === "revoke") return run(() => revokeAdminUserSessions(id), "Sessions revoked");
+          return run(() => setMasterAdmin(id, !user.masterAdmin), "Master admin updated");
+        }}
+      />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { InlineAlert } from "@/components/feedback/inline-alert";
 import { DataTable, type DataColumn } from "@/components/data/data-table";
 import { Button } from "@/components/ui/button";
 import { acceptInvitation, cancelInvitation, listMyInvitations, type Invitation } from "@/lib/api/collab";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { Icons } from "@/lib/icons";
 
 export default function MyInvitationsPage() {
@@ -21,7 +21,7 @@ export default function MyInvitationsPage() {
   }
 
   useEffect(() => {
-    load().catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+    load().catch((e) => setError(errorText(e, "Load failed")));
   }, []);
 
   const columns: DataColumn<Invitation>[] = [
@@ -42,7 +42,7 @@ export default function MyInvitationsPage() {
                     setInfo("Invitation accepted.");
                     return load();
                   })
-                  .catch((e) => setError(e instanceof ApiError ? e.message : "Accept failed"));
+                  .catch((e) => setError(errorText(e, "Accept failed")));
               }}
             >
               Accept
@@ -54,7 +54,7 @@ export default function MyInvitationsPage() {
               onClick={() => {
                 void cancelInvitation(r.id)
                   .then(load)
-                  .catch((e) => setError(e instanceof ApiError ? e.message : "Decline failed"));
+                  .catch((e) => setError(errorText(e, "Decline failed")));
               }}
             >
               Decline

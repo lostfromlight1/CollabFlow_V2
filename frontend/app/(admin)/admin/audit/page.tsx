@@ -7,7 +7,7 @@ import { InlineAlert } from "@/components/feedback/inline-alert";
 import { DataTable, type DataColumn } from "@/components/data/data-table";
 import { Input } from "@/components/ui/input";
 import { listAdminAudit, type AuditItem } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { Icons } from "@/lib/icons";
 import { Suspense } from "react";
 
@@ -40,7 +40,7 @@ function AuditTable() {
         setTotal(result.totalElements ?? 0);
         setError(null);
       })
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Could not load audit"));
+      .catch((e) => setError(errorText(e, "Could not load audit")));
   }, [action, actorUserId, targetType, targetId, createdFrom, createdTo, page]);
 
   const columns: DataColumn<AuditItem>[] = [

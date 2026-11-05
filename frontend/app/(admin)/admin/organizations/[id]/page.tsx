@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { DataTable, type DataColumn } from "@/components/data/data-table";
 import { Dialog } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +23,7 @@ import {
   type AdminMember,
   type AdminOrganizationDetail,
 } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { Icons } from "@/lib/icons";
 
 export default function AdminOrganizationDetailPage() {
@@ -36,6 +37,7 @@ export default function AdminOrganizationDetailPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [attachOpen, setAttachOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [suspendOpen, setSuspendOpen] = useState(false);
   const [userId, setUserId] = useState("");
   const [roleId, setRoleId] = useState(ORG_MEMBER_ROLE_ID);
   const [newOwner, setNewOwner] = useState("");
@@ -49,7 +51,7 @@ export default function AdminOrganizationDetailPage() {
   }
 
   useEffect(() => {
-    load(memberPage).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load organization"));
+    load(memberPage).catch((e) => setError(errorText(e, "Could not load organization")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, memberPage]);
 
@@ -98,7 +100,7 @@ export default function AdminOrganizationDetailPage() {
       </dl>
       <div className="flex flex-wrap gap-2">
         {org.active ? (
-          <Button type="button" variant="outline" onClick={() => run(() => deactivateAdminOrganization(id), "Organization suspended")}>
+          <Button type="button" variant="destructive" onClick={() => setSuspendOpen(true)}>
             Suspend
           </Button>
         ) : (
@@ -107,7 +109,7 @@ export default function AdminOrganizationDetailPage() {
           </Button>
         )}
         <Button type="button" variant="outline" onClick={() => setAttachOpen(true)}>Attach member</Button>
-        <Button type="button" variant="outline" onClick={() => setTransferOpen(true)}>Transfer ownership</Button>
+        <Button type="button" variant="destructive" onClick={() => setTransferOpen(true)}>Transfer ownership</Button>
       </div>
       <section className="space-y-2">
         <h2 className="font-heading text-lg font-semibold">Workspaces</h2>
@@ -142,8 +144,21 @@ export default function AdminOrganizationDetailPage() {
       <Dialog open={transferOpen} title="Transfer ownership" onClose={() => setTransferOpen(false)}>
         <p className="text-sm text-muted-foreground">The new owner must already be a member.</p>
         <FormField label="New owner user id" htmlFor="new-owner"><Input id="new-owner" value={newOwner} onChange={(e) => setNewOwner(e.target.value)} /></FormField>
-        <Button type="button" onClick={() => run(() => adminTransferOwnership(id, newOwner), "Ownership transferred")}>Transfer</Button>
+        <Button type="button" variant="destructive" onClick={() => run(() => adminTransferOwnership(id, newOwner), "Ownership transferred")}>Transfer</Button>
       </Dialog>
+      <ConfirmDialog
+        open={suspendOpen}
+        title="Suspend organization"
+        message="Members lose access until you activate this organization again."
+        confirmLabel="Suspend"
+        onClose={() => setSuspendOpen(false)}
+        onConfirm={() => {
+          setSuspendOpen(false);
+          void run(() => deactivateAdminOrganization(id), "Organization suspended").catch((e) =>
+            setError(errorText(e, "Suspend failed"))
+          );
+        }}
+      />
     </div>
   );
 }

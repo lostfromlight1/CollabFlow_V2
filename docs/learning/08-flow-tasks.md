@@ -54,9 +54,11 @@ sequenceDiagram
 
 `TaskServiceImpl.createSubtask` builds a `CreateTaskRequest` with `parentTaskId` and calls `create`. The child is a normal task row plus `task.created`.
 
+The task list opens New task and Edit task in a dialog. The task detail page uses the same edit dialog. Both send an optional due date as a local calendar day. `TaskServiceImpl.update` writes `due_date` from the body, so a null `dueDate` clears it. A PUT that leaves the field out also clears it, because a missing instant is null.
+
 ## Status
 
-`PUT /api/v1/tasks/{id}/status` (`TASK-006`). `TaskServiceImpl.changeStatus` requires permission `TASK_MOVE`, loads the project workflow, and rejects the change unless `workflow_transitions` contains that from/to pair. The column `require_comment` exists on the table. This method does not read it. Moving to a status whose category is `DONE` sets `closed_at`; any other category clears it. On success it publishes **two** events:
+`PUT /api/v1/tasks/{id}/status` (`TASK-006`). `TaskServiceImpl.changeStatus` requires permission `TASK_MOVE`, loads the project workflow, and rejects the change unless `workflow_transitions` contains that from/to pair. The column `require_comment` exists on the table. This method does not read it. Moving to a status whose category is `DONE` sets `closed_at`; any other category clears it. The task detail shows that timestamp as Completed. On success it publishes **two** events:
 
 1. `TaskStatusChangedDomainEvent` → topic `task.status_changed`. Collab writes activity `TASK_UPDATED` with a status change JSON, and notifies the assignee when they are not the actor. Realtime broadcasts `task.status_changed` on `project:{id}` and `task:{id}`.
 2. `TaskUpdatedDomainEvent` → topic `task.updated` (realtime, so existing board clients still move).

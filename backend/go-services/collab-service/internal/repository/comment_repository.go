@@ -81,20 +81,12 @@ func (r *CommentRepository) OrganizationIDForEntity(ctx context.Context, entityT
 		}
 		return t.OrganizationID, nil
 	case "PROJECT":
-		var orgID uuid.UUID
-		err := r.db.WithContext(ctx).Raw(`
+		return scanOrganizationID(r.db.WithContext(ctx), `
 			SELECT w.organization_id
 			FROM projects p
 			JOIN workspaces w ON w.id = p.workspace_id
 			WHERE p.id = ?
-		`, entityID).Scan(&orgID).Error
-		if err != nil {
-			return uuid.Nil, err
-		}
-		if orgID == uuid.Nil {
-			return uuid.Nil, gorm.ErrRecordNotFound
-		}
-		return orgID, nil
+		`, entityID)
 	default:
 		return uuid.Nil, fmt.Errorf("unsupported entityType %s", entityType)
 	}

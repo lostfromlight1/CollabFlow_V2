@@ -3,38 +3,37 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { PageHeader } from "@/components/layout/page-header";
 import { ProjectNav } from "@/components/product/project-nav";
-import { FormField } from "@/components/forms/form-field";
+import { TaskFormDialog, type TaskFormValues } from "@/components/product/task-form-dialog";
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { DataTable, type DataColumn } from "@/components/data/data-table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { PriorityChip } from "@/components/ui/priority-chip";
 import { StatusChip } from "@/components/ui/status-chip";
 import { listProjectMembers, type Member } from "@/lib/api/platform";
 import {
   createTask,
   deleteTask,
+  dueDateFromInput,
+  dueDateToInput,
   getDefaultWorkflow,
   listTasks,
+  updateTask,
   type Task,
   type WorkflowStatus,
 } from "@/lib/api/tasks";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { getSession } from "@/lib/auth/session";
 import { canManageProject, canWriteTasks } from "@/lib/auth/permissions";
 import { priorityTone, statusTone } from "@/lib/task-meta";
 import { Icons } from "@/lib/icons";
 
-const schema = z.object({
-  name: z.string().min(1).max(255),
-  description: z.string().max(10000).optional(),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
-});
+function formPriority(value: string | null | undefined): TaskFormValues["priority"] {
+  if (value === "LOW" || value === "HIGH" || value === "CRITICAL") return value;
+  return "MEDIUM";
+}
 
 export default function TasksPage() {
   const params = useParams<{ id: string }>();
@@ -47,11 +46,10 @@ export default function TasksPage() {
   const [canWrite, setCanWrite] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const { register, handleSubmit, reset, formState } = useForm({
-    resolver: zodResolver(schema),
-    defaultValues: { name: "", description: "", priority: "MEDIUM" as const },
-  });
+  const [editing, setEditing] = useState<Task | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const pageResult = await listTasks({
@@ -74,11 +72,11 @@ export default function TasksPage() {
         setCanWrite(canWriteTasks(role));
         setCanDelete(canManageProject(role));
       })
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+      .catch((e) => setError(errorText(e, "Load failed")));
   }, [params.id]);
 
   useEffect(() => {
-    load().catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+    load().catch((e) => setError(errorText(e, "Load failed")));
   }, [load]);
 
   const statusById = new Map(statuses.map((s) => [s.id, s]));
@@ -110,34 +108,54 @@ export default function TasksPage() {
     {
       id: "actions",
       header: "",
-      cell: (r) =>
-        canDelete ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="destructive"
-            onClick={() => {
-              if (!window.confirm("Delete this task?")) return;
-              void deleteTask(r.id).then(load).catch((e) => setError(e instanceof ApiError ? e.message : "Delete failed"));
-            }}
-          >
-            Delete
-          </Button>
-        ) : null,
+      cell: (r) => (
+        <div className="flex justify-end gap-2">
+          {canWrite ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => { setFormError(null); setShowForm(false); setEditing(r); }}>
+              Edit
+            </Button>
+          ) : null}
+          {canDelete ? (
+            <Button type="button" size="sm" variant="destructive" onClick={() => setDeletingId(r.id)}>
+              Delete
+            </Button>
+          ) : null}
+        </div>
+      ),
     },
   ];
 
-  const onCreate = handleSubmit(async (values) => {
-    setError(null);
+  const closeForm = () => {
+    setShowForm(false);
+    setEditing(null);
+    setFormError(null);
+  };
+
+  const onSubmit = async (values: TaskFormValues) => {
+    setFormError(null);
     try {
-      await createTask({ projectId: params.id, ...values });
-      reset();
-      setShowForm(false);
+      if (editing) {
+        await updateTask(editing.id, {
+          name: values.name,
+          description: values.description,
+          priority: values.priority,
+          dueDate: dueDateFromInput(values.dueDate ?? "") ?? null,
+        });
+      } else {
+        await createTask({
+          projectId: params.id,
+          name: values.name,
+          description: values.description,
+          priority: values.priority,
+          dueDate: dueDateFromInput(values.dueDate ?? ""),
+        });
+      }
+      closeForm();
       await load();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Create failed");
+      setFormError(errorText(e, editing ? "Save failed" : "Create failed"));
     }
-  });
+  };
 
   return (
     <div className="space-y-4">
@@ -148,7 +166,7 @@ export default function TasksPage() {
         icon={Icons.projects}
         actions={
           canWrite ? (
-            <Button type="button" onClick={() => setShowForm((v) => !v)}>New task</Button>
+            <Button type="button" onClick={() => { setEditing(null); setFormError(null); setShowForm(true); }}>New task</Button>
           ) : null
         }
       />
@@ -165,25 +183,6 @@ export default function TasksPage() {
           <option value="CRITICAL">Urgent</option>
         </select>
       </div>
-      {showForm && canWrite ? (
-        <form className="grid max-w-xl gap-3 rounded-xl border border-border/60 p-4" onSubmit={onCreate}>
-          <FormField label="Name" htmlFor="name" error={formState.errors.name?.message}>
-            <Input id="name" {...register("name")} />
-          </FormField>
-          <FormField label="Description" htmlFor="description">
-            <Input id="description" {...register("description")} />
-          </FormField>
-          <FormField label="Priority" htmlFor="priority">
-            <select id="priority" className="h-8 w-full rounded-lg border border-input bg-background px-2 text-sm" {...register("priority")}>
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-              <option value="CRITICAL">Urgent</option>
-            </select>
-          </FormField>
-          <Button type="submit" disabled={formState.isSubmitting}>Create</Button>
-        </form>
-      ) : null}
       {error ? <InlineAlert>{error}</InlineAlert> : null}
       <DataTable
         columns={columns}
@@ -196,6 +195,34 @@ export default function TasksPage() {
         emptyTitle="No tasks"
         emptyDescription="Create a task to start the board."
         emptyIcon={Icons.projects}
+      />
+      <TaskFormDialog
+        open={showForm || editing !== null}
+        title={editing ? "Edit task" : "New task"}
+        submitLabel={editing ? "Save" : "Create"}
+        formKey={editing?.id ?? "new"}
+        initial={editing ? {
+          name: editing.name,
+          description: editing.description ?? "",
+          priority: formPriority(editing.priority),
+          dueDate: dueDateToInput(editing.dueDate),
+        } : null}
+        error={formError}
+        onClose={closeForm}
+        onSubmit={onSubmit}
+      />
+      <ConfirmDialog
+        open={deletingId !== null}
+        title="Delete task"
+        message="This task is deleted and leaves the board."
+        confirmLabel="Delete"
+        onClose={() => setDeletingId(null)}
+        onConfirm={() => {
+          const id = deletingId;
+          setDeletingId(null);
+          if (!id) return;
+          void deleteTask(id).then(load).catch((e) => setError(errorText(e, "Delete failed")));
+        }}
       />
     </div>
   );

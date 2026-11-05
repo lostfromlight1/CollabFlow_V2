@@ -35,6 +35,8 @@ export type ActivityItem = {
   userId: string;
   actorName: string;
   actorEmail: string;
+  metadata?: { name?: string; effect?: string } | null;
+  changes?: { statusId?: { old?: string; new?: string } } | null;
   createdAt: string;
 };
 
@@ -54,12 +56,20 @@ export type NotificationItem = {
 export function createInvitation(input: {
   email: string;
   organizationId: string;
-  invitationType?: string;
+  invitationType?: "ORGANIZATION" | "WORKSPACE" | "PROJECT";
+  workspaceId?: string;
+  projectId?: string;
 }) {
   return apiFetch<Invitation>("/api/v1/invitations", {
     method: "POST",
     orgHeader: true,
-    body: { invitationType: "ORGANIZATION", ...input },
+    body: {
+      email: input.email,
+      organizationId: input.organizationId,
+      invitationType: input.invitationType ?? "ORGANIZATION",
+      workspaceId: input.workspaceId,
+      projectId: input.projectId,
+    },
   });
 }
 

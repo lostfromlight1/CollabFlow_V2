@@ -3,18 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { PageHeader } from "@/components/layout/page-header";
 import { ProjectNav } from "@/components/product/project-nav";
 import { CommentThread } from "@/components/product/comment-thread";
+import { TaskFormDialog, type TaskFormValues } from "@/components/product/task-form-dialog";
 import { FormField } from "@/components/forms/form-field";
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PriorityChip } from "@/components/ui/priority-chip";
 import { listEntityActivity, type ActivityItem } from "@/lib/api/collab";
+import { activitySentence } from "@/lib/activity-label";
 import { listProjectMembers, type Member } from "@/lib/api/platform";
 import {
   assignTask,
@@ -22,11 +21,13 @@ import {
   getDefaultWorkflow,
   getTask,
   listSubtasks,
+  dueDateFromInput,
+  dueDateToInput,
   updateTask,
   type Task,
   type WorkflowStatus,
 } from "@/lib/api/tasks";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { getSession } from "@/lib/auth/session";
 import { canWriteTasks } from "@/lib/auth/permissions";
 import { priorityTone, statusTone } from "@/lib/task-meta";
@@ -34,14 +35,10 @@ import { StatusChip } from "@/components/ui/status-chip";
 import { useProjectRoom } from "@/lib/realtime/use-project-room";
 import { Icons } from "@/lib/icons";
 
-const schema = z.object({
-  name: z.string().min(1).max(255),
-  description: z.string().max(10000).optional(),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
-  subtask: z.string().max(255).optional(),
-});
-
-type TaskForm = z.infer<typeof schema>;
+function formPriority(value: string | null | undefined): TaskFormValues["priority"] {
+  if (value === "LOW" || value === "HIGH" || value === "CRITICAL") return value;
+  return "MEDIUM";
+}
 
 export default function TaskDetailPage() {
   const params = useParams<{ id: string; taskId: string }>();
@@ -52,14 +49,12 @@ export default function TaskDetailPage() {
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [canWrite, setCanWrite] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [subtask, setSubtask] = useState("");
   const [tick, setTick] = useState(0);
   const reload = useCallback(() => setTick((n) => n + 1), []);
   useProjectRoom(params.id, reload);
-
-  const { register, handleSubmit, reset, getValues, formState } = useForm<TaskForm>({
-    resolver: zodResolver(schema),
-    defaultValues: { name: "", description: "", priority: "MEDIUM" as const, subtask: "" },
-  });
 
   useEffect(() => {
     const me = getSession()?.user.id;
@@ -78,31 +73,26 @@ export default function TaskDetailPage() {
         setActivity(feed.content ?? []);
         const role = people.find((m) => m.userId === me)?.roleId;
         setCanWrite(canWriteTasks(role));
-        const priority = t.priority === "LOW" || t.priority === "HIGH" || t.priority === "CRITICAL" ? t.priority : "MEDIUM";
-        reset({
-          name: t.name,
-          description: t.description ?? "",
-          priority,
-          subtask: "",
-        });
       })
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
-  }, [params.id, params.taskId, reset, tick]);
+      .catch((e) => setError(errorText(e, "Load failed")));
+  }, [params.id, params.taskId, tick]);
 
   const status = statuses.find((s) => s.id === task?.statusId);
 
-  const onSave = handleSubmit(async (values) => {
-    setError(null);
+  const onSave = async (values: TaskFormValues) => {
+    setFormError(null);
     try {
       setTask(await updateTask(params.taskId, {
         name: values.name,
         description: values.description,
         priority: values.priority,
+        dueDate: dueDateFromInput(values.dueDate ?? "") ?? null,
       }));
+      setEditOpen(false);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Save failed");
+      setFormError(errorText(e, "Save failed"));
     }
-  });
+  };
 
   return (
     <div className="space-y-6">
@@ -117,24 +107,25 @@ export default function TaskDetailPage() {
             <PriorityChip priority={priorityTone(task?.priority)} />
           </span>
         }
+        actions={canWrite ? <Button type="button" onClick={() => { setFormError(null); setEditOpen(true); }}>Edit</Button> : null}
       />
       <Link href={`/projects/${params.id}/tasks`} className="interactive-hover-link text-sm text-muted-foreground">Back to tasks</Link>
       {error ? <InlineAlert>{error}</InlineAlert> : null}
-      <form className="max-w-xl space-y-3" onSubmit={onSave}>
-        <FormField label="Name" htmlFor="name" error={formState.errors.name?.message}>
-          <Input id="name" disabled={!canWrite} {...register("name")} />
-        </FormField>
-        <FormField label="Description" htmlFor="description">
-          <Input id="description" disabled={!canWrite} {...register("description")} />
-        </FormField>
-        <FormField label="Priority" htmlFor="priority">
-          <select id="priority" disabled={!canWrite} className="h-8 w-full rounded-lg border border-input bg-background px-2 text-sm" {...register("priority")}>
-            <option value="LOW">Low</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HIGH">High</option>
-            <option value="CRITICAL">Urgent</option>
-          </select>
-        </FormField>
+      <dl className="max-w-xl space-y-2 text-sm">
+        <div>
+          <dt className="text-muted-foreground">Description</dt>
+          <dd>{task?.description || "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Due</dt>
+          <dd>{task?.dueDate ? dueDateToInput(task.dueDate) : "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Completed</dt>
+          <dd>{task?.closedAt ? new Date(task.closedAt).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "Not yet"}</dd>
+        </div>
+      </dl>
+      <div className="max-w-xl">
         <FormField label="Assignee" htmlFor="assignee">
           <select
             id="assignee"
@@ -145,7 +136,7 @@ export default function TaskDetailPage() {
               const value = e.target.value || null;
               void assignTask(params.taskId, value)
                 .then(setTask)
-                .catch((err) => setError(err instanceof ApiError ? err.message : "Assign failed"));
+                .catch((err) => setError(errorText(err, "Assign failed")));
             }}
           >
             <option value="">Unassigned</option>
@@ -154,8 +145,7 @@ export default function TaskDetailPage() {
             ))}
           </select>
         </FormField>
-        {canWrite ? <Button type="submit" disabled={formState.isSubmitting}>Save</Button> : null}
-      </form>
+      </div>
       <section className="space-y-2">
         <h2 className="text-sm font-medium">Subtasks</h2>
         <ul className="space-y-1 text-sm">
@@ -167,17 +157,20 @@ export default function TaskDetailPage() {
         </ul>
         {canWrite ? (
           <div className="flex gap-2">
-            <Input placeholder="Subtask name" {...register("subtask")} />
+            <Input placeholder="Subtask name" value={subtask} onChange={(e) => setSubtask(e.target.value)} />
             <Button
               type="button"
               variant="outline"
               onClick={() => {
-                const name = getValues("subtask")?.trim();
+                const name = subtask.trim();
                 if (!name) return;
                 void createSubtask(params.taskId, { name })
                   .then(() => listSubtasks(params.taskId))
-                  .then(setSubs)
-                  .catch((e) => setError(e instanceof ApiError ? e.message : "Subtask failed"));
+                  .then((rows) => {
+                    setSubs(rows);
+                    setSubtask("");
+                  })
+                  .catch((e) => setError(errorText(e, "Subtask failed")));
               }}
             >
               Add
@@ -189,11 +182,26 @@ export default function TaskDetailPage() {
         <h2 className="mb-2 text-sm font-medium">Activity</h2>
         <ul className="space-y-1 text-sm text-muted-foreground">
           {activity.map((item) => (
-            <li key={item.id}>{item.actorName} · {item.actionType}</li>
+            <li key={item.id}>{item.actorName} · {activitySentence(item)}</li>
           ))}
         </ul>
       </section>
       <CommentThread entityType="TASK" entityId={params.taskId} canWrite={canWrite} />
+      <TaskFormDialog
+        open={editOpen}
+        title="Edit task"
+        submitLabel="Save"
+        formKey={task?.id ?? "edit"}
+        initial={task ? {
+          name: task.name,
+          description: task.description ?? "",
+          priority: formPriority(task.priority),
+          dueDate: dueDateToInput(task.dueDate),
+        } : null}
+        error={formError}
+        onClose={() => { setEditOpen(false); setFormError(null); }}
+        onSubmit={onSave}
+      />
     </div>
   );
 }

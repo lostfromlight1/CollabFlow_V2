@@ -14,13 +14,16 @@ import { FormField } from "@/components/forms/form-field";
 import {
   adminCreateUser,
   downloadAdminCsv,
+  listAdminOrganizations,
   listAdminUsers,
+  type AdminOrganization,
   type AdminUser,
 } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { Icons } from "@/lib/icons";
 
 const fieldClass = "h-8 w-full rounded-lg border border-input bg-background px-2 text-sm";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function when(value: string | null | undefined) {
   if (!value) return "—";
@@ -33,10 +36,12 @@ export default function AdminUsersPage() {
   const [total, setTotal] = useState(0);
   const [sort, setSort] = useState("createdAt,desc");
   const [q, setQ] = useState("");
+  const [searchReady, setSearchReady] = useState(false);
   const [active, setActive] = useState("");
   const [masterAdmin, setMasterAdmin] = useState("");
   const [emailVerified, setEmailVerified] = useState("");
   const [organizationId, setOrganizationId] = useState("");
+  const [organizations, setOrganizations] = useState<AdminOrganization[]>([]);
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
   const [deleted, setDeleted] = useState("false");
@@ -52,7 +57,7 @@ export default function AdminUsersPage() {
     active: active === "" ? undefined : active === "true",
     masterAdmin: masterAdmin === "" ? undefined : masterAdmin === "true",
     emailVerified: emailVerified === "" ? undefined : emailVerified === "true",
-    organizationId: organizationId || undefined,
+    organizationId: UUID_RE.test(organizationId) ? organizationId : undefined,
     createdFrom: createdFrom ? `${createdFrom}T00:00:00.000Z` : undefined,
     createdTo: createdTo ? `${createdTo}T23:59:59.999Z` : undefined,
     deleted,
@@ -60,6 +65,12 @@ export default function AdminUsersPage() {
     size: 20,
     sort,
   };
+
+  useEffect(() => {
+    listAdminOrganizations({ page: 0, size: 100, sort: "name,asc" })
+      .then((result) => setOrganizations(result.content ?? []))
+      .catch(() => setOrganizations([]));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,7 +83,7 @@ export default function AdminUsersPage() {
         setError(null);
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof ApiError ? e.message : "Could not load users");
+        if (!cancelled) setError(errorText(e, "Could not load users"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -156,7 +167,7 @@ export default function AdminUsersPage() {
               variant="outline"
               onClick={() =>
                 downloadAdminCsv(`/api/v1/admin/users/export${toQuery(query)}`, "users.csv").catch((e) =>
-                  setError(e instanceof Error ? e.message : "Export failed")
+                  setError(errorText(e, "Export failed"))
                 )
               }
             >
@@ -170,7 +181,16 @@ export default function AdminUsersPage() {
       />
       {error ? <InlineAlert>{error}</InlineAlert> : null}
       <div className="grid gap-2 sm:grid-cols-4">
-        <Input placeholder="Search name or email" value={q} onChange={(e) => { setPage(0); setQ(e.target.value); }} />
+        <Input
+          name="user-directory-search"
+          type="search"
+          autoComplete="off"
+          readOnly={!searchReady}
+          onFocus={() => setSearchReady(true)}
+          placeholder="Search name or email"
+          value={q}
+          onChange={(e) => { setPage(0); setQ(e.target.value); }}
+        />
         <select className={fieldClass} value={active} onChange={(e) => { setPage(0); setActive(e.target.value); }}>
           <option value="">Any status</option>
           <option value="true">Active</option>
@@ -186,7 +206,12 @@ export default function AdminUsersPage() {
           <option value="true">Verified</option>
           <option value="false">Unverified</option>
         </select>
-        <Input placeholder="Organization id" value={organizationId} onChange={(e) => { setPage(0); setOrganizationId(e.target.value); }} />
+        <select className={fieldClass} value={organizationId} onChange={(e) => { setPage(0); setOrganizationId(e.target.value); }}>
+          <option value="">Any organization</option>
+          {organizations.map((org) => (
+            <option key={org.id} value={org.id}>{org.name}</option>
+          ))}
+        </select>
         <Input type="date" value={createdFrom} onChange={(e) => { setPage(0); setCreatedFrom(e.target.value); }} />
         <Input type="date" value={createdTo} onChange={(e) => { setPage(0); setCreatedTo(e.target.value); }} />
         <select className={fieldClass} value={deleted} onChange={(e) => { setPage(0); setDeleted(e.target.value); }}>
@@ -221,7 +246,7 @@ export default function AdminUsersPage() {
         </FormField>
         <Button
           type="button"
-          onClick={() => createUser().catch((e) => setError(e instanceof ApiError ? e.message : "Create failed"))}
+          onClick={() => createUser().catch((e) => setError(errorText(e, "Create failed")))}
         >
           Create
         </Button>

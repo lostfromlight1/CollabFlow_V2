@@ -49,11 +49,13 @@ public final class AdminUserSql {
             params.put("emailVerified", emailVerified);
         }
         if (organizationId != null) {
-            where.append("""
-                     AND EXISTS (
-                       SELECT 1 FROM organization_members m
-                       WHERE m.user_id = u.id AND m.organization_id = :organizationId
-                     )""");
+            // A text block drops the newline after """ and the shared indent, so
+            // " AND" must be a normal string or it glues onto the previous token
+            // (IS NULLAND EXISTS).
+            where.append(" AND EXISTS (")
+                    .append(" SELECT 1 FROM organization_members m")
+                    .append(" WHERE m.user_id = u.id AND m.organization_id = :organizationId")
+                    .append(")");
             params.put("organizationId", organizationId);
         }
         if (createdFrom != null) {

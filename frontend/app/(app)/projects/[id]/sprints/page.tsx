@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { listProjectMembers } from "@/lib/api/platform";
 import { createSprint, listSprints, type Sprint } from "@/lib/api/tasks";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { getSession } from "@/lib/auth/session";
 import { canWriteTasks } from "@/lib/auth/permissions";
 import { Icons } from "@/lib/icons";
@@ -47,7 +47,7 @@ export default function SprintsPage() {
     listProjectMembers(params.id)
       .then((members) => setCanWrite(canWriteTasks(members.find((m) => m.userId === me)?.roleId)))
       .catch(() => setCanWrite(false));
-    load().catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+    load().catch((e) => setError(errorText(e, "Load failed")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
@@ -65,7 +65,7 @@ export default function SprintsPage() {
       setOpen(false);
       await load();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Create failed");
+      setError(errorText(e, "Create failed"));
     }
   });
 

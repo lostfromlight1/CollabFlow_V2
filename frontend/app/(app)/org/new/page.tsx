@@ -11,7 +11,7 @@ import { InlineAlert } from "@/components/feedback/inline-alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createOrganization } from "@/lib/api/platform";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { Icons } from "@/lib/icons";
 
 const schema = z.object({
@@ -34,11 +34,7 @@ export default function NewOrgPage() {
       await createOrganization(values);
       router.push("/select-org");
     } catch (e) {
-      setError(
-        e instanceof ApiError
-          ? e.message
-          : "Create failed. Self-serve org create may be turned off — use the admin portal."
-      );
+      setError(errorText(e, "Create failed. Self-serve org create may be turned off — use the admin portal."));
     }
   });
 

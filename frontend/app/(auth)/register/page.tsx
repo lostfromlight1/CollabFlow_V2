@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getMyProfile, register as registerAccount } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { persistAuth, postAuthPath, inviteReturnPath } from "@/lib/auth/routing";
 
 const schema = z.object({
@@ -56,7 +56,7 @@ export default function RegisterPage() {
         const next = inviteReturnPath(new URLSearchParams(window.location.search).get("next"));
         router.replace(next ?? postAuthPath(session.user, auth));
       } catch (e) {
-        setError(e instanceof ApiError ? e.message : "Registration failed");
+        setError(errorText(e, "Registration failed"));
       }
     },
     () => setError("Check the form")

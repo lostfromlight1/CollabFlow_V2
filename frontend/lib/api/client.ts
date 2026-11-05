@@ -11,6 +11,12 @@ export class ApiError extends Error {
   }
 }
 
+/** Server sentence when the failure is an Error (including ApiError). Fallback only when there is no message. */
+export function errorText(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
 function baseUrl(): string {
   const url = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!url) {
@@ -165,7 +171,13 @@ async function request<T>(
     throw new ApiError(json.message || "Request failed", res.status);
   }
 
-  return (json?.data ?? (json as unknown as T)) as T;
+  // Java omits data when it is null. Falling back to the envelope made the
+  // shell render an empty announcement banner.
+  if (json && typeof json.success === "boolean") {
+    return (json.data ?? null) as T;
+  }
+
+  return json as T;
 }
 
 export type PageResult<T> = {

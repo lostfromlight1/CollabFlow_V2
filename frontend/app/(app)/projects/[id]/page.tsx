@@ -5,15 +5,19 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { ProjectNav } from "@/components/product/project-nav";
+import { CommentThread } from "@/components/product/comment-thread";
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { DelayedSkeletonGate, DashboardSkeleton } from "@/components/feedback/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { StatusChip } from "@/components/ui/status-chip";
 import { PriorityChip } from "@/components/ui/priority-chip";
 import { listEntityActivity, type ActivityItem } from "@/lib/api/collab";
-import { getProject, type Project } from "@/lib/api/platform";
+import { activitySentence } from "@/lib/activity-label";
+import { getProject, listProjectMembers, type Project } from "@/lib/api/platform";
 import { getTaskStats, type TaskStats } from "@/lib/api/tasks";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
+import { getSession } from "@/lib/auth/session";
+import { canWriteTasks } from "@/lib/auth/permissions";
 import { priorityTone, statusTone } from "@/lib/task-meta";
 import { Icons } from "@/lib/icons";
 
@@ -22,21 +26,25 @@ export default function ProjectHomePage() {
   const [project, setProject] = useState<Project | null>(null);
   const [stats, setStats] = useState<TaskStats | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [canComment, setCanComment] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const me = getSession()?.user.id;
     Promise.all([
       getProject(params.id),
       getTaskStats(params.id).catch(() => null),
       listEntityActivity("PROJECT", params.id).catch(() => ({ content: [] as ActivityItem[] })),
+      listProjectMembers(params.id).catch(() => []),
     ])
-      .then(([p, s, a]) => {
+      .then(([p, s, a, members]) => {
         setProject(p);
         setStats(s);
         setActivity(a.content ?? []);
+        setCanComment(canWriteTasks(members.find((m) => m.userId === me)?.roleId));
       })
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Could not load project"))
+      .catch((e) => setError(errorText(e, "Could not load project")))
       .finally(() => setLoading(false));
   }, [params.id]);
 
@@ -82,14 +90,14 @@ export default function ProjectHomePage() {
             <ul className="space-y-2 text-sm">
               {activity.slice(0, 8).map((item) => (
                 <li key={item.id}>
-                  <span className="font-medium">{item.actorName}</span> {item.actionType}{" "}
-                  <span className="text-muted-foreground">{item.entityType}</span>
+                  <span className="font-medium">{item.actorName}</span> {activitySentence(item)}
                 </li>
               ))}
             </ul>
           )}
         </section>
       </div>
+      <CommentThread entityType="PROJECT" entityId={params.id} canWrite={canComment} />
     </DelayedSkeletonGate>
   );
 }

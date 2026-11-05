@@ -7,9 +7,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { MessageSquare } from "lucide-react";
 import { FormField } from "@/components/forms/form-field";
 import { InlineAlert } from "@/components/feedback/inline-alert";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import {
   createComment,
   deleteComment,
@@ -34,6 +35,7 @@ export function CommentThread({
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const me = getSession()?.user.id;
   const { register, handleSubmit, reset, formState } = useForm<{ content: string }>({
     resolver: zodResolver(schema),
@@ -44,7 +46,7 @@ export function CommentThread({
     try {
       setRows(await listComments(entityType, entityId));
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not load comments");
+      setError(errorText(e, "Could not load comments"));
     }
   }
 
@@ -60,7 +62,7 @@ export function CommentThread({
       reset();
       await load();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Comment failed");
+      setError(errorText(e, "Comment failed"));
     }
   });
 
@@ -84,7 +86,7 @@ export function CommentThread({
                     void updateComment(row.id, draft)
                       .then(load)
                       .then(() => setEditing(null))
-                      .catch((e) => setError(e instanceof ApiError ? e.message : "Update failed"));
+                      .catch((e) => setError(errorText(e, "Update failed")));
                   }}
                 >
                   Save
@@ -113,11 +115,7 @@ export function CommentThread({
                   type="button"
                   size="sm"
                   variant="destructive"
-                  onClick={() => {
-                    void deleteComment(row.id)
-                      .then(load)
-                      .catch((e) => setError(e instanceof ApiError ? e.message : "Delete failed"));
-                  }}
+                  onClick={() => setRemovingId(row.id)}
                 >
                   Delete
                 </Button>
@@ -138,6 +136,19 @@ export function CommentThread({
       ) : (
         <p className="text-sm text-muted-foreground">Viewers can read comments.</p>
       )}
+      <ConfirmDialog
+        open={removingId !== null}
+        title="Delete comment"
+        message="This comment is removed for everyone who can see the thread."
+        confirmLabel="Delete"
+        onClose={() => setRemovingId(null)}
+        onConfirm={() => {
+          const id = removingId;
+          setRemovingId(null);
+          if (!id) return;
+          void deleteComment(id).then(load).catch((e) => setError(errorText(e, "Delete failed")));
+        }}
+      />
     </section>
   );
 }

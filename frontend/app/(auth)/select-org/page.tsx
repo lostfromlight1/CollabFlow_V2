@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/card";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { listMyOrganizations, selectOrganization } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { getSession, setSession } from "@/lib/auth/session";
 import { postAuthPath } from "@/lib/auth/routing";
 import type { OrganizationSummary } from "@/lib/types/api";
@@ -41,7 +41,7 @@ export default function SelectOrgPage() {
     listMyOrganizations()
       .then(setOrgs)
       .catch((e) =>
-        setError(e instanceof ApiError ? e.message : "Failed to load orgs")
+        setError(errorText(e, "Failed to load orgs"))
       )
       .finally(() => setLoading(false));
   }, [router]);
@@ -68,7 +68,7 @@ export default function SelectOrgPage() {
       });
       router.replace(postAuthPath(session.user, auth));
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Select failed");
+      setError(errorText(e, "Select failed"));
     }
   }
 

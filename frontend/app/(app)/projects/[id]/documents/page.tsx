@@ -14,7 +14,7 @@ import {
   uploadProjectDocument,
   type ProjectDocument,
 } from "@/lib/api/documents";
-import { ApiError } from "@/lib/api/client";
+import { errorText } from "@/lib/api/client";
 import { getSession } from "@/lib/auth/session";
 import { canWriteTasks } from "@/lib/auth/permissions";
 import { Icons } from "@/lib/icons";
@@ -36,7 +36,7 @@ export default function DocumentsPage() {
     listProjectMembers(params.id)
       .then((members) => setCanWrite(canWriteTasks(members.find((m) => m.userId === me)?.roleId)))
       .catch(() => setCanWrite(false));
-    load().catch((e) => setError(e instanceof ApiError ? e.message : "Load failed"));
+    load().catch((e) => setError(errorText(e, "Load failed")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
@@ -55,7 +55,7 @@ export default function DocumentsPage() {
           variant="outline"
           onClick={() => {
             void downloadProjectDocument(r.id, r.name).catch((e) =>
-              setError(e instanceof ApiError ? e.message : "Download failed")
+              setError(errorText(e, "Download failed"))
             );
           }}
         >
@@ -79,7 +79,7 @@ export default function DocumentsPage() {
             if (!file) return;
             void uploadProjectDocument(params.id, file)
               .then(load)
-              .catch((err) => setError(err instanceof ApiError ? err.message : "Upload failed"));
+              .catch((err) => setError(errorText(err, "Upload failed")));
           }}
         />
       ) : (

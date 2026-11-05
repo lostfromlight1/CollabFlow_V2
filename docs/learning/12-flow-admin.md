@@ -40,7 +40,7 @@ sequenceDiagram
 | Step | ApiId | Service | Rule |
 |------|-------|---------|------|
 | Create user | USER-020 | user-service | `requireMasterAdmin` |
-| Create org with a chosen owner | ADMIN-ORG-001 | platform | Owner user must exist and be active |
+| Create org with a chosen owner | ADMIN-ORG-001 | platform | The form takes the owner's email and resolves it with USER-021. The owner must exist and be active |
 | Attach member | ADMIN-ORG-002 | platform | Master admin. Body carries the user and role. |
 | Transfer ownership | ADMIN-ORG-003 | platform | Master admin |
 
@@ -83,7 +83,7 @@ Deactivate is not the same as delete. user-service README text that mentions dea
 | Id | Who can call | Effect |
 |----|----------------|--------|
 | ADMIN-ANN-001–004 | Master admin | Write `announcements` |
-| ANN-001 `GET /api/v1/announcements/active` | Any JWT | One banner: active, inside the time window, newest `created_at` |
+| ANN-001 `GET /api/v1/announcements/active` | Any JWT | One banner, or no `data` when nothing is showing. Active, non-blank, inside the time window, newest `created_at`. A passed `ends_at` turns the row off. The shell X hides that id in this browser (`localStorage`); it does not change the row |
 | ADMIN-FLAG-001–003 | Master admin | `feature_flags` by key |
 | FLAG-001 `GET /api/v1/feature-flags` | Any JWT | Read. A key that is not in the table means enabled. |
 
