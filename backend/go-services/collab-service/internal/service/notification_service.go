@@ -90,6 +90,67 @@ func (s *NotificationService) HandleTaskAssigned(ctx context.Context, env kafka.
 	return nil
 }
 
+// HandleStatusChanged notifies the assignee when someone else moves the task.
+// Idempotency key is separate from the activity row for the same Kafka event.
+// This path does not call the email stub. Assignment mail stays on task.assigned.
+func (s *NotificationService) HandleStatusChanged(ctx context.Context, env kafka.Envelope, data kafka.ScopeEventData) error {
+	key := env.EventID + ":notification"
+	done, err := s.repo.AlreadyProcessed(ctx, key)
+	if err != nil {
+		return err
+	}
+	if done {
+		return nil
+	}
+	if data.ActorID == "" || data.TaskID == "" {
+		log.Printf("task.status_changed eventId=%s notification skipped (missing actor or task)", env.EventID)
+		return s.repo.MarkProcessed(ctx, key, "task.status_changed")
+	}
+	taskID, err := uuid.Parse(data.TaskID)
+	if err != nil {
+		return fmt.Errorf("taskId: %w", err)
+	}
+	actorID, err := uuid.Parse(data.ActorID)
+	if err != nil {
+		return fmt.Errorf("actorId: %w", err)
+	}
+	task, err := s.repo.FindTask(ctx, taskID)
+	if err != nil {
+		return err
+	}
+	if task.AssigneeID == nil || *task.AssigneeID == actorID {
+		return s.repo.MarkProcessed(ctx, key, "task.status_changed")
+	}
+	orgID := task.OrganizationID
+	if data.OrganizationID != "" {
+		if parsed, err := uuid.Parse(data.OrganizationID); err == nil {
+			orgID = parsed
+		}
+	}
+	name := task.Name
+	if data.Name != "" {
+		name = data.Name
+	}
+	actionURL := fmt.Sprintf("/projects/%s/tasks/%s", data.ProjectID, data.TaskID)
+	n := &model.Notification{
+		RecipientID:      *task.AssigneeID,
+		SenderID:         &actorID,
+		NotificationType: "TASK_UPDATED",
+		Title:            "Task status changed",
+		Message:          fmt.Sprintf("Status changed on task: %s", name),
+		EntityType:       "TASK",
+		EntityID:         taskID,
+		OrganizationID:   orgID,
+		IsRead:           false,
+		ActionURL:        &actionURL,
+	}
+	if err := s.repo.CreateWithProcessed(ctx, n, key, "task.status_changed"); err != nil {
+		return err
+	}
+	log.Printf("status notification eventId=%s recipient=%s task=%s", env.EventID, *task.AssigneeID, taskID)
+	return nil
+}
+
 func (s *NotificationService) ListMine(
 	ctx context.Context,
 	userID uuid.UUID,

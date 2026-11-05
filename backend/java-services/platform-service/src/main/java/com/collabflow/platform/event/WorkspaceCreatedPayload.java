@@ -6,5 +6,6 @@ public record WorkspaceCreatedPayload(
         UUID workspaceId,
         UUID organizationId,
         String name,
-        UUID ownerId
+        UUID ownerId,
+        UUID actorId
 ) {}

@@ -90,6 +90,10 @@ func (h *InvitationHandler) Create(c *gin.Context) {
 		InvitationType: req.InvitationType,
 	})
 	if err != nil {
+		if errors.Is(err, service.ErrInviteForbidden) {
+			mapInviteErr(c, err)
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error(), "errorCode": "BAD_REQUEST"})
 		return
 	}
@@ -112,7 +116,7 @@ func (h *InvitationHandler) ListMine(c *gin.Context) {
 		return
 	}
 	p := parsePage(c)
-	list, total, err := h.service.ListMine(c.Request.Context(), userID, middleware.Email(c), optionalOrgHeader(c), p.Page, p.Size)
+	list, total, err := h.service.ListMine(c.Request.Context(), userID, middleware.Email(c), p.Page, p.Size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "errorCode": "INTERNAL_ERROR"})
 		return
@@ -121,6 +125,11 @@ func (h *InvitationHandler) ListMine(c *gin.Context) {
 }
 
 func (h *InvitationHandler) ListByOrg(c *gin.Context) {
+	userID, ok := middleware.UserID(c)
+	if !ok {
+		unauthorized(c)
+		return
+	}
 	orgID, ok := organizationIDFromRequest(c)
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -131,8 +140,12 @@ func (h *InvitationHandler) ListByOrg(c *gin.Context) {
 		return
 	}
 	p := parsePage(c)
-	list, total, err := h.service.ListByOrg(c.Request.Context(), orgID, p.Page, p.Size)
+	list, total, err := h.service.ListByOrg(c.Request.Context(), userID, orgID, p.Page, p.Size)
 	if err != nil {
+		if errors.Is(err, service.ErrInviteForbidden) {
+			mapInviteErr(c, err)
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "errorCode": "INTERNAL_ERROR"})
 		return
 	}
@@ -181,7 +194,7 @@ func mapInviteErr(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, service.ErrInviteNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error(), "errorCode": "NOT_FOUND"})
-	case errors.Is(err, service.ErrInviteExpired), errors.Is(err, service.ErrInviteNotPending), errors.Is(err, service.ErrInviteEmailMismatch):
+	case errors.Is(err, service.ErrInviteExpired), errors.Is(err, service.ErrInviteNotPending), errors.Is(err, service.ErrInviteEmailMismatch), errors.Is(err, service.ErrInviteForbidden):
 		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": err.Error(), "errorCode": "FORBIDDEN"})
 	case errors.Is(err, service.ErrInvitePlatform):
 		// Surface platform body briefly for debugging (403 manage_members, etc.).

@@ -84,6 +84,7 @@
 ### 7. Notifications — `collab-service`
 
 - Consume `task.assigned` → in-app notification  
+- `task.status_changed` notifies the assignee (`TASK_UPDATED`) when they are not the actor. Assignment mail stays the existing stub.  
 - Mention notifications from comments (in-process)  
 - List / mark read / mark all read  
 - Email: **log stub** only
@@ -92,8 +93,9 @@
 
 ### 8. Invitations — `collab-service`
 
-- Create invitation, list, org list  
-- Accept by token; delete  
+- Create invitation, list, org list
+- Create and the org list require `manage_members`. An admin cancel sets `DECLINED`
+- Accept by token; delete
 - Gateway routes under `/api/v1/invitations/**`
 
 ---
@@ -111,6 +113,7 @@
 ### 10. Activity feed — `collab-service`
 
 - Consume key events (`task.created`, `comment.added`, …) → `activity_feed`  
+- Platform member and project events, `task.deleted`, and `task.status_changed` also land in the activity feed  
 - List by org / entity / user
 
 ---
@@ -118,7 +121,7 @@
 ### 11. Realtime updates — `realtime-service`
 
 - WebSocket endpoint + room subscribe (`project:…`, `task:…`)  
-- Consume `task.updated` / `comment.added` → Redis pub/sub → broadcast  
+- Consume `task.updated`, `task.status_changed`, `task.deleted`, and `comment.added` → Redis pub/sub → broadcast  
 
 **Not in MVP:** presence, typing indicators.
 

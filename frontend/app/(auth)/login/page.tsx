@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { getMyProfile, login, resendVerification } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
-import { persistAuth, postAuthPath } from "@/lib/auth/routing";
+import { persistAuth, postAuthPath, inviteReturnPath } from "@/lib/auth/routing";
 
 const schema = z.object({
   email: z.string().min(1, "Email is required").email("Enter a valid email"),
@@ -63,7 +63,8 @@ export default function LoginPage() {
           name: profile.name,
           masterAdmin: profile.masterAdmin,
         });
-        router.replace(postAuthPath(session.user, auth));
+        const next = inviteReturnPath(new URLSearchParams(window.location.search).get("next"));
+        router.replace(next ?? postAuthPath(session.user, auth));
       } catch (e) {
         setError(e instanceof ApiError ? e.message : "Login failed");
       }

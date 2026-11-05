@@ -113,10 +113,10 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         memberRepository.save(owner);
 
         events.publishEvent(new WorkspaceCreatedDomainEvent(new WorkspaceCreatedPayload(
-                workspace.getId(), organizationId, workspace.getName(), actorId
+                workspace.getId(), organizationId, workspace.getName(), actorId, actorId
         )));
         events.publishEvent(new WorkspaceMemberAddedDomainEvent(new WorkspaceMemberAddedPayload(
-                workspace.getId(), organizationId, actorId, adminRole.getId(), owner.getId()
+                workspace.getId(), organizationId, actorId, adminRole.getId(), owner.getId(), actorId
         )));
 
         log.info("Created workspace id={} orgId={} owner={}", workspace.getId(), organizationId, actorId);
@@ -153,10 +153,10 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         memberRepository.save(owner);
 
         events.publishEvent(new WorkspaceCreatedDomainEvent(new WorkspaceCreatedPayload(
-                workspace.getId(), organizationId, workspace.getName(), ownerId
+                workspace.getId(), organizationId, workspace.getName(), ownerId, ownerId
         )));
         events.publishEvent(new WorkspaceMemberAddedDomainEvent(new WorkspaceMemberAddedPayload(
-                workspace.getId(), organizationId, ownerId, adminRole.getId(), owner.getId()
+                workspace.getId(), organizationId, ownerId, adminRole.getId(), owner.getId(), ownerId
         )));
 
         log.info("Created default workspace id={} orgId={}", workspace.getId(), organizationId);
@@ -205,7 +205,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
             workspace.setDateFormat(request.dateFormat().trim());
         }
         events.publishEvent(new WorkspaceUpdatedDomainEvent(new WorkspaceUpdatedPayload(
-                workspace.getId(), workspace.getOrganizationId(), workspace.getName()
+                workspace.getId(), workspace.getOrganizationId(), workspace.getName(), userId
         )));
         log.info("Updated workspace id={}", workspaceId);
         return WorkspaceResponse.from(workspace);
@@ -219,7 +219,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         Workspace workspace = requireActiveWorkspace(workspaceId);
         workspace.setActive(false);
         events.publishEvent(new WorkspaceDeletedDomainEvent(new WorkspaceDeletedPayload(
-                workspace.getId(), workspace.getOrganizationId()
+                workspace.getId(), workspace.getOrganizationId(), userId
         )));
         log.info("Soft-deleted workspace id={}", workspaceId);
     }
@@ -265,7 +265,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         memberRepository.save(member);
 
         events.publishEvent(new WorkspaceMemberAddedDomainEvent(new WorkspaceMemberAddedPayload(
-                workspaceId, workspace.getOrganizationId(), request.userId(), role.getId(), member.getId()
+                workspaceId, workspace.getOrganizationId(), request.userId(), role.getId(), member.getId(), actorId
         )));
         log.info("Added workspace member id={} ws={}", member.getId(), workspaceId);
         return view(member);
@@ -309,7 +309,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         }
         memberRepository.delete(member);
         events.publishEvent(new WorkspaceMemberRemovedDomainEvent(new WorkspaceMemberRemovedPayload(
-                workspaceId, workspace.getOrganizationId(), member.getUserId(), memberId
+                workspaceId, workspace.getOrganizationId(), member.getUserId(), memberId, actorId
         )));
         log.info("Removed workspace member id={} ws={}", memberId, workspaceId);
     }
@@ -339,7 +339,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         memberRepository.save(member);
 
         events.publishEvent(new WorkspaceMemberAddedDomainEvent(new WorkspaceMemberAddedPayload(
-                workspaceId, workspace.getOrganizationId(), userId, memberRole.getId(), member.getId()
+                workspaceId, workspace.getOrganizationId(), userId, memberRole.getId(), member.getId(), userId
         )));
         log.info("User {} joined workspace {}", userId, workspaceId);
         return view(member);

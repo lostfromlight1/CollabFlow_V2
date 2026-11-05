@@ -66,10 +66,10 @@ Coordinate with auth (admin users), platform (membership on accept), gateway (or
 
 ### Notifications / activity
 
-- [ ] **More notification types** — invite received, status change, comment on assigned task (new consumers as needed)
+- [ ] **More notification types** — invite received, comment on assigned task (status change already notifies the assignee as `TASK_UPDATED`)
 - [x] **Unread count endpoint** — `GET /api/v1/notifications/unread-count` (NOTIF-004)
 - [ ] **Notification preferences** — email on/off per type (table + API)
-- [ ] **More platform events → activity** — e.g. `organization.member_added` / project events (optional)
+- [x] **Platform and task side effects → activity** — organization, workspace, and project events, plus `task.deleted` and `task.status_changed`
 - [x] **Pagination** on notifications / activity / invitations (`page` / `size`, PageResponse-shaped `data`)
 
 ### Comments / invites

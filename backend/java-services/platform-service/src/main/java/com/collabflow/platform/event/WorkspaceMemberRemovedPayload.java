@@ -6,5 +6,6 @@ public record WorkspaceMemberRemovedPayload(
         UUID workspaceId,
         UUID organizationId,
         UUID userId,
-        UUID membershipId
+        UUID membershipId,
+        UUID actorId
 ) {}

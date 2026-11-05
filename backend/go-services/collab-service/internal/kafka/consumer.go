@@ -107,6 +107,18 @@ func NewCommentAddedConsumer(brokersCSV, groupID string, handler CommentAddedHan
 	})
 }
 
+// NewJSONConsumer is one reader for one topic (the same idea as @KafkaListener).
+// Callers decode Envelope.Body() themselves so each topic can share this loop.
+func NewJSONConsumer(brokersCSV, groupID, topic string, handle func(ctx context.Context, env Envelope) error) *Consumer {
+	return newConsumer(brokersCSV, groupID, topic, func(ctx context.Context, msg kafkago.Message) error {
+		env, err := unmarshalEnvelope(msg.Value)
+		if err != nil {
+			return err
+		}
+		return handle(ctx, env)
+	})
+}
+
 func NewEmailSendConsumer(brokersCSV, groupID string, handler EmailSendHandler) *Consumer {
 	return newConsumer(brokersCSV, groupID, "email.send", func(ctx context.Context, msg kafkago.Message) error {
 		env, err := unmarshalEnvelope(msg.Value)

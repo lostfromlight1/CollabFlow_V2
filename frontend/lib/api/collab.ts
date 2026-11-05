@@ -72,9 +72,7 @@ export function peekInvitation(token: string) {
 
 /** INV-003 */
 export function listMyInvitations(page = 0, size = 20) {
-  return apiFetch<PageResult<Invitation>>(`/api/v1/invitations?page=${page}&size=${size}`, {
-    orgHeader: true,
-  });
+  return apiFetch<PageResult<Invitation>>(`/api/v1/invitations?page=${page}&size=${size}`);
 }
 
 /** INV-004 */

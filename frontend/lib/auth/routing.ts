@@ -33,3 +33,11 @@ export function postAuthPath(
   if (user.masterAdmin) return "/admin";
   return "/home";
 }
+
+/** Only an invite link may override the post-login path. */
+export function inviteReturnPath(raw: string | null): string | null {
+  if (!raw || !raw.startsWith("/invite/") || raw.startsWith("//") || raw.includes("\\") || raw.includes("..")) {
+    return null;
+  }
+  return raw;
+}

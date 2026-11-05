@@ -77,7 +77,7 @@ Coordinate with gateway (WS JWT / API key), platform (membership ACL), collab (n
 
 ### Events / UX
 
-- [ ] **More Kafka topics** — e.g. `task.assigned`, `task.status_changed` as distinct WS types (or richer payload)
+- [x] **Task socket types** — `task.status_changed` on `project:{id}` and `task:{id}`; `task.deleted` on `project:{id}`. `task.updated` stays.
 - [ ] **User private room** — `user:{id}` for notification toasts (collab or dual-write) *(ACL for `user:{self}` already enforced)*
 - [ ] **Presence / typing** — optional chat-like UX
 - [ ] **Reconnect guidance** — client docs; optional simple Redis buffer (keep lean)

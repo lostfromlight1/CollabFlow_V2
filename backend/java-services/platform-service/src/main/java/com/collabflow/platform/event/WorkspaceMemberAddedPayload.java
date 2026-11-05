@@ -7,5 +7,6 @@ public record WorkspaceMemberAddedPayload(
         UUID organizationId,
         UUID userId,
         UUID roleId,
-        UUID membershipId
+        UUID membershipId,
+        UUID actorId
 ) {}

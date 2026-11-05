@@ -82,14 +82,16 @@ Gateway: every `/api/**` needs `X-API-Key`. Protected routes need `Authorization
 | POST | `/api/v1/auth/logout` | Revoke refresh |
 | GET | `/api/v1/auth/me` | JWT required |
 
-**Not in MVP:** email verify, forgot/reset password, MFA, `user.updated` topic.
+**Not in MVP:** email verify, forgot/reset password, MFA.
+
+user-service publishes `user.updated` when a profile changes. That topic has no consumer. See the catalog.
 
 ---
 
 ## 3. platform-service (Java · 8082)
 
 **Owns:** `organizations`, `organization_members`, `workspaces`, `workspace_members`, `projects`, `project_members`, `roles`, `permissions`, `role_permissions`  
-**Kafka produce:** `organization.*` (created, member_added), `workspace.*`, `project.*`  
+**Kafka produce:** `organization.*`, `workspace.*`, and `project.*` (created, updated, deleted, member_added, member_removed)  
 **RBAC:** `PermissionService` checks role permissions per org/workspace/project scope.
 
 ### Organizations
@@ -157,7 +159,7 @@ Gateway: every `/api/**` needs `X-API-Key`. Protected routes need `Authorization
 ## 5. collab-service (Go · 9081)
 
 **Owns:** `notifications`, `invitations`, `comments`, `activity_feed` (+ related mention rows as implemented)  
-**Kafka consume:** `task.assigned`, `task.created`, `comment.added`, `email.send`  
+**Kafka consume:** `task.assigned`, `task.created`, `task.deleted`, `task.status_changed`, `comment.added`, platform `organization.*` / `workspace.*` / `project.*` (activity), `email.send` (stub only when email-service is off)  
 **Kafka produce:** `comment.added`, `email.send` (invitation create)  
 **Email:** consume `email.send` → structured log stub (no SMTP; standalone email-service = Wave 8)
 
@@ -186,7 +188,7 @@ Gateway: every `/api/**` needs `X-API-Key`. Protected routes need `Authorization
 ## 6. realtime-service (Go · 9082)
 
 **Owns:** no primary tables (in-memory rooms + Redis bus)  
-**Kafka consume:** `task.updated`, `comment.added` → publish to Redis rooms → WS clients  
+**Kafka consume:** `task.updated`, `task.status_changed`, `task.deleted`, `comment.added` → publish to Redis rooms → WS clients  
 **Redis:** pub/sub for multi-instance readiness  
 
 | Method | Path |
@@ -207,21 +209,33 @@ Envelope: shared JSON domain event (`eventId`, `eventType`, `timestamp`, `versio
 
 | Topic | Producer | Primary consumer(s) |
 |-------|----------|---------------------|
-| `user.created` | auth | (none in MVP — available for Phase 2) |
+| `user.created` | auth (register); user-service (admin create) | none on purpose. Account mail is `email.send`. There is no organization to file. |
+| `user.updated` | user-service | none on purpose. Profile name and email have no downstream writer. |
 | `email.send` | auth (verify/reset); collab (invitation) | collab stub **and** email-service (Wave 8; coexist via separate groups) |
-| `organization.created` | platform | (none in MVP) |
-| `organization.updated` | platform | (none in MVP) |
-| `organization.deleted` | platform | (none in MVP) |
-| `organization.member_added` | platform | (none in MVP) |
-| `organization.member_removed` | platform | (none in MVP) |
-| `workspace.*` | platform | (none in MVP) |
-| `project.*` | platform | (none in MVP) |
+| `organization.created` / `.updated` / `.deleted` | platform | collab → activity (`ORGANIZATION_CREATED` / `ORGANIZATION_UPDATED` / `ORGANIZATION_DELETED`) |
+| `organization.member_added` / `.member_removed` | platform | collab → activity (`MEMBER_JOINED` / `MEMBER_LEFT`) |
+| `workspace.*` | platform | collab → activity (created, updated, deleted, member joined/left) |
+| `project.*` | platform | collab → activity (created, updated, deleted, member joined/left) |
 | `task.created` | task | collab → activity |
 | `task.updated` | task | realtime → WS |
-| `task.deleted` | task | (none dedicated) |
+| `task.deleted` | task | collab → activity (`TASK_DELETED`, payload only); realtime → room `project:{projectId}` |
 | `task.assigned` | task | collab → notification |
-| `task.status_changed` | task | (+ dual `task.updated` for WS) |
+| `task.status_changed` | task | collab → activity and assignee notification (`TASK_UPDATED` when assignee ≠ actor); realtime → rooms `project:{id}` and `task:{id}`. Status still also publishes `task.updated`. |
 | `comment.added` | collab | collab activity + realtime WS |
+
+Deleted org and workspace rows are soft (`is_active = false`). `project.deleted` archives the project (`ARCHIVED`). Activity metadata uses `effect` `deactivated` or `archived`. `task.deleted` is a hard delete, so the payload is copied before the row is removed.
+
+### Side-effect `data` fields
+
+`actorId` is the caller on organization, workspace, and project created, updated, deleted, member-added, and member-removed payloads, and on `task.deleted` and `task.status_changed`. Owner-create uses the owner id as the actor.
+
+Project created, updated, deleted, and member payloads include `organizationId` (from the workspace).
+
+`task.deleted` `data`: `taskId`, `projectId`, `organizationId`, `workspaceId`, `name`, `actorId`.
+
+`task.status_changed` `data` adds `actorId`, `organizationId`, `workspaceId`, and `name` beside `fromStatusId` and `toStatusId`.
+
+`user.created` and `user.updated` stay `userId`, `email`, `name`. Domain event `version` stays `1.0`.
 
 ### `email.send` data
 

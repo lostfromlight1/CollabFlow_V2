@@ -38,12 +38,9 @@ func (r *InvitationRepository) FindByID(ctx context.Context, id uuid.UUID) (*mod
 	return &inv, nil
 }
 
-func (r *InvitationRepository) ListByEmail(ctx context.Context, email string, orgID *uuid.UUID, page, size int) ([]model.Invitation, int64, error) {
+func (r *InvitationRepository) ListByEmail(ctx context.Context, email string, page, size int) ([]model.Invitation, int64, error) {
 	q := r.db.WithContext(ctx).Model(&model.Invitation{}).
 		Where("email = ? AND status = ?", email, model.InvitePending)
-	if orgID != nil {
-		q = q.Where("organization_id = ?", *orgID)
-	}
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -81,6 +78,57 @@ func (r *InvitationRepository) MarkAcceptedIfPending(ctx context.Context, id uui
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+// CallerCanManage is a read of platform's permission rows.
+// Java analogy: PermissionService.requireOrgPermission, without writing member tables.
+// The workspace and project queries also require the row to belong to organizationID.
+func (r *InvitationRepository) CallerCanManage(
+	ctx context.Context,
+	userID, organizationID uuid.UUID,
+	workspaceID, projectID *uuid.UUID,
+	invitationType string,
+) (bool, error) {
+	var n int64
+	var err error
+	switch invitationType {
+	case model.InviteTypeOrg:
+		err = r.db.WithContext(ctx).Raw(`
+			SELECT COUNT(*) FROM organization_members om
+			JOIN role_permissions rp ON rp.role_id = om.role_id
+			JOIN permissions p ON p.id = rp.permission_id
+			WHERE om.organization_id = ? AND om.user_id = ? AND p.name = ?
+		`, organizationID, userID, "organization.manage_members").Scan(&n).Error
+	case model.InviteTypeWorkspace:
+		if workspaceID == nil {
+			return false, nil
+		}
+		err = r.db.WithContext(ctx).Raw(`
+			SELECT COUNT(*) FROM workspace_members wm
+			JOIN workspaces w ON w.id = wm.workspace_id
+			JOIN role_permissions rp ON rp.role_id = wm.role_id
+			JOIN permissions p ON p.id = rp.permission_id
+			WHERE wm.workspace_id = ? AND wm.user_id = ? AND w.organization_id = ? AND p.name = ?
+		`, *workspaceID, userID, organizationID, "workspace.manage_members").Scan(&n).Error
+	case model.InviteTypeProject:
+		if projectID == nil {
+			return false, nil
+		}
+		err = r.db.WithContext(ctx).Raw(`
+			SELECT COUNT(*) FROM project_members pm
+			JOIN projects pr ON pr.id = pm.project_id
+			JOIN workspaces w ON w.id = pr.workspace_id
+			JOIN role_permissions rp ON rp.role_id = pm.role_id
+			JOIN permissions p ON p.id = rp.permission_id
+			WHERE pm.project_id = ? AND pm.user_id = ? AND w.organization_id = ? AND p.name = ?
+		`, *projectID, userID, organizationID, "project.manage_members").Scan(&n).Error
+	default:
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
 }
 
 func (r *InvitationRepository) FindUser(ctx context.Context, userID uuid.UUID) (*model.UserRef, error) {

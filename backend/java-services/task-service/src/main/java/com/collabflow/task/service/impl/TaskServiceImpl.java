@@ -238,8 +238,13 @@ public class TaskServiceImpl implements TaskService {
         Task task = requireTask(taskId);
         permissionService.requireProjectPermission(task.getProjectId(), userId, SystemTaskRoles.TASK_DELETE);
         UUID projectId = task.getProjectId();
+        UUID organizationId = task.getOrganizationId();
+        UUID workspaceId = task.getWorkspaceId();
+        String name = task.getName();
         taskRepository.delete(task);
-        events.publishEvent(new TaskDeletedDomainEvent(new TaskDeletedPayload(taskId, projectId)));
+        events.publishEvent(new TaskDeletedDomainEvent(new TaskDeletedPayload(
+                taskId, projectId, organizationId, workspaceId, name, userId
+        )));
         log.info("Deleted task id={}", taskId);
     }
 
@@ -279,7 +284,14 @@ public class TaskServiceImpl implements TaskService {
         }
 
         events.publishEvent(new TaskStatusChangedDomainEvent(new TaskStatusChangedPayload(
-                task.getId(), task.getProjectId(), fromStatusId, toStatusId
+                task.getId(),
+                task.getProjectId(),
+                fromStatusId,
+                toStatusId,
+                userId,
+                task.getOrganizationId(),
+                task.getWorkspaceId(),
+                task.getName()
         )));
         // Also publish task.updated so realtime-service (consumes that topic) can broadcast.
         events.publishEvent(new TaskUpdatedDomainEvent(new TaskUpdatedPayload(

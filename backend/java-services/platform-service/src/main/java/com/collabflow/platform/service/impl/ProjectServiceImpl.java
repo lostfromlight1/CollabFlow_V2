@@ -88,7 +88,8 @@ public class ProjectServiceImpl implements ProjectService {
         UUID workspaceId = request.workspaceId();
         log.info("Creating project workspaceId={} actor={}", workspaceId, actorId);
 
-        requireActiveWorkspace(workspaceId);
+        Workspace workspace = requireActiveWorkspace(workspaceId);
+        UUID organizationId = workspace.getOrganizationId();
         permissionService.requireWorkspacePermission(workspaceId, actorId, SystemRoles.PROJECT_CREATE);
 
         if (request.parentProjectId() != null) {
@@ -126,10 +127,10 @@ public class ProjectServiceImpl implements ProjectService {
         memberRepository.save(owner);
 
         events.publishEvent(new ProjectCreatedDomainEvent(new ProjectCreatedPayload(
-                project.getId(), workspaceId, project.getName(), actorId
+                project.getId(), workspaceId, project.getName(), actorId, organizationId, actorId
         )));
         events.publishEvent(new ProjectMemberAddedDomainEvent(new ProjectMemberAddedPayload(
-                project.getId(), workspaceId, actorId, adminRole.getId(), owner.getId()
+                project.getId(), workspaceId, actorId, adminRole.getId(), owner.getId(), organizationId, actorId
         )));
 
         log.info("Created project id={} workspaceId={} owner={}", project.getId(), workspaceId, actorId);
@@ -192,7 +193,8 @@ public class ProjectServiceImpl implements ProjectService {
         }
 
         events.publishEvent(new ProjectUpdatedDomainEvent(new ProjectUpdatedPayload(
-                project.getId(), project.getWorkspaceId(), project.getName()
+                project.getId(), project.getWorkspaceId(), project.getName(),
+                organizationIdOf(project.getWorkspaceId()), userId
         )));
         log.info("Updated project id={}", projectId);
         return ProjectResponse.from(project);
@@ -206,7 +208,8 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = requireActiveProject(projectId);
         project.setStatus(Project.STATUS_ARCHIVED);
         events.publishEvent(new ProjectDeletedDomainEvent(new ProjectDeletedPayload(
-                project.getId(), project.getWorkspaceId()
+                project.getId(), project.getWorkspaceId(),
+                organizationIdOf(project.getWorkspaceId()), userId
         )));
         log.info("Archived project id={}", projectId);
     }
@@ -252,7 +255,8 @@ public class ProjectServiceImpl implements ProjectService {
         memberRepository.save(member);
 
         events.publishEvent(new ProjectMemberAddedDomainEvent(new ProjectMemberAddedPayload(
-                projectId, project.getWorkspaceId(), request.userId(), role.getId(), member.getId()
+                projectId, project.getWorkspaceId(), request.userId(), role.getId(), member.getId(),
+                organizationIdOf(project.getWorkspaceId()), actorId
         )));
         log.info("Added project member id={} project={}", member.getId(), projectId);
         return view(member);
@@ -296,7 +300,8 @@ public class ProjectServiceImpl implements ProjectService {
         }
         memberRepository.delete(member);
         events.publishEvent(new ProjectMemberRemovedDomainEvent(new ProjectMemberRemovedPayload(
-                projectId, project.getWorkspaceId(), member.getUserId(), memberId
+                projectId, project.getWorkspaceId(), member.getUserId(), memberId,
+                organizationIdOf(project.getWorkspaceId()), actorId
         )));
         log.info("Removed project member id={} project={}", memberId, projectId);
     }
@@ -307,6 +312,10 @@ public class ProjectServiceImpl implements ProjectService {
         return roleRepository.findByScopeOrderByNameAsc("PROJECT").stream()
                 .map(RoleResponse::from)
                 .toList();
+    }
+
+    private UUID organizationIdOf(UUID workspaceId) {
+        return requireActiveWorkspace(workspaceId).getOrganizationId();
     }
 
     private Workspace requireActiveWorkspace(UUID workspaceId) {

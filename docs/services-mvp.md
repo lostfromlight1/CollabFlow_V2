@@ -110,10 +110,10 @@ Endpoint catalog: `@ApiId` table below. Narrative reference: [microservice.md](m
 
 | Service | Topics → effect |
 |---------|-----------------|
-| collab | `task.assigned` → notification (+ email stub log); `task.created` → activity; `comment.added` → activity; mentions → in-process `COMMENT_MENTION` notification |
-| realtime | `task.updated`, `comment.added` → Redis rooms → WebSocket broadcast |
+| collab | `task.assigned` → notification (+ email stub log); `task.created` and `comment.added` → activity; platform `organization.*`, `workspace.*`, `project.*` → activity; `task.deleted` → activity (`TASK_DELETED` from the payload); `task.status_changed` → activity plus a `TASK_UPDATED` notification when the assignee is not the actor; mentions → in-process `COMMENT_MENTION` |
+| realtime | `task.updated`, `task.status_changed`, `task.deleted`, `comment.added` → Redis rooms → WebSocket broadcast |
 
-Platform org/workspace/project topics are produced for portfolio/event story; Go does not consume them in MVP.
+`user.created` and `user.updated` are produced and have no consumer on purpose. Account mail is already `email.send` (email-service). A profile change has no organization to attach a side effect to.
 
 ---
 

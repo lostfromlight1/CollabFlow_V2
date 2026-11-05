@@ -23,6 +23,20 @@ type TaskUpdatedData struct {
 	Name      string `json:"name"`
 }
 
+type TaskStatusChangedData struct {
+	TaskID       string `json:"taskId"`
+	ProjectID    string `json:"projectId"`
+	FromStatusID string `json:"fromStatusId"`
+	ToStatusID   string `json:"toStatusId"`
+	Name         string `json:"name"`
+}
+
+type TaskDeletedData struct {
+	TaskID    string `json:"taskId"`
+	ProjectID string `json:"projectId"`
+	Name      string `json:"name"`
+}
+
 type CommentAddedData struct {
 	CommentID  string `json:"commentId"`
 	EntityType string `json:"entityType"`
@@ -52,6 +66,41 @@ func NewTaskUpdatedConsumer(brokersCSV, groupID string, bus *redisx.Bus) *Consum
 		// Clients can subscribe to either room
 		_ = bus.Publish(ctx, "project:"+d.ProjectID, "task.updated", payload)
 		return bus.Publish(ctx, "task:"+d.TaskID, "task.updated", payload)
+	})
+}
+
+func NewTaskStatusChangedConsumer(brokersCSV, groupID string, bus *redisx.Bus) *Consumer {
+	return newConsumer(brokersCSV, groupID, "task.status_changed", bus, func(ctx context.Context, env Envelope) error {
+		var d TaskStatusChangedData
+		if err := json.Unmarshal(env.Data, &d); err != nil {
+			return err
+		}
+		payload := map[string]any{
+			"taskId":       d.TaskID,
+			"projectId":    d.ProjectID,
+			"fromStatusId": d.FromStatusID,
+			"toStatusId":   d.ToStatusID,
+			"name":         d.Name,
+			"eventId":      env.EventID,
+		}
+		_ = bus.Publish(ctx, "project:"+d.ProjectID, "task.status_changed", payload)
+		return bus.Publish(ctx, "task:"+d.TaskID, "task.status_changed", payload)
+	})
+}
+
+func NewTaskDeletedConsumer(brokersCSV, groupID string, bus *redisx.Bus) *Consumer {
+	return newConsumer(brokersCSV, groupID, "task.deleted", bus, func(ctx context.Context, env Envelope) error {
+		var d TaskDeletedData
+		if err := json.Unmarshal(env.Data, &d); err != nil {
+			return err
+		}
+		payload := map[string]any{
+			"taskId":    d.TaskID,
+			"projectId": d.ProjectID,
+			"name":      d.Name,
+			"eventId":   env.EventID,
+		}
+		return bus.Publish(ctx, "project:"+d.ProjectID, "task.deleted", payload)
 	})
 }
 

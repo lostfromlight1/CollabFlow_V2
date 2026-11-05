@@ -36,10 +36,10 @@ type CreateInvitationInput struct {
 }
 
 type InvitationService struct {
-	repo       *repository.InvitationRepository
-	platform   *platform.Client
-	producer   *kafka.Producer
-	appPublic  string
+	repo      *repository.InvitationRepository
+	platform  *platform.Client
+	producer  *kafka.Producer
+	appPublic string
 }
 
 func NewInvitationService(
@@ -79,6 +79,9 @@ func (s *InvitationService) Create(ctx context.Context, actorID uuid.UUID, in Cr
 		}
 	default:
 		return nil, fmt.Errorf("invalid invitationType")
+	}
+	if err := s.requireManage(ctx, actorID, in.OrganizationID, in.WorkspaceID, in.ProjectID, typ); err != nil {
+		return nil, err
 	}
 
 	token, err := randomToken(32)
@@ -142,7 +145,7 @@ func (s *InvitationService) GetByToken(ctx context.Context, token string) (*mode
 	return inv, nil
 }
 
-func (s *InvitationService) ListMine(ctx context.Context, userID uuid.UUID, email string, orgID *uuid.UUID, page, size int) ([]model.Invitation, int64, error) {
+func (s *InvitationService) ListMine(ctx context.Context, userID uuid.UUID, email string, page, size int) ([]model.Invitation, int64, error) {
 	if email == "" {
 		u, err := s.repo.FindUser(ctx, userID)
 		if err != nil {
@@ -150,11 +153,30 @@ func (s *InvitationService) ListMine(ctx context.Context, userID uuid.UUID, emai
 		}
 		email = u.Email
 	}
-	return s.repo.ListByEmail(ctx, strings.ToLower(email), orgID, page, size)
+	return s.repo.ListByEmail(ctx, strings.ToLower(email), page, size)
 }
 
-func (s *InvitationService) ListByOrg(ctx context.Context, orgID uuid.UUID, page, size int) ([]model.Invitation, int64, error) {
+func (s *InvitationService) ListByOrg(ctx context.Context, actorID, orgID uuid.UUID, page, size int) ([]model.Invitation, int64, error) {
+	if err := s.requireManage(ctx, actorID, orgID, nil, nil, model.InviteTypeOrg); err != nil {
+		return nil, 0, err
+	}
 	return s.repo.ListByOrg(ctx, orgID, page, size)
+}
+
+func (s *InvitationService) requireManage(
+	ctx context.Context,
+	actorID, organizationID uuid.UUID,
+	workspaceID, projectID *uuid.UUID,
+	invitationType string,
+) error {
+	ok, err := s.repo.CallerCanManage(ctx, actorID, organizationID, workspaceID, projectID, invitationType)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrInviteForbidden
+	}
+	return nil
 }
 
 // Accept validates the invite, calls platform membership APIs (not shared-DB writes), then marks ACCEPTED.
@@ -220,7 +242,17 @@ func (s *InvitationService) Decline(ctx context.Context, userID uuid.UUID, email
 		}
 		return err
 	}
-	if err := s.ensureAcceptable(ctx, inv, email); err != nil {
+	s.expireIfNeeded(ctx, inv)
+	if inv.Status == model.InviteExpired {
+		return ErrInviteExpired
+	}
+	if inv.Status != model.InvitePending {
+		return ErrInviteNotPending
+	}
+	if email != "" && strings.EqualFold(email, inv.Email) {
+		return s.repo.UpdateStatus(ctx, inv.ID, model.InviteDeclined)
+	}
+	if err := s.requireManage(ctx, userID, inv.OrganizationID, inv.WorkspaceID, inv.ProjectID, inv.InvitationType); err != nil {
 		return err
 	}
 	return s.repo.UpdateStatus(ctx, inv.ID, model.InviteDeclined)

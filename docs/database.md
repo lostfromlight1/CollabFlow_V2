@@ -1087,7 +1087,7 @@ Active banner: `is_active` and `now` between `starts_at` (or unbounded) and `end
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | id | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Unique activity identifier |
-| action_type | VARCHAR(50) | NOT NULL, CHECK (action_type IN ('TASK_CREATED', 'TASK_UPDATED', 'TASK_ASSIGNED', 'TASK_DELETED', 'COMMENT_ADDED', 'MEMBER_JOINED', 'MEMBER_LEFT', 'PROJECT_CREATED', 'SPRINT_STARTED', 'DOCUMENT_UPLOADED')) | Action type |
+| action_type | VARCHAR(50) | NOT NULL, CHECK (action_type IN ('TASK_CREATED', 'TASK_UPDATED', 'TASK_ASSIGNED', 'TASK_DELETED', 'COMMENT_ADDED', 'MEMBER_JOINED', 'MEMBER_LEFT', 'PROJECT_CREATED', 'PROJECT_UPDATED', 'PROJECT_DELETED', 'ORGANIZATION_CREATED', 'ORGANIZATION_UPDATED', 'ORGANIZATION_DELETED', 'WORKSPACE_CREATED', 'WORKSPACE_UPDATED', 'WORKSPACE_DELETED', 'SPRINT_STARTED', 'DOCUMENT_UPLOADED')) | Action type. GORM does not enforce this list; collab writes the new organization, workspace, and project values. |
 | entity_type | VARCHAR(20) | NOT NULL, CHECK (entity_type IN ('TASK', 'PROJECT', 'WORKSPACE', 'DOCUMENT', 'SPRINT', 'ORGANIZATION')) | Affected entity type |
 | entity_id | UUID | NOT NULL | Affected entity ID |
 | organization_id | UUID | FOREIGN KEY (organizations.id), NOT NULL, ON DELETE CASCADE | Organization |

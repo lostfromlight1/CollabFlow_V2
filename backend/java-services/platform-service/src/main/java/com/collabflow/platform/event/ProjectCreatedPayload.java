@@ -6,5 +6,7 @@ public record ProjectCreatedPayload(
         UUID projectId,
         UUID workspaceId,
         String name,
-        UUID ownerId
+        UUID ownerId,
+        UUID organizationId,
+        UUID actorId
 ) {}

@@ -7,5 +7,7 @@ public record ProjectMemberAddedPayload(
         UUID workspaceId,
         UUID userId,
         UUID roleId,
-        UUID membershipId
+        UUID membershipId,
+        UUID organizationId,
+        UUID actorId
 ) {}

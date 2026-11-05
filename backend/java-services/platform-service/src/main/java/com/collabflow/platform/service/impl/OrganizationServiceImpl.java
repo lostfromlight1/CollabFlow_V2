@@ -148,10 +148,10 @@ public class OrganizationServiceImpl implements OrganizationService {
         workspaceService.createDefaultForOrganization(org.getId(), ownerUserId);
 
         events.publishEvent(new OrganizationCreatedDomainEvent(
-                new OrganizationCreatedPayload(org.getId(), org.getName(), org.getSlug(), ownerUserId)
+                new OrganizationCreatedPayload(org.getId(), org.getName(), org.getSlug(), ownerUserId, actorId)
         ));
         events.publishEvent(new MemberAddedDomainEvent(
-                new MemberAddedPayload(org.getId(), ownerUserId, ownerRole.getId(), owner.getId())
+                new MemberAddedPayload(org.getId(), ownerUserId, ownerRole.getId(), owner.getId(), actorId)
         ));
 
         log.info("Created organization id={} slug={} owner={}", org.getId(), slug, ownerUserId);
@@ -211,7 +211,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             org.setLogoUrl(request.logoUrl());
         }
         events.publishEvent(new OrganizationUpdatedDomainEvent(
-                new OrganizationUpdatedPayload(org.getId(), org.getName(), org.getSlug())
+                new OrganizationUpdatedPayload(org.getId(), org.getName(), org.getSlug(), userId)
         ));
         log.info("Updated organization id={}", organizationId);
         return OrganizationResponse.from(org);
@@ -225,7 +225,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Organization org = requireActiveOrg(organizationId);
         org.setActive(false);
         events.publishEvent(new OrganizationDeletedDomainEvent(
-                new OrganizationDeletedPayload(organizationId)
+                new OrganizationDeletedPayload(organizationId, userId)
         ));
         log.info("Soft-deleted organization id={}", organizationId);
     }
@@ -256,7 +256,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         } else if (!SystemRoles.ORGANIZATION_MEMBER.equals(request.roleId())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "Self-join allows Organization Member role only");
         }
-        return addMemberInternal(organizationId, request);
+        return addMemberInternal(organizationId, actorId, request);
     }
 
     @Override
@@ -265,13 +265,13 @@ public class OrganizationServiceImpl implements OrganizationService {
         log.info("Admin attach member orgId={} admin={} newUser={} roleId={}",
                 organizationId, adminId, request.userId(), request.roleId());
         requireMasterAdmin(adminId);
-        MemberResponse member = addMemberInternal(organizationId, request);
+        MemberResponse member = addMemberInternal(organizationId, adminId, request);
         auditWriter.write(adminId, "ORG_MEMBER_ATTACHED", "ORGANIZATION", organizationId,
                 "{\"userId\":\"" + request.userId() + "\"}");
         return member;
     }
 
-    private MemberResponse addMemberInternal(UUID organizationId, AddMemberRequest request) {
+    private MemberResponse addMemberInternal(UUID organizationId, UUID actorId, AddMemberRequest request) {
         Organization org = requireActiveOrg(organizationId);
 
         if (!userRefRepository.existsByIdAndActiveTrue(request.userId())) {
@@ -297,7 +297,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         memberRepository.save(member);
 
         events.publishEvent(new MemberAddedDomainEvent(
-                new MemberAddedPayload(organizationId, request.userId(), role.getId(), member.getId())
+                new MemberAddedPayload(organizationId, request.userId(), role.getId(), member.getId(), actorId)
         ));
         log.info("Added member id={} orgId={} userId={}", member.getId(), organizationId, request.userId());
         return view(member);
@@ -344,7 +344,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         UUID removedUserId = member.getUserId();
         memberRepository.delete(member);
         events.publishEvent(new MemberRemovedDomainEvent(
-                new MemberRemovedPayload(organizationId, removedUserId, memberId)
+                new MemberRemovedPayload(organizationId, removedUserId, memberId, actorId)
         ));
         log.info("Removed member id={} orgId={}", memberId, organizationId);
     }
@@ -408,7 +408,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         org.setOwnerId(newOwnerUserId);
 
         events.publishEvent(new OrganizationUpdatedDomainEvent(
-                new OrganizationUpdatedPayload(org.getId(), org.getName(), org.getSlug())
+                new OrganizationUpdatedPayload(org.getId(), org.getName(), org.getSlug(), actorId)
         ));
         log.info("Transferred ownership orgId={} newOwner={}", organizationId, newOwnerUserId);
         return OrganizationResponse.from(org);

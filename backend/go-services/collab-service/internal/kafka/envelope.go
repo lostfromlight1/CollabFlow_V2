@@ -54,6 +54,21 @@ type CommentAddedData struct {
 	AuthorID   string `json:"authorId"`
 }
 
+// ScopeEventData is the shared shape for platform and task side-effect topics.
+// Java records omit fields they do not have; missing strings stay empty.
+type ScopeEventData struct {
+	OrganizationID string `json:"organizationId"`
+	WorkspaceID    string `json:"workspaceId"`
+	ProjectID      string `json:"projectId"`
+	TaskID         string `json:"taskId"`
+	Name           string `json:"name"`
+	ActorID        string `json:"actorId"`
+	UserID         string `json:"userId"`
+	FromStatusID   string `json:"fromStatusId"`
+	ToStatusID     string `json:"toStatusId"`
+	Slug           string `json:"slug"`
+}
+
 // EmailSendData matches auth EmailSendPayload (Java DomainEvent.data).
 type EmailSendData struct {
 	To            string `json:"to"`

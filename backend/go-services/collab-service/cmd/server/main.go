@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"os"
 	"os/signal"
@@ -62,6 +63,43 @@ func main() {
 	go assignedConsumer.Run(ctx)
 	go createdConsumer.Run(ctx)
 	go commentConsumer.Run(ctx)
+
+	// One reader per topic. Same group id is fine: Kafka groups are per topic.
+	// task.status_changed also writes a notification when the assignee is someone else.
+	scopeTopics := []string{
+		"organization.created", "organization.updated", "organization.deleted",
+		"organization.member_added", "organization.member_removed",
+		"workspace.created", "workspace.updated", "workspace.deleted",
+		"workspace.member_added", "workspace.member_removed",
+		"project.created", "project.updated", "project.deleted",
+		"project.member_added", "project.member_removed",
+		"task.deleted", "task.status_changed",
+	}
+	scopeConsumers := make([]*kafka.Consumer, 0, len(scopeTopics))
+	for _, topic := range scopeTopics {
+		topic := topic
+		c := kafka.NewJSONConsumer(cfg.KafkaBrokers, cfg.KafkaGroupID, topic, func(ctx context.Context, env kafka.Envelope) error {
+			var data kafka.ScopeEventData
+			if err := json.Unmarshal(env.Body(), &data); err != nil {
+				return err
+			}
+			if err := activityService.HandleScoped(ctx, topic, env, data); err != nil {
+				return err
+			}
+			if topic == "task.status_changed" {
+				return notifService.HandleStatusChanged(ctx, env, data)
+			}
+			return nil
+		})
+		scopeConsumers = append(scopeConsumers, c)
+		go c.Run(ctx)
+	}
+	defer func() {
+		for _, c := range scopeConsumers {
+			c.Close()
+		}
+	}()
+
 	if cfg.EmailServiceEnabled {
 		log.Printf("EMAIL_SERVICE_ENABLED=true — skipping collab email.send stub (use email-service SMTP)")
 	} else {

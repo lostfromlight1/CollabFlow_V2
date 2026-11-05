@@ -5,5 +5,6 @@ import java.util.UUID;
 public record MemberRemovedPayload(
         UUID organizationId,
         UUID userId,
-        UUID membershipId
+        UUID membershipId,
+        UUID actorId
 ) {}

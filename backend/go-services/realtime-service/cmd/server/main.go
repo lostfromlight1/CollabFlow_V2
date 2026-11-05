@@ -41,10 +41,16 @@ func main() {
 	go bus.SubscribeAll(ctx)
 
 	taskConsumer := kafka.NewTaskUpdatedConsumer(cfg.KafkaBrokers, cfg.KafkaGroupID, bus)
+	statusConsumer := kafka.NewTaskStatusChangedConsumer(cfg.KafkaBrokers, cfg.KafkaGroupID, bus)
+	deletedConsumer := kafka.NewTaskDeletedConsumer(cfg.KafkaBrokers, cfg.KafkaGroupID, bus)
 	commentConsumer := kafka.NewCommentAddedConsumer(cfg.KafkaBrokers, cfg.KafkaGroupID, bus)
 	defer taskConsumer.Close()
+	defer statusConsumer.Close()
+	defer deletedConsumer.Close()
 	defer commentConsumer.Close()
 	go taskConsumer.Run(ctx)
+	go statusConsumer.Run(ctx)
+	go deletedConsumer.Run(ctx)
 	go commentConsumer.Run(ctx)
 
 	ws := handler.NewWSHandler(h, bus, aclChecker, cfg.JWTSecret)

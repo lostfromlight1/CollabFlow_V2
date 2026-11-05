@@ -24,6 +24,12 @@ export default function InvitePage() {
       .catch((e) => setError(e instanceof ApiError ? e.message : "Invite not found"));
   }, [params.token]);
 
+  const returnTo = `/invite/${params.token}`;
+  const loginHref = `/login?next=${encodeURIComponent(returnTo)}`;
+  const registerHref = invite
+    ? `/register?email=${encodeURIComponent(invite.email)}&next=${encodeURIComponent(returnTo)}`
+    : `/register?next=${encodeURIComponent(returnTo)}`;
+
   return (
     <AuthShell>
       <Card className="border-border/60 shadow-sm">
@@ -41,7 +47,7 @@ export default function InvitePage() {
               type="button"
               onClick={() => {
                 if (!getSession()) {
-                  router.push(`/login`);
+                  router.push(loginHref);
                   return;
                 }
                 void acceptInvitation(params.token)
@@ -55,8 +61,11 @@ export default function InvitePage() {
               Accept invitation
             </Button>
           ) : null}
-          <Link href="/login" className="interactive-hover-link block text-sm text-muted-foreground">
+          <Link href={loginHref} className="interactive-hover-link block text-sm text-muted-foreground">
             Sign in first
+          </Link>
+          <Link href={registerHref} className="interactive-hover-link block text-sm text-muted-foreground">
+            Create an account with this email
           </Link>
         </CardContent>
       </Card>

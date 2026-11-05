@@ -6,5 +6,9 @@ public record TaskStatusChangedPayload(
         UUID taskId,
         UUID projectId,
         UUID fromStatusId,
-        UUID toStatusId
+        UUID toStatusId,
+        UUID actorId,
+        UUID organizationId,
+        UUID workspaceId,
+        String name
 ) {}

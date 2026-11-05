@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { getMyProfile, register as registerAccount } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
-import { persistAuth, postAuthPath } from "@/lib/auth/routing";
+import { persistAuth, postAuthPath, inviteReturnPath } from "@/lib/auth/routing";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required").max(255),
@@ -25,10 +25,15 @@ const schema = z.object({
 export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const { register, handleSubmit, formState } = useForm({
+  const { register, handleSubmit, setValue, formState } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { name: "", email: "", password: "" },
   });
+
+  useEffect(() => {
+    const email = new URLSearchParams(window.location.search).get("email");
+    if (email) setValue("email", email);
+  }, [setValue]);
 
   const onSubmit = handleSubmit(
     async (values) => {
@@ -48,7 +53,8 @@ export default function RegisterPage() {
           name: profile?.name ?? auth.name,
           masterAdmin: profile?.masterAdmin ?? false,
         });
-        router.replace(postAuthPath(session.user, auth));
+        const next = inviteReturnPath(new URLSearchParams(window.location.search).get("next"));
+        router.replace(next ?? postAuthPath(session.user, auth));
       } catch (e) {
         setError(e instanceof ApiError ? e.message : "Registration failed");
       }
